@@ -10,15 +10,17 @@ This skill provides tools to add structured evaluation results to Hugging Face m
 - **Model Cards**: Updates model-index metadata for leaderboard integration
 - **Artificial Analysis**: Direct API integration for benchmark imports
 - **Papers with Code**: Compatible with their model-index specification
+- **Jobs**: Run evaluations directly on Hugging Face Jobs with `uv` integration
 
 # Version
-1.0.0
+1.2.0
 
 # Dependencies
-- huggingface_hub>=1.1.4
+- huggingface_hub>=0.26.0
 - python-dotenv>=1.2.1
 - pyyaml>=6.0.3
 - requests>=2.32.5
+- inspect-ai>=0.3.0
 - re (built-in)
 
 # Core Capabilities
@@ -41,12 +43,19 @@ This skill provides tools to add structured evaluation results to Hugging Face m
 - **Validation**: Ensure compliance with Papers with Code specification
 - **Batch Operations**: Process multiple models efficiently
 
+## 4. Run Evaluations on HF Jobs
+- **Inspect-AI Integration**: Run standard evaluations using the `inspect-ai` library
+- **UV Integration**: Seamlessly run Python scripts with ephemeral dependencies on HF infrastructure
+- **Zero-Config**: No Dockerfiles or Space management required
+- **Hardware Selection**: Configure CPU or GPU hardware for the evaluation job
+- **Secure Execution**: Handles API tokens safely via secrets passed through the CLI
+
 # Usage Instructions
 
-The skill includes a Python script `scripts/evaluation_manager.py` to perform operations.
+The skill includes Python scripts in `scripts/` to perform operations.
 
 ### Prerequisites
-- Install dependencies: `uv add huggingface_hub python-dotenv pyyaml requests`
+- Install dependencies: `uv add huggingface_hub python-dotenv pyyaml inspect-ai`
 - Set `HF_TOKEN` environment variable with Write-access token
 - For Artificial Analysis: Set `AA_API_KEY` environment variable
 - Activate virtual environment: `source .venv/bin/activate`
@@ -134,6 +143,38 @@ python scripts/evaluation_manager.py import-aa \
   --create-pr
 ```
 
+### Method 3: Run Evaluation Job
+
+Submit an evaluation job on Hugging Face infrastructure using the `hf jobs uv run` CLI.
+
+**Direct CLI Usage:**
+```bash
+HF_TOKEN=$HF_TOKEN \
+hf jobs uv run hf_model_evaluation/scripts/inspect_eval_uv.py \
+  --flavor cpu-basic \
+  --secret HF_TOKEN=$HF_TOKEN \
+  -- --model "meta-llama/Llama-2-7b-hf" \
+     --task "mmlu"
+```
+
+**GPU Example (A10G):**
+```bash
+HF_TOKEN=$HF_TOKEN \
+hf jobs uv run hf_model_evaluation/scripts/inspect_eval_uv.py \
+  --flavor a10g-small \
+  --secret HF_TOKEN=$HF_TOKEN \
+  -- --model "meta-llama/Llama-2-7b-hf" \
+     --task "gsm8k"
+```
+
+**Python Helper (optional):**
+```bash
+python scripts/run_eval_job.py \
+  --model "meta-llama/Llama-2-7b-hf" \
+  --task "mmlu" \
+  --hardware "t4-small"
+```
+
 ### Commands Reference
 
 **List Available Commands:**
@@ -170,6 +211,24 @@ python scripts/evaluation_manager.py show \
 ```bash
 python scripts/evaluation_manager.py validate \
   --repo-id "username/model-name"
+```
+
+**Run Evaluation Job:**
+```bash
+hf jobs uv run hf_model_evaluation/scripts/inspect_eval_uv.py \
+  --flavor "cpu-basic|t4-small|..." \
+  --secret HF_TOKEN=$HF_TOKEN \
+  -- --model "model-id" \
+     --task "task-name"
+```
+
+or use the Python helper:
+
+```bash
+python scripts/run_eval_job.py \
+  --model "model-id" \
+  --task "task-name" \
+  --hardware "cpu-basic|t4-small|..."
 ```
 
 ### Model-Index Format
@@ -238,6 +297,7 @@ done < models.txt
 - **API Errors**: Retry logic for transient Artificial Analysis API failures
 - **Token Issues**: Validation before attempting updates
 - **Merge Conflicts**: Preserves existing model-index entries when adding new ones
+- **Space Creation**: Handles naming conflicts and hardware request failures gracefully
 
 ### Best Practices
 
@@ -246,6 +306,7 @@ done < models.txt
 3. **Source Attribution**: Include source information for traceability
 4. **Regular Updates**: Keep evaluation scores current as new benchmarks emerge
 5. **Create PRs for Others**: Use `--create-pr` when updating models you don't own
+6. **Monitor Costs**: Evaluation Jobs are billed by usage. Ensure you check running jobs and costs.
 
 ### Common Patterns
 
@@ -288,6 +349,9 @@ python scripts/evaluation_manager.py import-aa \
 
 **Issue**: "Model not found in Artificial Analysis"
 - **Solution**: Verify creator-slug and model-name match API values
+
+**Issue**: "Payment required for hardware"
+- **Solution**: Add a payment method to your Hugging Face account to use non-CPU hardware
 
 ### Integration Examples
 
