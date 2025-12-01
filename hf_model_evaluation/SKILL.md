@@ -44,7 +44,7 @@ Key workflow (matches CLI help):
 - **Parse Markdown Tables**: Accurate parsing using markdown-it-py (ignores code blocks and examples)
 - **Table Selection**: Use `--table N` to extract from a specific table (required when multiple tables exist)
 - **Format Detection**: Recognize common formats (benchmarks as rows, columns, or comparison tables with multiple models)
-- **Column Matching**: Automatically identify model columns/rows; choose explicitly with `--model-name-override` (by text) or `--model-column-index` (by index from inspect output)
+- **Column Matching**: Automatically identify model columns/rows; prefer `--model-column-index` (index from inspect output). Use `--model-name-override` only with exact column header text.
 - **YAML Generation**: Convert selected table to model-index YAML format
 - **Task Typing**: `--task-type` sets the `task.type` field in model-index output (e.g., `text-generation`, `summarization`)
 
@@ -89,8 +89,8 @@ uv run scripts/evaluation_manager.py inspect-tables --repo-id "username/model"
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "username/model" \
   --table 1 \
-  [--model-name-override "<column header/model name>" | --model-column-index <column index>] \
-  [--model-column-index <column index shown by inspect-tables>]
+  [--model-column-index <column index shown by inspect-tables>] \
+  [--model-name-override "<column header/model name>"]  # use exact header text if you can't use the index
 
 # 3) Apply changes (push or PR)
 uv run scripts/evaluation_manager.py extract-readme \
@@ -106,7 +106,7 @@ uv run scripts/evaluation_manager.py extract-readme \
 
 Validation checklist:
 - YAML is printed by default; compare against the README table before applying.
-- Use `--model-name-override` **or** `--model-column-index` when your model column/row is not an exact match.
+- Prefer `--model-column-index`; if using `--model-name-override`, the column header text must be exact.
 - For transposed tables (models as rows), ensure only one row is extracted.
 
 ### Method 2: Import from Artificial Analysis
@@ -193,7 +193,8 @@ uv run scripts/evaluation_manager.py inspect-tables --repo-id "username/model-na
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "username/model-name" \
   --table N \
-  [--model-name-override "Column Header or Model Name" | --model-column-index N] \
+  [--model-column-index N] \
+  [--model-name-override "Exact Column Header or Model Name"] \
   [--task-type "text-generation"] \
   [--dataset-name "Custom Benchmarks"] \
   [--apply | --create-pr]

@@ -1127,24 +1127,23 @@ def main():
             """\
             Examples:
               uv run scripts/evaluation_manager.py extract-readme --repo-id username/model
-              uv run scripts/evaluation_manager.py extract-readme --repo-id username/model --table 2 --model-name-override \"**Model 7B**\" --dry-run
+              uv run scripts/evaluation_manager.py extract-readme --repo-id username/model --table 2 --model-column-index 3
+              uv run scripts/evaluation_manager.py extract-readme --repo-id username/model --table 2 --model-name-override \"**Model 7B**\"  # exact header text
               uv run scripts/evaluation_manager.py extract-readme --repo-id username/model --table 2 --create-pr
 
             Apply changes:
               - Default: prints YAML to stdout (no writes).
               - Add --apply to push directly, or --create-pr to open a PR.
             Model selection:
-              - Use --table N (from inspect-tables) plus either:
-                  --model-name-override \"<column header/model name>\"
-                or
-                  --model-column-index <header index shown by inspect-tables>
+              - Preferred: --model-column-index <header index shown by inspect-tables>
+              - If using --model-name-override, copy the column header text exactly.
             """
         ),
     )
     extract_parser.add_argument("--repo-id", type=str, required=True, help="HF repository ID")
     extract_parser.add_argument("--table", type=int, help="Table number (1-indexed, from inspect-tables output)")
-    extract_parser.add_argument("--model-name-override", type=str, help="Column header for comparison/transpose tables")
-    extract_parser.add_argument("--model-column-index", type=int, help="Column index from inspect-tables output (use instead of --model-name-override)")
+    extract_parser.add_argument("--model-column-index", type=int, help="Preferred: column index from inspect-tables output (exact selection)")
+    extract_parser.add_argument("--model-name-override", type=str, help="Exact column header/model name for comparison/transpose tables (when index is not used)")
     extract_parser.add_argument("--task-type", type=str, default="text-generation", help="Sets model-index task.type (e.g., text-generation, summarization)")
     extract_parser.add_argument("--dataset-name", type=str, default="Benchmarks", help="Dataset name")
     extract_parser.add_argument("--dataset-type", type=str, default="benchmark", help="Dataset type")
@@ -1203,7 +1202,7 @@ Workflow:
   3. apply changes      → rerun extract-readme with --apply or --create-pr
 
 Reminder:
-  - If your model column/row is not an exact match, add --model-name-override "<column header/model name from table>" or --model-column-index <index>
+  - Preferred: use --model-column-index <index>. If needed, use --model-name-override with the exact column header text.
 """
     )
     inspect_parser.add_argument("--repo-id", type=str, required=True, help="HF repository ID")
@@ -1244,6 +1243,8 @@ Reminder:
             )
 
             if apply_changes:
+                if args.model_name_override and args.model_column_index is not None:
+                    print("Note: --model-column-index takes precedence over --model-name-override.")
                 update_model_card_with_evaluations(
                     repo_id=args.repo_id,
                     results=results,
