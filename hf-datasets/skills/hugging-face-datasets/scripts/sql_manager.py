@@ -1,4 +1,13 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "duckdb>=1.0.0",
+#   "huggingface_hub>=0.20.0",
+#   "datasets>=2.14.0",
+#   "pandas>=2.0.0",
+# ]
+# ///
 """
 Hugging Face Dataset SQL Manager
 
@@ -8,43 +17,34 @@ pushing results back to the Hub.
 
 Version: 1.0.0
 
-Dependencies:
-    - duckdb
-    - huggingface_hub
-    - pandas (optional, for DataFrame output)
-    - datasets (for pushing to Hub)
-
 Usage:
     # Query a dataset
-    python sql_manager.py query --dataset "cais/mmlu" --sql "SELECT * FROM data LIMIT 10"
+    uv run sql_manager.py query --dataset "cais/mmlu" --sql "SELECT * FROM data LIMIT 10"
     
     # Query and push to new dataset
-    python sql_manager.py query --dataset "cais/mmlu" --sql "SELECT * FROM data WHERE subject='nutrition'" \
+    uv run sql_manager.py query --dataset "cais/mmlu" --sql "SELECT * FROM data WHERE subject='nutrition'" \
         --push-to "username/nutrition-subset"
     
     # Describe dataset schema
-    python sql_manager.py describe --dataset "cais/mmlu"
+    uv run sql_manager.py describe --dataset "cais/mmlu"
     
     # List available splits/configs
-    python sql_manager.py info --dataset "cais/mmlu"
+    uv run sql_manager.py info --dataset "cais/mmlu"
+    
+    # Get random sample
+    uv run sql_manager.py sample --dataset "cais/mmlu" --n 5
+    
+    # Export to parquet
+    uv run sql_manager.py export --dataset "cais/mmlu" --output "data.parquet"
 """
 
 import os
 import json
 import argparse
-import tempfile
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Union, Tuple
+from typing import Optional, List, Dict, Any, Union
 
-try:
-    import duckdb
-except ImportError:
-    raise ImportError("duckdb is required. Install with: pip install duckdb")
-
-try:
-    from huggingface_hub import HfApi, hf_hub_download
-except ImportError:
-    raise ImportError("huggingface_hub is required. Install with: pip install huggingface_hub")
+import duckdb
+from huggingface_hub import HfApi
 
 
 # Configuration

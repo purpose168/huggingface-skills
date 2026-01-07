@@ -1,4 +1,10 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S uv run
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#   "huggingface_hub>=0.20.0",
+# ]
+# ///
 """
 Hugging Face Dataset Manager
 
@@ -7,6 +13,13 @@ the HF MCP server. Provides dataset creation, configuration, and content
 management capabilities optimized for conversational AI training data.
 
 Version: 2.0.0
+
+Usage:
+    uv run dataset_manager.py init --repo_id username/dataset-name
+    uv run dataset_manager.py quick_setup --repo_id username/dataset-name --template chat
+    uv run dataset_manager.py add_rows --repo_id username/dataset-name --rows_json '[{"messages": [...]}]'
+    uv run dataset_manager.py stats --repo_id username/dataset-name
+    uv run dataset_manager.py list_templates
 """
 
 import os
@@ -65,9 +78,7 @@ def define_config(repo_id, system_prompt=None, token=None):
     """
     api = HfApi(token=token)
 
-    config_data = {
-        "dataset_config": {"version": "1.0", "created_at": time.time()}
-    }
+    config_data = {"dataset_config": {"version": "1.0", "created_at": time.time()}}
 
     if system_prompt:
         config_data["system_prompt"] = system_prompt
@@ -87,9 +98,7 @@ def load_dataset_template(template_name: str) -> Dict[str, Any]:
     """Load dataset template configuration from templates directory."""
     template_path = EXAMPLES_DIR.parent / "templates" / f"{template_name}.json"
     if not template_path.exists():
-        available_templates = [
-            f.stem for f in (EXAMPLES_DIR.parent / "templates").glob("*.json")
-        ]
+        available_templates = [f.stem for f in (EXAMPLES_DIR.parent / "templates").glob("*.json")]
         print(f"❌ Template '{template_name}' not found.")
         print(f"Available templates: {', '.join(available_templates)}")
         return {}
@@ -98,9 +107,7 @@ def load_dataset_template(template_name: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def validate_by_template(
-    rows: List[Dict[str, Any]], template: Dict[str, Any]
-) -> bool:
+def validate_by_template(rows: List[Dict[str, Any]], template: Dict[str, Any]) -> bool:
     """Validate data according to template schema."""
     if not template:
         return False
@@ -120,9 +127,7 @@ def validate_by_template(
         # Validate field types
         for field, expected_type in field_types.items():
             if field in row:
-                if not _validate_field_type(
-                    row[field], expected_type, f"Row {i}, field '{field}'"
-                ):
+                if not _validate_field_type(row[field], expected_type, f"Row {i}, field '{field}'"):
                     return False
 
         # Template-specific validation
@@ -150,9 +155,7 @@ def _validate_field_type(value: Any, expected_type: str, context: str) -> bool:
     if expected_type.startswith("enum:"):
         valid_values = expected_type[5:].split(",")
         if value not in valid_values:
-            print(
-                f"{context}: Invalid value '{value}'. Must be one of: {valid_values}"
-            )
+            print(f"{context}: Invalid value '{value}'. Must be one of: {valid_values}")
             return False
     elif expected_type == "array" and not isinstance(value, list):
         print(f"{context}: Expected array, got {type(value).__name__}")
@@ -183,9 +186,7 @@ def _validate_chat_format(row: Dict[str, Any], row_index: int) -> bool:
             print(f"Row {row_index}, message {j}: Must be an object")
             return False
         if "role" not in msg or msg["role"] not in valid_roles:
-            print(
-                f"Row {row_index}, message {j}: Invalid role. Use: {valid_roles}"
-            )
+            print(f"Row {row_index}, message {j}: Invalid role. Use: {valid_roles}")
             return False
         if "content" not in msg:
             print(f"Row {row_index}, message {j}: Missing 'content' field")
@@ -194,9 +195,7 @@ def _validate_chat_format(row: Dict[str, Any], row_index: int) -> bool:
     return True
 
 
-def _validate_classification_format(
-    row: Dict[str, Any], row_index: int
-) -> bool:
+def _validate_classification_format(row: Dict[str, Any], row_index: int) -> bool:
     """Validate classification-specific format."""
     if "text" not in row:
         print(f"Row {row_index}: Missing 'text' field")
@@ -230,18 +229,14 @@ def _validate_tabular_format(row: Dict[str, Any], row_index: int) -> bool:
     return True
 
 
-def validate_training_data(
-    rows: List[Dict[str, Any]], template_name: str = "chat"
-) -> bool:
+def validate_training_data(rows: List[Dict[str, Any]], template_name: str = "chat") -> bool:
     """
     Validate training data structure according to template.
     Supports multiple dataset types with appropriate validation.
     """
     template = load_dataset_template(template_name)
     if not template:
-        print(
-            f"❌ Could not load template '{template_name}', falling back to basic validation"
-        )
+        print(f"❌ Could not load template '{template_name}', falling back to basic validation")
         return _basic_validation(rows)
 
     return validate_by_template(rows, template)
@@ -319,9 +314,7 @@ def load_template(template_name: str = "system_prompt_template.txt") -> str:
         return ""
 
 
-def quick_setup(
-    repo_id: str, template_type: str = "chat", token: Optional[str] = None
-) -> None:
+def quick_setup(repo_id: str, template_type: str = "chat", token: Optional[str] = None) -> None:
     """
     Quick setup for different dataset types using templates.
 
@@ -353,18 +346,14 @@ def quick_setup(
         print(f"✅ Added {len(examples)} example(s) from template")
 
     print(f"✅ Quick setup complete for {repo_id}")
-    print(
-        f"📊 Dataset type: {template_config.get('description', 'No description')}"
-    )
+    print(f"📊 Dataset type: {template_config.get('description', 'No description')}")
 
     # Show next steps
     print(f"\n📋 Next steps:")
     print(
         f"1. Add more data: python scripts/dataset_manager.py add_rows --repo_id {repo_id} --template {template_type} --rows_json 'your_data.json'"
     )
-    print(
-        f"2. View stats: python scripts/dataset_manager.py stats --repo_id {repo_id}"
-    )
+    print(f"2. View stats: python scripts/dataset_manager.py stats --repo_id {repo_id}")
     print(f"3. Explore at: https://huggingface.co/datasets/{repo_id}")
 
 
@@ -439,28 +428,18 @@ if __name__ == "__main__":
 
     # Init command
     init_parser = subparsers.add_parser("init", help="Initialize a new dataset")
-    init_parser.add_argument(
-        "--repo_id", required=True, help="Repository ID (user/repo_name)"
-    )
-    init_parser.add_argument(
-        "--private", action="store_true", help="Make repository private"
-    )
+    init_parser.add_argument("--repo_id", required=True, help="Repository ID (user/repo_name)")
+    init_parser.add_argument("--private", action="store_true", help="Make repository private")
 
     # Config command
     config_parser = subparsers.add_parser("config", help="Setup dataset config")
     config_parser.add_argument("--repo_id", required=True, help="Repository ID")
-    config_parser.add_argument(
-        "--system_prompt", help="System prompt to store in config"
-    )
+    config_parser.add_argument("--system_prompt", help="System prompt to store in config")
 
     # Add rows command
-    add_parser = subparsers.add_parser(
-        "add_rows", help="Add rows to the dataset"
-    )
+    add_parser = subparsers.add_parser("add_rows", help="Add rows to the dataset")
     add_parser.add_argument("--repo_id", required=True, help="Repository ID")
-    add_parser.add_argument(
-        "--split", default="train", help="Dataset split (e.g., train, test)"
-    )
+    add_parser.add_argument("--split", default="train", help="Dataset split (e.g., train, test)")
     add_parser.add_argument(
         "--template",
         default="chat",
@@ -487,9 +466,7 @@ if __name__ == "__main__":
     )
 
     # Quick setup command
-    setup_parser = subparsers.add_parser(
-        "quick_setup", help="Quick setup with template"
-    )
+    setup_parser = subparsers.add_parser("quick_setup", help="Quick setup with template")
     setup_parser.add_argument("--repo_id", required=True, help="Repository ID")
     setup_parser.add_argument(
         "--template",
@@ -506,15 +483,11 @@ if __name__ == "__main__":
     )
 
     # Stats command
-    stats_parser = subparsers.add_parser(
-        "stats", help="Show dataset statistics"
-    )
+    stats_parser = subparsers.add_parser("stats", help="Show dataset statistics")
     stats_parser.add_argument("--repo_id", required=True, help="Repository ID")
 
     # List templates command
-    templates_parser = subparsers.add_parser(
-        "list_templates", help="List available dataset templates"
-    )
+    templates_parser = subparsers.add_parser("list_templates", help="List available dataset templates")
 
     args = parser.parse_args()
 
@@ -525,9 +498,7 @@ if __name__ == "__main__":
     if args.command == "init":
         init_dataset(args.repo_id, token=token, private=args.private)
     elif args.command == "config":
-        define_config(
-            args.repo_id, system_prompt=args.system_prompt, token=token
-        )
+        define_config(args.repo_id, system_prompt=args.system_prompt, token=token)
     elif args.command == "add_rows":
         try:
             rows = json.loads(args.rows_json)
