@@ -3,10 +3,10 @@
 # requires-python = ">=3.10"
 # dependencies = []
 # ///
-"""Generate AGENTS.md from AGENTS_TEMPLATE.md and SKILL.md frontmatter.
+"""根据AGENTS_TEMPLATE.md和SKILL.md前言生成AGENTS.md文件。
 
-Also validates that marketplace.json is in sync with discovered skills,
-and updates the skills table in README.md.
+同时验证marketplace.json是否与发现的技能同步，
+并更新README.md中的技能表格。
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def load_template() -> str:
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:
-    """Parse a minimal YAML-ish frontmatter block without external deps."""
+    """解析最小化的YAML风格前言块，不依赖外部依赖库。"""
     match = re.search(r"^---\s*\n(.*?)\n---\s*", text, re.DOTALL)
     if not match:
         return {}
@@ -47,6 +47,7 @@ def parse_frontmatter(text: str) -> dict[str, str]:
 
 
 def collect_skills() -> list[dict[str, str]]:
+    """收集所有技能信息，从每个skills目录下的SKILL.md文件读取元数据。"""
     skills: list[dict[str, str]] = []
     for skill_md in ROOT.glob("skills/*/SKILL.md"):
         meta = parse_frontmatter(skill_md.read_text(encoding="utf-8"))
@@ -61,12 +62,12 @@ def collect_skills() -> list[dict[str, str]]:
                 "path": str(skill_md.parent.relative_to(ROOT)),
             }
         )
-    # Keep deterministic order for consistent output
+    # 保持确定性顺序以获得一致的输出
     return sorted(skills, key=lambda s: s["name"].lower())
 
 
 def render(template: str, skills: list[dict[str, str]]) -> str:
-    """Very small Mustache-like renderer that only supports a single skills loop."""
+    """非常简单的Mustache模板渲染器，仅支持单个技能循环。"""
     def repl(match: re.Match[str]) -> str:
         block = match.group(1).strip("\n")
         rendered_blocks = []
@@ -79,25 +80,25 @@ def render(template: str, skills: list[dict[str, str]]) -> str:
             rendered_blocks.append(rendered)
         return "\n".join(rendered_blocks)
 
-    # Render loop blocks
+    # 渲染循环块
     content = re.sub(r"{{#skills}}(.*?){{/skills}}", repl, template, flags=re.DOTALL)
     return content
 
 
 def load_marketplace() -> dict:
-    """Load marketplace.json and return parsed structure."""
+    """加载marketplace.json并返回解析后的结构。"""
     if not MARKETPLACE_PATH.exists():
-        raise FileNotFoundError(f"marketplace.json not found at {MARKETPLACE_PATH}")
+        raise FileNotFoundError(f"marketplace.json未在{MARKETPLACE_PATH}找到")
     return json.loads(MARKETPLACE_PATH.read_text(encoding="utf-8"))
 
 
 def generate_readme_table(skills: list[dict[str, str]]) -> str:
-    """Generate the skills table for README.md using marketplace.json names."""
+    """使用marketplace.json中的名称生成README.md的技能表格。"""
     marketplace = load_marketplace()
     plugins = {p["source"]: p for p in marketplace.get("plugins", [])}
 
     lines = [
-        "| Name | Description | Documentation |",
+        "| 名称 | 描述 | 文档 |",
         "|------|-------------|---------------|",
     ]
 
@@ -114,11 +115,11 @@ def generate_readme_table(skills: list[dict[str, str]]) -> str:
 
 def update_readme(skills: list[dict[str, str]]) -> bool:
     """
-    Update the README.md skills table between markers.
-    Returns True if the file was updated, False if markers not found.
+    更新README.md中标记之间的技能表格。
+    如果文件已更新返回True，如果未找到标记返回False。
     """
     if not README_PATH.exists():
-        print(f"Warning: README.md not found at {README_PATH}", file=sys.stderr)
+        print(f"警告：README.md未在{README_PATH}找到", file=sys.stderr)
         return False
 
     content = README_PATH.read_text(encoding="utf-8")
@@ -128,14 +129,14 @@ def update_readme(skills: list[dict[str, str]]) -> bool:
 
     if start_idx == -1 or end_idx == -1:
         print(
-            f"Warning: README.md markers not found. Add {README_TABLE_START} and "
-            f"{README_TABLE_END} to enable table generation.",
+            f"警告：未找到README.md标记。添加{README_TABLE_START}和"
+            f"{README_TABLE_END}以启用表格生成。",
             file=sys.stderr,
         )
         return False
 
     if end_idx < start_idx:
-        print("Warning: README.md markers are in wrong order.", file=sys.stderr)
+        print("警告：README.md标记顺序错误。", file=sys.stderr)
         return False
 
     table = generate_readme_table(skills)
@@ -153,60 +154,61 @@ def update_readme(skills: list[dict[str, str]]) -> bool:
 
 def validate_marketplace(skills: list[dict[str, str]]) -> list[str]:
     """
-    Validate marketplace.json against discovered skills.
-    Returns list of error messages (empty = passed).
+    验证marketplace.json与发现的技能是否一致。
+    返回错误消息列表（空列表=通过）。
     """
     errors: list[str] = []
     marketplace = load_marketplace()
     plugins = marketplace.get("plugins", [])
 
-    # Build lookups (normalize paths: skill uses "skills/x", marketplace uses "./skills/x")
+    # 构建查找表（规范化路径：skill使用"skills/x"，marketplace使用"./skills/x"）
     skill_by_source = {f"./{s['path']}": s for s in skills}
     plugin_by_source = {p["source"]: p for p in plugins}
 
-    # Check: every skill has a marketplace entry with matching name
+    # 检查：每个技能在marketplace中都有匹配的条目
     for skill in skills:
         expected_source = f"./{skill['path']}"
         if expected_source not in plugin_by_source:
             errors.append(
-                f"Skill '{skill['name']}' at '{skill['path']}' is missing from marketplace.json"
+                f"技能'{skill['name']}'位于'{skill['path']}'，在marketplace.json中缺失"
             )
         elif plugin_by_source[expected_source]["name"] != skill["name"]:
             errors.append(
-                f"Name mismatch at '{expected_source}': "
-                f"SKILL.md='{skill['name']}', marketplace.json='{plugin_by_source[expected_source]['name']}'"
+                f"路径'{expected_source}'名称不匹配："
+                f"SKILL.md='{skill['name']}'，marketplace.json='{plugin_by_source[expected_source]['name']}'"
             )
 
-    # Check: every marketplace plugin has a corresponding skill
+    # 检查：每个marketplace插件都有对应的技能
     for plugin in plugins:
         if plugin["source"] not in skill_by_source:
             errors.append(
-                f"Marketplace plugin '{plugin['name']}' at '{plugin['source']}' has no SKILL.md"
+                f"Marketplace插件'{plugin['name']}'位于'{plugin['source']}'没有对应的SKILL.md"
             )
 
     return errors
 
 
 def main() -> None:
+    """主函数：加载模板、收集技能、生成输出并验证。"""
     template = load_template()
     skills = collect_skills()
     output = render(template, skills)
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(output, encoding="utf-8")
-    print(f"Wrote {OUTPUT_PATH} with {len(skills)} skills.")
+    print(f"已写入{OUTPUT_PATH}，包含{len(skills)}个技能。")
 
-    # Validate marketplace.json
+    # 验证marketplace.json
     errors = validate_marketplace(skills)
     if errors:
-        print("\nMarketplace.json validation errors:", file=sys.stderr)
+        print("\nMarketplace.json验证错误：", file=sys.stderr)
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
         sys.exit(1)
-    print("Marketplace.json validation passed.")
+    print("Marketplace.json验证通过。")
 
-    # Update README.md skills table
+    # 更新README.md技能表格
     if update_readme(skills):
-        print(f"Updated {README_PATH} skills table.")
+        print(f"已更新{README_PATH}技能表格。")
 
 
 if __name__ == "__main__":

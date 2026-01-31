@@ -8,7 +8,7 @@
 # ///
 
 """
-Entry point script for running inspect-ai evaluations via `hf jobs uv run`.
+通过 `hf jobs uv run` 运行 inspect-ai 评估的入口脚本。
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from typing import Optional
 
 
 def _inspect_evals_tasks_root() -> Optional[Path]:
-    """Return the installed inspect_evals package path if available."""
+    """如果可用，返回已安装的 inspect_evals 包路径。"""
     try:
         import inspect_evals
 
@@ -32,7 +32,7 @@ def _inspect_evals_tasks_root() -> Optional[Path]:
 
 
 def _normalize_task(task: str) -> str:
-    """Allow lighteval-style `suite|task|shots` strings by keeping the task name."""
+    """通过保留任务名称，允许 lighteval 风格的 `suite|task|shots` 字符串。"""
     if "|" in task:
         parts = task.split("|")
         if len(parts) >= 2 and parts[1]:
@@ -41,23 +41,23 @@ def _normalize_task(task: str) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Inspect-ai job runner")
-    parser.add_argument("--model", required=True, help="Model ID on Hugging Face Hub")
-    parser.add_argument("--task", required=True, help="inspect-ai task to execute")
-    parser.add_argument("--limit", type=int, default=None, help="Limit number of samples to evaluate")
+    parser = argparse.ArgumentParser(description="Inspect-ai 任务运行器")
+    parser.add_argument("--model", required=True, help="Hugging Face Hub 上的模型 ID")
+    parser.add_argument("--task", required=True, help="要执行的 inspect-ai 任务")
+    parser.add_argument("--limit", type=int, default=None, help="限制要评估的样本数量")
     parser.add_argument(
         "--tasks-root",
         default=None,
-        help="Optional path to inspect task files. Defaults to the installed inspect_evals package.",
+        help="inspect 任务文件的可选路径。默认为已安装的 inspect_evals 包。",
     )
     parser.add_argument(
         "--sandbox",
         default="local",
-        help="Sandbox backend to use (default: local for HF jobs without Docker).",
+        help="要使用的沙箱后端（默认：HF jobs 无 Docker 时使用 local）。",
     )
     args = parser.parse_args()
 
-    # Ensure downstream libraries can read the token passed as a secret
+    # 确保下游库可以读取作为密钥传递的令牌
     hf_token = os.getenv("HF_TOKEN")
     if hf_token:
         os.environ.setdefault("HUGGING_FACE_HUB_TOKEN", hf_token)
@@ -76,10 +76,10 @@ def main() -> None:
         f"hf-inference-providers/{args.model}",
         "--log-level",
         "info",
-        # Reduce batch size to avoid OOM errors (default is 32)
+        # 减少批处理大小以避免 OOM 错误（默认值为 32）
         "--max-connections",
         "1",
-        # Set a small positive temperature (HF doesn't allow temperature=0)
+        # 设置小的正温度值（HF 不允许 temperature=0）
         "--temperature",
         "0.001",
     ]
@@ -92,10 +92,10 @@ def main() -> None:
 
     try:
         subprocess.run(cmd, check=True, cwd=tasks_root)
-        print("Evaluation complete.")
+        print("评估完成。")
     except subprocess.CalledProcessError as exc:
         location = f" (cwd={tasks_root})" if tasks_root else ""
-        print(f"Evaluation failed with exit code {exc.returncode}{location}", file=sys.stderr)
+        print(f"评估失败，退出代码为 {exc.returncode}{location}", file=sys.stderr)
         raise
 
 

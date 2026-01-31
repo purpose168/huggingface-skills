@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Evals Leaderboard - Gradio app for displaying model evaluation scores.
+评估排行榜 - 用于显示模型评估分数的 Gradio 应用。
 
-Reads leaderboard data from the hf-skills/evals-leaderboard dataset.
-Run collect_evals.py separately to update the dataset.
+从 hf-skills/evals-leaderboard 数据集读取排行榜数据。
+需要单独运行 collect_evals.py 来更新数据集。
 
-Usage:
+使用方法:
     python app.py
 """
 
@@ -37,23 +37,23 @@ METADATA_URL = f"https://huggingface.co/datasets/{DATASET_REPO}/raw/main/data/me
 
 
 def format_model_link(model_id: str) -> str:
-    """Format model ID as a clickable link."""
+    """将模型 ID 格式化为可点击链接。"""
     return f"[{model_id}](https://huggingface.co/{model_id})"
 
 
 def format_source_link(source_type: str, contributor: str, source_url: str) -> str:
-    """Format source as a clickable link."""
+    """将来源格式化为可点击链接。"""
     return f"{source_type} by [{contributor}]({source_url})"
 
 
 def fetch_leaderboard() -> tuple[list[dict], dict]:
-    """Fetch leaderboard data from the HF dataset."""
-    # Fetch leaderboard JSONL
+    """从 HF 数据集获取排行榜数据。"""
+    # 获取排行榜 JSONL
     resp = requests.get(LEADERBOARD_URL, timeout=30)
     resp.raise_for_status()
     leaderboard = [json.loads(line) for line in resp.text.strip().split("\n") if line]
 
-    # Fetch metadata
+    # 获取元数据
     resp = requests.get(METADATA_URL, timeout=30)
     resp.raise_for_status()
     metadata = resp.json()
@@ -62,11 +62,11 @@ def fetch_leaderboard() -> tuple[list[dict], dict]:
 
 
 def refresh_handler() -> tuple[str, list[list]]:
-    """Refresh the leaderboard data from the dataset."""
+    """从数据集刷新排行榜数据。"""
     try:
         leaderboard, metadata = fetch_leaderboard()
 
-        # Build table rows
+        # 构建表格行
         rows = []
         for entry in leaderboard:
             rows.append(
@@ -84,30 +84,30 @@ def refresh_handler() -> tuple[str, list[list]]:
 
         status = "\n".join(
             [
-                f"**Data from:** [{DATASET_REPO}](https://huggingface.co/datasets/{DATASET_REPO})",
-                f"**Last updated:** {metadata.get('generated_at', 'unknown')}",
-                f"**Models with scores:** {metadata.get('models_with_scores', 'unknown')}",
-                f"**Total entries:** {metadata.get('total_entries', len(leaderboard))}",
+                f"**数据来源:** [{DATASET_REPO}](https://huggingface.co/datasets/{DATASET_REPO})",
+                f"**最后更新:** {metadata.get('generated_at', '未知')}",
+                f"**有分数的模型:** {metadata.get('models_with_scores', '未知')}",
+                f"**总条目数:** {metadata.get('total_entries', len(leaderboard))}",
             ]
         )
 
         return status, rows
 
     except Exception as e:
-        return f"❌ Failed to load leaderboard: {e}", []
+        return f"❌ 加载排行榜失败: {e}", []
 
 
 with gr.Blocks() as demo:
     gr.Markdown(
         """
-        # 📊 HF Evaluation Leaderboard
+        # 📊 HF 评估排行榜
         
-        Shows MMLU, BigCodeBench, and ARC MC scores pulled from model-index
-        metadata or their pull requests for trending text-generation models.
+        显示从 model-index 元数据或其拉取请求中获取的 MMLU、BigCodeBench 和 ARC MC 分数，
+        适用于热门的文本生成模型。
         """
     )
 
-    status_box = gr.Markdown("Loading leaderboard...")
+    status_box = gr.Markdown("加载排行榜中...")
 
     leaderboard_table = gr.Dataframe(
         headers=TABLE_HEADERS,
@@ -125,9 +125,9 @@ with gr.Blocks() as demo:
         f"""
         ---
         
-        **Links:**
-        - [Dataset: {DATASET_REPO}](https://huggingface.co/datasets/{DATASET_REPO})
-        - [GitHub Repository](https://github.com/huggingface/skills)
+        **链接:**
+        - [数据集: {DATASET_REPO}](https://huggingface.co/datasets/{DATASET_REPO})
+        - [GitHub 仓库](https://github.com/huggingface/skills)
         """
     )
 

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Hackers Leaderboard - Gradio app for displaying engagement from hf-skills org.
+黑客排行榜 - 用于显示 hf-skills 组织参与度的 Gradio 应用。
 
-Reads leaderboard data from the hf-skills/hackers-leaderboard dataset.
-Run collect_points.py separately to update the dataset.
+从 hf-skills/hackers-leaderboard 数据集读取排行榜数据。
+需要单独运行 collect_points.py 来更新数据集。
 
-Usage:
+使用方法:
     python app.py
 """
 
@@ -36,18 +36,18 @@ METADATA_URL = f"https://huggingface.co/datasets/{DATASET_REPO}/raw/main/data/me
 
 
 def format_username(username: str) -> str:
-    """Format username as a clickable link."""
+    """将用户名格式化为可点击链接。"""
     return f"[{username}](https://huggingface.co/{username})"
 
 
 def fetch_leaderboard() -> tuple[list[dict], dict]:
-    """Fetch leaderboard data from the HF dataset."""
-    # Fetch leaderboard JSONL
+    """从 HF 数据集获取排行榜数据。"""
+    # 获取排行榜 JSONL
     resp = requests.get(LEADERBOARD_URL, timeout=30)
     resp.raise_for_status()
     leaderboard = [json.loads(line) for line in resp.text.strip().split("\n") if line]
 
-    # Fetch metadata
+    # 获取元数据
     resp = requests.get(METADATA_URL, timeout=30)
     resp.raise_for_status()
     metadata = resp.json()
@@ -56,11 +56,11 @@ def fetch_leaderboard() -> tuple[list[dict], dict]:
 
 
 def refresh_handler() -> tuple[str, list[list]]:
-    """Refresh the leaderboard data from the dataset."""
+    """从数据集刷新排行榜数据。"""
     try:
         leaderboard, metadata = fetch_leaderboard()
 
-        # Build table rows
+        # 构建表格行
         rows = []
         for i, entry in enumerate(leaderboard, 1):
             rows.append(
@@ -73,26 +73,26 @@ def refresh_handler() -> tuple[str, list[list]]:
 
         status = "\n".join(
             [
-                f"**Data from:** [{DATASET_REPO}](https://huggingface.co/datasets/{DATASET_REPO})",
-                f"**Last updated:** {metadata.get('generated_at', 'unknown')}",
-                f"**Participants:** {metadata.get('total_participants', len(leaderboard))}",
-                f"**Total points:** {metadata.get('total_points', sum(e['total_points'] for e in leaderboard))}",
+                f"**数据来源:** [{DATASET_REPO}](https://huggingface.co/datasets/{DATASET_REPO})",
+                f"**最后更新:** {metadata.get('generated_at', '未知')}",
+                f"**参与者:** {metadata.get('total_participants', len(leaderboard))}",
+                f"**总积分:** {metadata.get('total_points', sum(e['total_points'] for e in leaderboard))}",
             ]
         )
 
         return status, rows
 
     except Exception as e:
-        return f"❌ Failed to load leaderboard: {e}", []
+        return f"❌ 加载排行榜失败: {e}", []
 
 
 with gr.Blocks() as demo:
     gr.HTML(
         """
         <div class="subtitle">
-            <img src="https://github.com/huggingface/skills/raw/main/assets/banner.png" alt="Humanity's Last Hackathon (of 2025)" width="100%">
+            <img src="https://github.com/huggingface/skills/raw/main/assets/banner.png" alt="人类最后的黑客马拉松 (2025)" width="100%">
         </div>
-        <div class="leaderboard-title"><h1>🏆 Humanity's Last Hackathon Leaderboard</h1></div>
+        <div class="leaderboard-title"><h1>🏆 人类最后的黑客马拉松排行榜</h1></div>
         """
     )
 
@@ -103,7 +103,7 @@ with gr.Blocks() as demo:
         wrap=True,
     )
 
-    status_box = gr.Markdown("Click refresh to load the leaderboard...")
+    status_box = gr.Markdown("点击刷新以加载排行榜...")
     
     demo.load(
         refresh_handler,
@@ -114,10 +114,10 @@ with gr.Blocks() as demo:
         """
         ---
         
-        **Links:**
-        - [Join hf-skills](https://huggingface.co/organizations/hf-skills/share/KrqrmBxkETjvevFbfkXeezcyMbgMjjMaOp)
-        - [Quest Instructions](https://github.com/huggingface/skills/tree/main/apps/quests)
-        - [GitHub Repository](https://github.com/huggingface/skills)
+        **链接:**
+        - [加入 hf-skills](https://huggingface.co/organizations/hf-skills/share/KrqrmBxkETjvevFbfkXeezcyMbgMjjMaOp)
+        - [任务说明](https://github.com/huggingface/skills/tree/main/apps/quests)
+        - [GitHub 仓库](https://github.com/huggingface/skills)
         """
     )
 

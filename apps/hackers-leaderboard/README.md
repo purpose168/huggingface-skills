@@ -1,5 +1,5 @@
 ---
-title: Hackers Leaderboard
+title: 黑客排行榜
 emoji: 🏆
 colorFrom: purple
 colorTo: pink
@@ -9,54 +9,54 @@ app_file: app.py
 pinned: false
 ---
 
-# Hackers Leaderboard
+# 黑客排行榜
 
-Tracks engagement from the [hf-skills](https://huggingface.co/hf-skills) organization for the hackathon leaderboard.
+跟踪 [hf-skills](https://huggingface.co/hf-skills) 组织的参与度，用于黑客马拉松排行榜。
 
-## How Points Work
+## 积分规则
 
-Simple and fair - **1 point per activity**:
+简单公平 - **每项活动 1 分**：
 
-| Activity | Points |
-|----------|--------|
-| 💬 Open a discussion | 1 |
-| 📝 Post a comment | 1 |
-| 🔀 Open a PR | 1 |
-| 📦 Own/create a repo | 1 |
+| 活动 | 积分 |
+|------|------|
+| 💬 开启讨论 | 1 |
+| 📝 发表评论 | 1 |
+| 🔀 开启 PR | 1 |
+| 📦 拥有/创建仓库 | 1 |
 
-## Scripts
+## 脚本
 
-### Collect Points
+### 收集积分
 
 ```bash
-# Collect org activity only
+# 仅收集组织活动
 HF_TOKEN=$HF_TOKEN python collect_points.py
 
-# Also scan trending repos for member PRs/discussions
+# 同时扫描热门仓库中的成员 PR/讨论
 HF_TOKEN=$HF_TOKEN python collect_points.py --scan-external
 
-# Scan only specific repo types
+# 仅扫描特定类型的仓库
 HF_TOKEN=$HF_TOKEN python collect_points.py --scan-external --repo-type models
 HF_TOKEN=$HF_TOKEN python collect_points.py --scan-external --repo-type models datasets
 
-# Push to HF dataset
+# 推送到 HF 数据集
 HF_TOKEN=$HF_TOKEN python collect_points.py --scan-external --push-to-hub
 
-# Custom output
+# 自定义输出
 python collect_points.py --output my_leaderboard.json --repo-id my-org/my-dataset
 ```
 
-### Options
+### 选项
 
-| Flag | Description |
-|------|-------------|
-| `--scan-external` | Scan trending repos across Hub for member activity |
-| `--repo-type` | Filter external scan to: `models`, `datasets`, `spaces` |
-| `--push-to-hub` | Push results to HF dataset |
-| `--repo-id` | Target dataset repo (default: `hf-skills/hackers-leaderboard`) |
-| `--output` | Local JSON output path |
+| 标志 | 描述 |
+|------|------|
+| `--scan-external` | 扫描整个 Hub 上的热门仓库以获取成员活动 |
+| `--repo-type` | 过滤外部扫描范围：`models`、`datasets`、`spaces` |
+| `--push-to-hub` | 将结果推送到 HF 数据集 |
+| `--repo-id` | 目标数据集仓库（默认：`hf-skills/hackers-leaderboard`） |
+| `--output` | 本地 JSON 输出路径 |
 
-### Run the App
+### 运行应用
 
 ```bash
 HF_TOKEN=$HF_TOKEN python app.py
@@ -64,14 +64,14 @@ HF_TOKEN=$HF_TOKEN python app.py
 
 ## API
 
-The collector scans:
-- All models, datasets, and spaces in the org
-- All discussions and PRs on those repos
-- All comments on discussions
+收集器扫描：
+- 组织中的所有模型、数据集和空间
+- 这些仓库上的所有讨论和 PR
+- 讨论中的所有评论
 
-Results are saved as JSONL for easy dataset consumption.
+结果保存为 JSONL 格式，便于数据集使用。
 
-## Output Format
+## 输出格式
 
 ```json
 {

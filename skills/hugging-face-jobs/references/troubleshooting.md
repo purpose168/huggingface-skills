@@ -1,475 +1,474 @@
-# Troubleshooting Guide
+# 故障排除指南
 
-Common issues and solutions for Hugging Face Jobs.
+Hugging Face Jobs 常见问题及解决方案。
 
-## Authentication Issues
+## 身份验证问题
 
-### Error: 401 Unauthorized
+### 错误：401 Unauthorized
 
-**Symptoms:**
+**症状：**
 ```
 401 Client Error: Unauthorized for url: https://huggingface.co/api/...
 ```
 
-**Causes:**
-- Token missing from job
-- Token invalid or expired
-- Token not passed correctly
+**原因：**
+- 作业中缺少令牌
+- 令牌无效或已过期
+- 令牌传递不正确
 
-**Solutions:**
-1. Add `secrets={"HF_TOKEN": "$HF_TOKEN"}` to job config
-2. Verify `hf_whoami()` works locally
-3. Re-login: `hf auth login`
-4. Check token hasn't expired
+**解决方案：**
+1. 在作业配置中添加 `secrets={"HF_TOKEN": "$HF_TOKEN"}`
+2. 验证本地 `hf_whoami()` 可用
+3. 重新登录：`hf auth login`
+4. 检查令牌是否已过期
 
-**Verification:**
+**验证：**
 ```python
-# In your script
+# 在你的脚本中
 import os
-assert "HF_TOKEN" in os.environ, "HF_TOKEN missing!"
+assert "HF_TOKEN" in os.environ, "HF_TOKEN 缺失！"
 ```
 
-### Error: 403 Forbidden
+### 错误：403 Forbidden
 
-**Symptoms:**
+**症状：**
 ```
 403 Client Error: Forbidden for url: https://huggingface.co/api/...
 ```
 
-**Causes:**
-- Token lacks required permissions
-- No access to private repository
-- Organization permissions insufficient
+**原因：**
+- 令牌缺少所需权限
+- 无访问私有仓库的权限
+- 组织权限不足
 
-**Solutions:**
-1. Ensure token has write permissions
-2. Check token type at https://huggingface.co/settings/tokens
-3. Verify access to target repository
-4. Use organization token if needed
+**解决方案：**
+1. 确保令牌具有写入权限
+2. 在 https://huggingface.co/settings/tokens 检查令牌类型
+3. 验证对目标仓库的访问权限
+4. 如需要，使用组织令牌
 
-### Error: Token not found in environment
+### 错误：环境中未找到令牌
 
-**Symptoms:**
+**症状：**
 ```
 KeyError: 'HF_TOKEN'
 ValueError: HF_TOKEN not found
 ```
 
-**Causes:**
-- `secrets` not passed in job config
-- Wrong key name (should be `HF_TOKEN`)
-- Using `env` instead of `secrets`
+**原因：**
+- 作业配置中未传递 `secrets`
+- 键名错误（应为 `HF_TOKEN`）
+- 使用 `env` 而不是 `secrets`
 
-**Solutions:**
-1. Use `secrets={"HF_TOKEN": "$HF_TOKEN"}` (not `env`)
-2. Verify key name is exactly `HF_TOKEN`
-3. Check job config syntax
+**解决方案：**
+1. 使用 `secrets={"HF_TOKEN": "$HF_TOKEN"}`（而非 `env`）
+2. 验证键名确实是 `HF_TOKEN`
+3. 检查作业配置语法
 
-## Job Execution Issues
+## 作业执行问题
 
-### Error: Job Timeout
+### 错误：作业超时
 
-**Symptoms:**
-- Job stops unexpectedly
-- Status shows "TIMEOUT"
-- Partial results only
+**症状：**
+- 作业意外停止
+- 状态显示 "TIMEOUT"
+- 仅获得部分结果
 
-**Causes:**
-- Default 30min timeout exceeded
-- Job takes longer than expected
-- No timeout specified
+**原因：**
+- 超过默认 30 分钟超时时间
+- 作业耗时超出预期
+- 未指定超时时间
 
-**Solutions:**
-1. Check logs for actual runtime
-2. Increase timeout with buffer: `"timeout": "3h"`
-3. Optimize code for faster execution
-4. Process data in chunks
-5. Add 20-30% buffer to estimated time
+**解决方案：**
+1. 检查日志中的实际运行时间
+2. 增加超时时间并预留缓冲：`"timeout": "3h"`
+3. 优化代码以加快执行速度
+4. 分块处理数据
+5. 在估计时间上增加 20-30% 的缓冲
 
-**MCP Tool Example:**
+**MCP 工具示例：**
 ```python
 hf_jobs("uv", {
     "script": "...",
-    "timeout": "2h"  # Set appropriate timeout
+    "timeout": "2h"  # 设置适当的超时时间
 })
 ```
 
-**Python API Example:**
+**Python API 示例：**
 ```python
 from huggingface_hub import run_uv_job, inspect_job, fetch_job_logs
 
 job = run_uv_job("script.py", timeout="4h")
 
-# Check if job failed
+# 检查作业是否失败
 job_info = inspect_job(job_id=job.id)
 if job_info.status.stage == "ERROR":
-    print(f"Job failed: {job_info.status.message}")
-    # Check logs for details
+    print(f"作业失败：{job_info.status.message}")
+    # 检查日志获取详细信息
     for log in fetch_job_logs(job_id=job.id):
         print(log)
 ```
 
-### Error: Out of Memory (OOM)
+### 错误：内存不足 (OOM)
 
-**Symptoms:**
+**症状：**
 ```
 RuntimeError: CUDA out of memory
 MemoryError: Unable to allocate array
 ```
 
-**Causes:**
-- Batch size too large
-- Model too large for hardware
-- Insufficient GPU memory
+**原因：**
+- 批量大小过大
+- 模型过大，不适合硬件
+- GPU 内存不足
 
-**Solutions:**
-1. Reduce batch size
-2. Process data in smaller chunks
-3. Upgrade hardware: cpu → t4 → a10g → a100
-4. Use smaller models or quantization
-5. Enable gradient checkpointing (for training)
+**解决方案：**
+1. 减小批量大小
+2. 分小块处理数据
+3. 升级硬件：cpu → t4 → a10g → a100
+4. 使用更小的模型或量化
+5. 启用梯度检查点（用于训练）
 
-**Example:**
+**示例：**
 ```python
-# Reduce batch size
+# 减小批量大小
 batch_size = 1
 
-# Process in chunks
+# 分块处理
 for chunk in chunks:
     process(chunk)
 ```
 
-### Error: Missing Dependencies
+### 错误：缺少依赖项
 
-**Symptoms:**
+**症状：**
 ```
 ModuleNotFoundError: No module named 'package_name'
 ImportError: cannot import name 'X'
 ```
 
-**Causes:**
-- Package not in dependencies
-- Wrong package name
-- Version mismatch
+**原因：**
+- 包不在依赖项列表中
+- 包名称错误
+- 版本不匹配
 
-**Solutions:**
-1. Add to PEP 723 header:
+**解决方案：**
+1. 添加到 PEP 723 头部：
    ```python
    # /// script
    # dependencies = ["package-name>=1.0.0"]
    # ///
    ```
-2. Check package name spelling
-3. Specify version if needed
-4. Check package availability
+2. 检查包名称拼写
+3. 如需要，指定版本
+4. 检查包是否可用
 
-### Error: Script Not Found
+### 错误：找不到脚本
 
-**Symptoms:**
+**症状：**
 ```
 FileNotFoundError: script.py not found
 ```
 
-**Causes:**
-- Local file path used (not supported)
-- URL incorrect
-- Script not accessible
+**原因：**
+- 使用了本地文件路径（不支持）
+- URL 不正确
+- 脚本不可访问
 
-**Solutions:**
-1. Use inline script (recommended)
-2. Use publicly accessible URL
-3. Upload script to Hub first
-4. Check URL is correct
+**解决方案：**
+1. 使用内联脚本（推荐）
+2. 使用公开可访问的 URL
+3. 先将脚本上传到 Hub
+4. 检查 URL 是否正确
 
-**Correct approaches:**
+**正确的方法：**
 ```python
-# ✅ Inline code
+# ✅ 内联代码
 hf_jobs("uv", {"script": "# /// script\n# dependencies = [...]\n# ///\n\n<code>"})
 
-# ✅ From URL
+# ✅ 从 URL 获取
 hf_jobs("uv", {"script": "https://huggingface.co/user/repo/resolve/main/script.py"})
 ```
 
-## Hub Push Issues
+## Hub 推送问题
 
-### Error: Push Failed
+### 错误：推送失败
 
-**Symptoms:**
+**症状：**
 ```
 Error pushing to Hub
 Upload failed
 ```
 
-**Causes:**
-- Network issues
-- Token missing or invalid
-- Repository access denied
-- File too large
+**原因：**
+- 网络问题
+- 令牌缺失或无效
+- 仓库访问被拒绝
+- 文件过大
 
-**Solutions:**
-1. Check token: `assert "HF_TOKEN" in os.environ`
-2. Verify repository exists or can be created
-3. Check network connectivity in logs
-4. Retry push operation
-5. Split large files into chunks
+**解决方案：**
+1. 检查令牌：`assert "HF_TOKEN" in os.environ`
+2. 验证仓库存在或可以创建
+3. 在日志中检查网络连接
+4. 重试推送操作
+5. 将大文件分块推送
 
-### Error: Repository Not Found
+### 错误：仓库未找到
 
-**Symptoms:**
+**症状：**
 ```
 404 Client Error: Not Found
 Repository not found
 ```
 
-**Causes:**
-- Repository doesn't exist
-- Wrong repository name
-- No access to private repo
+**原因：**
+- 仓库不存在
+- 仓库名称错误
+- 无访问私有仓库的权限
 
-**Solutions:**
-1. Create repository first:
+**解决方案：**
+1. 先创建仓库：
    ```python
    from huggingface_hub import HfApi
    api = HfApi()
    api.create_repo("username/repo-name", repo_type="dataset")
    ```
-2. Check repository name format
-3. Verify namespace exists
-4. Check repository visibility
+2. 检查仓库名称格式
+3. 验证命名空间存在
+4. 检查仓库可见性
 
-### Error: Results Not Saved
+### 错误：结果未保存
 
-**Symptoms:**
-- Job completes successfully
-- No results visible on Hub
-- Files not persisted
+**症状：**
+- 作业成功完成
+- Hub 上看不到结果
+- 文件未持久化
 
-**Causes:**
-- No persistence code in script
-- Push code not executed
-- Push failed silently
+**原因：**
+- 脚本中没有持久化代码
+- 推送代码未执行
+- 推送静默失败
 
-**Solutions:**
-1. Add persistence code to script
-2. Verify push executes successfully
-3. Check logs for push errors
-4. Add error handling around push
+**解决方案：**
+1. 在脚本中添加持久化代码
+2. 验证推送是否成功执行
+3. 检查日志中的推送错误
+4. 在推送周围添加错误处理
 
-**Example:**
+**示例：**
 ```python
 try:
     dataset.push_to_hub("username/dataset")
-    print("✅ Push successful")
+    print("✅ 推送成功")
 except Exception as e:
-    print(f"❌ Push failed: {e}")
+    print(f"❌ 推送失败：{e}")
     raise
 ```
 
-## Hardware Issues
+## 硬件问题
 
-### Error: GPU Not Available
+### 错误：GPU 不可用
 
-**Symptoms:**
+**症状：**
 ```
 CUDA not available
 No GPU found
 ```
 
-**Causes:**
-- CPU flavor used instead of GPU
-- GPU not requested
-- CUDA not installed in image
+**原因：**
+- 使用了 CPU 口味而非 GPU
+- 未请求 GPU
+- 镜像中未安装 CUDA
 
-**Solutions:**
-1. Use GPU flavor: `"flavor": "a10g-large"`
-2. Check image has CUDA support
-3. Verify GPU availability in logs
+**解决方案：**
+1. 使用 GPU 口味：`"flavor": "a10g-large"`
+2. 检查镜像是否支持 CUDA
+3. 在日志中验证 GPU 可用性
 
-### Error: Slow Performance
+### 错误：性能缓慢
 
-**Symptoms:**
-- Job takes longer than expected
-- Low GPU utilization
-- CPU bottleneck
+**症状：**
+- 作业耗时超出预期
+- GPU 利用率低
+- CPU 瓶颈
 
-**Causes:**
-- Wrong hardware selected
-- Inefficient code
-- Data loading bottleneck
+**原因：**
+- 选择了错误的硬件
+- 代码效率低
+- 数据加载瓶颈
 
-**Solutions:**
-1. Upgrade hardware
-2. Optimize code
-3. Use batch processing
-4. Profile code to find bottlenecks
+**解决方案：**
+1. 升级硬件
+2. 优化代码
+3. 使用批量处理
+4. 分析代码找出瓶颈
 
-## General Issues
+## 常见问题
 
-### Error: Job Status Unknown
+### 错误：作业状态未知
 
-**Symptoms:**
-- Can't check job status
-- Status API returns error
+**症状：**
+- 无法检查作业状态
+- 状态 API 返回错误
 
-**Solutions:**
-1. Use job URL: `https://huggingface.co/jobs/username/job-id`
-2. Check logs: `hf_jobs("logs", {"job_id": "..."})`
-3. Inspect job: `hf_jobs("inspect", {"job_id": "..."})`
+**解决方案：**
+1. 使用作业 URL：`https://huggingface.co/jobs/username/job-id`
+2. 检查日志：`hf_jobs("logs", {"job_id": "..."})`
+3. 检查作业：`hf_jobs("inspect", {"job_id": "..."})`
 
-### Error: Logs Not Available
+### 错误：日志不可用
 
-**Symptoms:**
-- No logs visible
-- Logs delayed
+**症状：**
+- 看不到日志
+- 日志延迟
 
-**Causes:**
-- Job just started (logs delayed 30-60s)
-- Job failed before logging
-- Logs not yet generated
+**原因：**
+- 作业刚刚启动（日志延迟 30-60 秒）
+- 作业在记录日志前失败
+- 日志尚未生成
 
-**Solutions:**
-1. Wait 30-60 seconds after job start
-2. Check job status first
-3. Use job URL for web interface
+**解决方案：**
+1. 作业启动后等待 30-60 秒
+2. 先检查作业状态
+3. 使用作业 URL 访问网页界面
 
-### Error: Cost Unexpectedly High
+### 错误：成本意外过高
 
-**Symptoms:**
-- Job costs more than expected
-- Longer runtime than estimated
+**症状：**
+- 作业成本超出预期
+- 运行时间比估计长
 
-**Causes:**
-- Job ran longer than timeout
-- Wrong hardware selected
-- Inefficient code
+**原因：**
+- 作业运行时间超过超时时间
+- 选择了错误的硬件
+- 代码效率低
 
-**Solutions:**
-1. Monitor job runtime
-2. Set appropriate timeout
-3. Optimize code
-4. Choose right hardware
-5. Check cost estimates before running
+**解决方案：**
+1. 监控作业运行时间
+2. 设置适当的超时时间
+3. 优化代码
+4. 选择正确的硬件
+5. 运行前检查成本估算
 
-## Debugging Tips
+## 调试技巧
 
-### 1. Add Logging
+### 1. 添加日志记录
 
 ```python
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-logger.info("Starting processing...")
-logger.info(f"Processed {count} items")
+logger.info("开始处理...")
+logger.info(f"已处理 {count} 项")
 ```
 
-### 2. Verify Environment
+### 2. 验证环境
 
 ```python
 import os
-print(f"Python version: {os.sys.version}")
-print(f"CUDA available: {torch.cuda.is_available()}")
-print(f"HF_TOKEN present: {'HF_TOKEN' in os.environ}")
+print(f"Python 版本：{os.sys.version}")
+print(f"CUDA 可用：{torch.cuda.is_available()}")
+print(f"HF_TOKEN 存在：{'HF_TOKEN' in os.environ}")
 ```
 
-### 3. Test Locally First
+### 3. 先在本地测试
 
-Run script locally before submitting to catch errors early:
+在提交之前先在本地运行脚本，以尽早发现错误：
 ```bash
 python script.py
-# Or with uv
+# 或使用 uv
 uv run script.py
 ```
 
-### 4. Check Job Logs
+### 4. 检查作业日志
 
-**MCP Tool:**
+**MCP 工具：**
 ```python
-# View logs
+# 查看日志
 hf_jobs("logs", {"job_id": "your-job-id"})
 ```
 
-**CLI:**
+**CLI：**
 ```bash
 hf jobs logs <job-id>
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import fetch_job_logs
 for log in fetch_job_logs(job_id="your-job-id"):
     print(log)
 ```
 
-**Or use job URL:** `https://huggingface.co/jobs/username/job-id`
+**或使用作业 URL：** `https://huggingface.co/jobs/username/job-id`
 
-### 5. Add Error Handling
+### 5. 添加错误处理
 
 ```python
 try:
-    # Your code
+    # 你的代码
     process_data()
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"错误：{e}")
     import traceback
     traceback.print_exc()
     raise
 ```
 
-### 6. Check Job Status Programmatically
+### 6. 以编程方式检查作业状态
 
 ```python
 from huggingface_hub import inspect_job, fetch_job_logs
 
 job_info = inspect_job(job_id="your-job-id")
-print(f"Status: {job_info.status.stage}")
-print(f"Message: {job_info.status.message}")
+print(f"状态：{job_info.status.stage}")
+print(f"消息：{job_info.status.message}")
 
 if job_info.status.stage == "ERROR":
-    print("Job failed! Logs:")
-    for log in fetch_job_logs(job_id="your-job-id"):
+    print("作业失败！日志：")
+    for log in fetch_job_logs(job_id=job.id):
         print(log)
 ```
 
-## Quick Reference
+## 快速参考
 
-### Common Error Codes
+### 常见错误代码
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| 401 | Unauthorized | Add `secrets={"HF_TOKEN": "$HF_TOKEN"}` |
-| 403 | Forbidden | Check token permissions |
-| 404 | Not Found | Verify repository exists |
-| 500 | Server Error | Retry or contact support |
+| 代码 | 含义 | 解决方案 |
+|------|------|----------|
+| 401 | 未授权 | 添加 `secrets={"HF_TOKEN": "$HF_TOKEN"}` |
+| 403 | 禁止 | 检查令牌权限 |
+| 404 | 未找到 | 验证仓库存在 |
+| 500 | 服务器错误 | 重试或联系支持 |
 
-### Checklist Before Submitting
+### 提交前检查清单
 
-- [ ] Token configured: `secrets={"HF_TOKEN": "$HF_TOKEN"}`
-- [ ] Script checks for token: `assert "HF_TOKEN" in os.environ`
-- [ ] Timeout set appropriately
-- [ ] Hardware selected correctly
-- [ ] Dependencies listed in PEP 723 header
-- [ ] Persistence code included
-- [ ] Error handling added
-- [ ] Logging added for debugging
+- [ ] 令牌配置：`secrets={"HF_TOKEN": "$HF_TOKEN"}`
+- [ ] 脚本检查令牌：`assert "HF_TOKEN" in os.environ`
+- [ ] 超时时间设置适当
+- [ ] 硬件选择正确
+- [ ] 依赖项列在 PEP 723 头部中
+- [ ] 包含持久化代码
+- [ ] 添加了错误处理
+- [ ] 添加了日志记录用于调试
 
-## Getting Help
+## 获取帮助
 
-If issues persist:
+如果问题持续存在：
 
-1. **Check logs** - Most errors include detailed messages
-2. **Review documentation** - See main SKILL.md
-3. **Check Hub status** - https://status.huggingface.co
-4. **Community forums** - https://discuss.huggingface.co
-5. **GitHub issues** - For bugs in huggingface_hub
+1. **检查日志** - 大多数错误包含详细消息
+2. **查看文档** - 参见主要 SKILL.md
+3. **检查 Hub 状态** - https://status.huggingface.co
+4. **社区论坛** - https://discuss.huggingface.co
+5. **GitHub 问题** - 对于 huggingface_hub 中的 bug
 
-## Key Takeaways
+## 关键要点
 
-1. **Always include token** - `secrets={"HF_TOKEN": "$HF_TOKEN"}`
-2. **Set appropriate timeout** - Default 30min may be insufficient
-3. **Verify persistence** - Results won't persist without code
-4. **Check logs** - Most issues visible in job logs
-5. **Test locally** - Catch errors before submitting
-6. **Add error handling** - Better debugging information
-7. **Monitor costs** - Set timeouts to avoid unexpected charges
-
+1. **始终包含令牌** - `secrets={"HF_TOKEN": "$HF_TOKEN"}`
+2. **设置适当的超时时间** - 默认 30 分钟可能不足
+3. **验证持久化** - 没有代码结果不会持久化
+4. **检查日志** - 大多数问题在作业日志中可见
+5. **在本地测试** - 提交前捕获错误
+6. **添加错误处理** - 更好的调试信息
+7. **监控成本** - 设置超时时间以避免意外费用

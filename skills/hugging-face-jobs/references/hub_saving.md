@@ -1,34 +1,34 @@
-# Saving Results to Hugging Face Hub
+# 将结果保存到 Hugging Face Hub
 
-**⚠️ CRITICAL:** Job environments are ephemeral. ALL results are lost when a job completes unless persisted to the Hub or external storage.
+**⚠️ 关键：** 作业环境是临时的。作业完成时，所有结果都会丢失，除非持久化到 Hub 或外部存储。
 
-## Why Persistence is Required
+## 为什么需要持久化
 
-When running on Hugging Face Jobs:
-- Environment is temporary
-- All files deleted on job completion
-- No local disk persistence
-- Cannot access results after job ends
+在 Hugging Face Jobs 上运行时：
+- 环境是临时的
+- 作业完成时所有文件被删除
+- 没有本地磁盘持久化
+- 作业结束后无法访问结果
 
-**Without persistence, all work is permanently lost.**
+**没有持久化，所有工作将永久丢失。**
 
-## Persistence Options
+## 持久化选项
 
-### Option 1: Push to Hugging Face Hub (Recommended)
+### 选项 1：推送到 Hugging Face Hub（推荐）
 
-**For models:**
+**对于模型：**
 ```python
 from transformers import AutoModel
 model.push_to_hub("username/model-name", token=os.environ.get("HF_TOKEN"))
 ```
 
-**For datasets:**
+**对于数据集：**
 ```python
 from datasets import Dataset
 dataset.push_to_hub("username/dataset-name", token=os.environ.get("HF_TOKEN"))
 ```
 
-**For files/artifacts:**
+**对于文件/制品：**
 ```python
 from huggingface_hub import HfApi
 api = HfApi(token=os.environ.get("HF_TOKEN"))
@@ -40,16 +40,16 @@ api.upload_file(
 )
 ```
 
-### Option 2: External Storage
+### 选项 2：外部存储
 
-**S3:**
+**S3：**
 ```python
 import boto3
 s3 = boto3.client('s3')
 s3.upload_file('results.json', 'my-bucket', 'results.json')
 ```
 
-**Google Cloud Storage:**
+**Google Cloud Storage：**
 ```python
 from google.cloud import storage
 client = storage.Client()
@@ -58,47 +58,47 @@ blob = bucket.blob('results.json')
 blob.upload_from_filename('results.json')
 ```
 
-### Option 3: API Endpoint
+### 选项 3：API 端点
 
 ```python
 import requests
 requests.post("https://your-api.com/results", json=results)
 ```
 
-## Required Configuration for Hub Push
+## Hub 推送的必要配置
 
-### Job Configuration
+### 作业配置
 
-**Always include HF_TOKEN:**
+**始终包含 HF_TOKEN：**
 ```python
 hf_jobs("uv", {
     "script": "your_script.py",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # ✅ Required for Hub operations
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # ✅ Hub 操作所需
 })
 ```
 
-### Script Configuration
+### 脚本配置
 
-**Verify token exists:**
+**验证令牌存在：**
 ```python
 import os
-assert "HF_TOKEN" in os.environ, "HF_TOKEN required for Hub operations!"
+assert "HF_TOKEN" in os.environ, "Hub 操作需要 HF_TOKEN！"
 ```
 
-**Use token for Hub operations:**
+**使用令牌进行 Hub 操作：**
 ```python
 from huggingface_hub import HfApi
 
-# Auto-detects HF_TOKEN from environment
+# 自动从环境中检测 HF_TOKEN
 api = HfApi()
 
-# Or explicitly pass token
+# 或显式传递令牌
 api = HfApi(token=os.environ.get("HF_TOKEN"))
 ```
 
-## Complete Examples
+## 完整示例
 
-### Example 1: Push Dataset
+### 示例 1：推送数据集
 
 ```python
 hf_jobs("uv", {
@@ -111,16 +111,16 @@ import os
 from datasets import Dataset
 from huggingface_hub import HfApi
 
-# Verify token
-assert "HF_TOKEN" in os.environ, "HF_TOKEN required!"
+# 验证令牌
+assert "HF_TOKEN" in os.environ, "需要 HF_TOKEN！"
 
-# Process data
+# 处理数据
 data = {"text": ["Sample 1", "Sample 2"]}
 dataset = Dataset.from_dict(data)
 
-# Push to Hub
+# 推送到 Hub
 dataset.push_to_hub("username/my-dataset")
-print("✅ Dataset pushed!")
+print("✅ 数据集已推送！")
 """,
     "flavor": "cpu-basic",
     "timeout": "30m",
@@ -128,7 +128,7 @@ print("✅ Dataset pushed!")
 })
 ```
 
-### Example 2: Push Model
+### 示例 2：推送模型
 
 ```python
 hf_jobs("uv", {
@@ -140,18 +140,18 @@ hf_jobs("uv", {
 import os
 from transformers import AutoModel, AutoTokenizer
 
-# Verify token
-assert "HF_TOKEN" in os.environ, "HF_TOKEN required!"
+# 验证令牌
+assert "HF_TOKEN" in os.environ, "需要 HF_TOKEN！"
 
-# Load and process model
+# 加载并处理模型
 model = AutoModel.from_pretrained("base-model")
 tokenizer = AutoTokenizer.from_pretrained("base-model")
-# ... process model ...
+# ... 处理模型 ...
 
-# Push to Hub
+# 推送到 Hub
 model.push_to_hub("username/my-model")
 tokenizer.push_to_hub("username/my-model")
-print("✅ Model pushed!")
+print("✅ 模型已推送！")
 """,
     "flavor": "a10g-large",
     "timeout": "2h",
@@ -159,7 +159,7 @@ print("✅ Model pushed!")
 })
 ```
 
-### Example 3: Push Artifacts
+### 示例 3：推送制品
 
 ```python
 hf_jobs("uv", {
@@ -173,23 +173,23 @@ import json
 import pandas as pd
 from huggingface_hub import HfApi
 
-# Verify token
-assert "HF_TOKEN" in os.environ, "HF_TOKEN required!"
+# 验证令牌
+assert "HF_TOKEN" in os.environ, "需要 HF_TOKEN！"
 
-# Generate results
+# 生成结果
 results = {"accuracy": 0.95, "loss": 0.05}
 df = pd.DataFrame([results])
 
-# Save files
+# 保存文件
 with open("results.json", "w") as f:
     json.dump(results, f)
 df.to_csv("results.csv", index=False)
 
-# Push to Hub
+# 推送到 Hub
 api = HfApi()
 api.upload_file("results.json", "results.json", "username/results", repo_type="dataset")
 api.upload_file("results.csv", "results.csv", "username/results", repo_type="dataset")
-print("✅ Results pushed!")
+print("✅ 结果已推送！")
 """,
     "flavor": "cpu-basic",
     "timeout": "30m",
@@ -197,53 +197,53 @@ print("✅ Results pushed!")
 })
 ```
 
-## Authentication Methods
+## 认证方法
 
-### Method 1: Automatic Token (Recommended)
+### 方法 1：自动令牌（推荐）
 
 ```python
 "secrets": {"HF_TOKEN": "$HF_TOKEN"}
 ```
 
-Uses your logged-in Hugging Face token automatically.
+自动使用你登录的 Hugging Face 令牌。
 
-### Method 2: Explicit Token
+### 方法 2：显式令牌
 
 ```python
 "secrets": {"HF_TOKEN": "hf_abc123..."}
 ```
 
-Provide token explicitly (not recommended for security).
+显式提供令牌（出于安全考虑不推荐）。
 
-### Method 3: Environment Variable
+### 方法 3：环境变量
 
 ```python
 "env": {"HF_TOKEN": "hf_abc123..."}
 ```
 
-Pass as regular environment variable (less secure than secrets).
+作为常规环境变量传递（安全性低于 secrets）。
 
-**Always prefer Method 1** for security and convenience.
+**始终优先使用方法 1** 以获得安全性和便利性。
 
-## Verification Checklist
+## 验证清单
 
-Before submitting any job that saves to Hub, verify:
+在提交任何保存到 Hub 的作业之前，验证：
 
-- [ ] `secrets={"HF_TOKEN": "$HF_TOKEN"}` in job config
-- [ ] Script checks for token: `assert "HF_TOKEN" in os.environ`
-- [ ] Hub push code included in script
-- [ ] Repository name doesn't conflict with existing repos
-- [ ] You have write access to the target namespace
+- [ ] 作业配置中包含 `secrets={"HF_TOKEN": "$HF_TOKEN"}`
+- [ ] 脚本检查令牌：`assert "HF_TOKEN" in os.environ`
+- [ ] 脚本中包含 Hub 推送代码
+- [ ] 仓库名称不与现有仓库冲突
+- [ ] 你对目标命名空间有写入权限
 
-## Repository Setup
+## 仓库设置
 
-### Automatic Creation
+### 自动创建
 
-If repository doesn't exist, it's created automatically when first pushing (if token has write permissions).
+如果仓库不存在，首次推送时会自动创建（如果令牌具有写入权限）。
 
-### Manual Creation
+### 手动创建
 
-Create repository before pushing:
+在推送前创建仓库：
 
 ```python
 from huggingface_hub import HfApi
@@ -251,102 +251,101 @@ from huggingface_hub import HfApi
 api = HfApi()
 api.create_repo(
     repo_id="username/repo-name",
-    repo_type="model",  # or "dataset"
-    private=False,  # or True for private repo
+    repo_type="model",  # 或 "dataset"
+    private=False,  # 或 True 用于私有仓库
 )
 ```
 
-### Repository Naming
+### 仓库命名
 
-**Valid names:**
+**有效名称：**
 - `username/my-model`
 - `username/model-name`
 - `organization/model-name`
 
-**Invalid names:**
-- `model-name` (missing username)
-- `username/model name` (spaces not allowed)
-- `username/MODEL` (uppercase discouraged)
+**无效名称：**
+- `model-name`（缺少用户名）
+- `username/model name`（不允许空格）
+- `username/MODEL`（不鼓励大写）
 
-## Troubleshooting
+## 故障排除
 
-### Error: 401 Unauthorized
+### 错误：401 Unauthorized
 
-**Cause:** HF_TOKEN not provided or invalid
+**原因：** 未提供 HF_TOKEN 或令牌无效
 
-**Solutions:**
-1. Verify `secrets={"HF_TOKEN": "$HF_TOKEN"}` in job config
-2. Check you're logged in: `hf_whoami()`
-3. Re-login: `hf auth login`
+**解决方案：**
+1. 验证作业配置中包含 `secrets={"HF_TOKEN": "$HF_TOKEN"}`
+2. 检查你是否已登录：`hf_whoami()`
+3. 重新登录：`hf auth login`
 
-### Error: 403 Forbidden
+### 错误：403 Forbidden
 
-**Cause:** No write access to repository
+**原因：** 对仓库没有写入权限
 
-**Solutions:**
-1. Check repository namespace matches your username
-2. Verify you're a member of organization (if using org namespace)
-3. Check token has write permissions
+**解决方案：**
+1. 检查仓库命名空间是否与你的用户名匹配
+2. 验证你是组织的成员（如果使用组织命名空间）
+3. 检查令牌是否具有写入权限
 
-### Error: Repository not found
+### 错误：Repository not found
 
-**Cause:** Repository doesn't exist and auto-creation failed
+**原因：** 仓库不存在且自动创建失败
 
-**Solutions:**
-1. Manually create repository first
-2. Check repository name format
-3. Verify namespace exists
+**解决方案：**
+1. 先手动创建仓库
+2. 检查仓库名称格式
+3. 验证命名空间存在
 
-### Error: Push failed
+### 错误：Push failed
 
-**Cause:** Network issues or Hub unavailable
+**原因：** 网络问题或 Hub 不可用
 
-**Solutions:**
-1. Check logs for specific error
-2. Verify token is valid
-3. Retry push operation
+**解决方案：**
+1. 检查日志中的具体错误
+2. 验证令牌有效
+3. 重试推送操作
 
-## Best Practices
+## 最佳实践
 
-1. **Always verify token exists** before Hub operations
-2. **Use descriptive repo names** (e.g., `my-experiment-results` not `results`)
-3. **Push incrementally** for large results (use checkpoints)
-4. **Verify push success** in logs before job completes
-5. **Use appropriate repo types** (model vs dataset)
-6. **Add README** with result descriptions
-7. **Tag repos** with relevant tags
+1. **在 Hub 操作前始终验证令牌存在**
+2. **使用描述性仓库名称**（例如，`my-experiment-results` 而不是 `results`）
+3. **对于大型结果增量推送**（使用检查点）
+4. **在作业完成前在日志中验证推送成功**
+5. **使用适当的仓库类型**（model vs dataset）
+6. **添加 README** 描述结果
+7. **使用相关标签标记仓库**
 
-## Monitoring Push Progress
+## 监控推送进度
 
-Check logs for push progress:
+检查日志中的推送进度：
 
-**MCP Tool:**
+**MCP 工具：**
 ```python
 hf_jobs("logs", {"job_id": "your-job-id"})
 ```
 
-**CLI:**
+**CLI：**
 ```bash
 hf jobs logs <job-id>
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import fetch_job_logs
 for log in fetch_job_logs(job_id="your-job-id"):
     print(log)
 ```
 
-**Look for:**
+**查找：**
 ```
-Pushing to username/repo-name...
-Upload file results.json: 100%
-✅ Push successful
+正在推送到 username/repo-name...
+上传文件 results.json: 100%
+✅ 推送成功
 ```
 
-## Key Takeaway
+## 关键要点
 
-**Without `secrets={"HF_TOKEN": "$HF_TOKEN"}` and persistence code, all results are permanently lost.**
+**没有 `secrets={"HF_TOKEN": "$HF_TOKEN"}` 和持久化代码，所有结果将永久丢失。**
 
-Always verify both are configured before submitting any job that produces results.
-
+在提交任何产生结果的作业之前，始终验证两者都已配置。

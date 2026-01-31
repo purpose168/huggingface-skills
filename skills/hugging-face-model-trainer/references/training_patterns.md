@@ -1,32 +1,32 @@
-# Common Training Patterns
+# 常见训练模式
 
-This guide provides common training patterns and use cases for TRL on Hugging Face Jobs.
+本指南提供了在 Hugging Face Jobs 上使用 TRL 的常见训练模式和用例。
 
-## Multi-GPU Training
+## 多 GPU 训练
 
-Automatic distributed training across multiple GPUs. TRL/Accelerate handles distribution automatically:
+自动跨多个 GPU 进行分布式训练。TRL/Accelerate 会自动处理分布:
 
 ```python
 hf_jobs("uv", {
     "script": """
-# Your training script here (same as single GPU)
-# No changes needed - Accelerate detects multiple GPUs
+# 您的训练脚本在这里(与单 GPU 相同)
+# 无需更改 - Accelerate 会自动检测多个 GPU
 """,
-    "flavor": "a10g-largex2",  # 2x A10G GPUs
-    "timeout": "4h",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}
+    "flavor": "a10g-largex2",  # 2x A10G GPU
+    "timeout": "4h",  # 超时时间为 4 小时
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # 使用环境变量中的 HF_TOKEN
 })
 ```
 
-**Tips for multi-GPU:**
-- No code changes needed
-- Use `per_device_train_batch_size` (per GPU, not total)
-- Effective batch size = `per_device_train_batch_size` × `num_gpus` × `gradient_accumulation_steps`
-- Monitor GPU utilization to ensure both GPUs are being used
+**多 GPU 训练提示:**
+- 无需更改代码
+- 使用 `per_device_train_batch_size`(每个 GPU,而非总数)
+- 有效批次大小 = `per_device_train_batch_size` × `num_gpus` × `gradient_accumulation_steps`
+- 监控 GPU 利用率以确保两个 GPU 都在使用
 
-## DPO Training (Preference Learning)
+## DPO 训练(偏好学习)
 
-Train with preference data for alignment:
+使用偏好数据进行对齐训练:
 
 ```python
 hf_jobs("uv", {
@@ -35,169 +35,181 @@ hf_jobs("uv", {
 # dependencies = ["trl>=0.12.0", "trackio"]
 # ///
 
-from datasets import load_dataset
-from trl import DPOTrainer, DPOConfig
-import trackio
+from datasets import load_dataset  # 从 Hugging Face 加载数据集
+from trl import DPOTrainer, DPOConfig  # 导入 DPO 训练器和配置
+import trackio  # 用于训练进度跟踪和可视化
 
+# 加载偏好数据集(包含偏好对的数据)
 dataset = load_dataset("trl-lib/ultrafeedback_binarized", split="train")
 
-# Create train/eval split
+# 创建训练集/验证集分割(90% 训练,10% 验证)
 dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
 
+# 配置 DPO 训练参数
 config = DPOConfig(
-    output_dir="dpo-model",
-    push_to_hub=True,
-    hub_model_id="username/dpo-model",
-    num_train_epochs=1,
-    beta=0.1,  # KL penalty coefficient
-    eval_strategy="steps",
-    eval_steps=50,
-    report_to="trackio",
-    run_name="baseline_run", # use a meaningful run name
-    # max_length=1024,  # Default - only set if you need different sequence length
+    output_dir="dpo-model",  # 输出目录
+    push_to_hub=True,  # 训练完成后推送到 Hugging Face Hub
+    hub_model_id="username/dpo-model",  # Hub 上的模型 ID
+    num_train_epochs=1,  # 训练轮数
+    beta=0.1,  # KL 散度惩罚系数,控制模型偏离原始策略的程度
+    eval_strategy="steps",  # 评估策略:按步骤评估
+    eval_steps=50,  # 每 50 步评估一次
+    report_to="trackio",  # 使用 trackio 记录训练指标
+    run_name="baseline_run",  # 使用有意义的运行名称
+    # max_length=1024,  # 默认值 - 仅在需要不同序列长度时设置
 )
 
+# 创建 DPO 训练器
 trainer = DPOTrainer(
-    model="Qwen/Qwen2.5-0.5B-Instruct",  # Use instruct model as base
-    train_dataset=dataset_split["train"],
-    eval_dataset=dataset_split["test"],  # IMPORTANT: Provide eval_dataset when eval_strategy is enabled
-    args=config,
+    model="Qwen/Qwen2.5-0.5B-Instruct",  # 使用指令模型作为基础模型
+    train_dataset=dataset_split["train"],  # 训练数据集
+    eval_dataset=dataset_split["test"],  # 验证数据集 - 重要:启用 eval_strategy 时必须提供
+    args=config,  # 训练配置
 )
 
+# 开始训练
 trainer.train()
+
+# 训练完成后推送到 Hub
 trainer.push_to_hub()
+
+# 完成 trackio 记录
 trackio.finish()
 """,
-    "flavor": "a10g-large",
-    "timeout": "3h",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}
+    "flavor": "a10g-large",  # 使用单个 A10G GPU
+    "timeout": "3h",  # 超时时间为 3 小时
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # 使用环境变量中的 HF_TOKEN
 })
 ```
 
-**For DPO documentation:** Use `hf_doc_fetch("https://huggingface.co/docs/trl/dpo_trainer")`
+**DPO 文档:** 使用 `hf_doc_fetch("https://huggingface.co/docs/trl/dpo_trainer")`
 
-## GRPO Training (Online RL)
+## GRPO 训练(在线强化学习)
 
-Group Relative Policy Optimization for online reinforcement learning:
+用于在线强化学习的组相对策略优化:
 
 ```python
 hf_jobs("uv", {
-    "script": "https://raw.githubusercontent.com/huggingface/trl/main/examples/scripts/grpo.py",
-    "script_args": [
-        "--model_name_or_path", "Qwen/Qwen2.5-0.5B-Instruct",
-        "--dataset_name", "trl-lib/math_shepherd",
-        "--output_dir", "grpo-model",
-        "--push_to_hub",
-        "--hub_model_id", "username/grpo-model"
+    "script": "https://raw.githubusercontent.com/huggingface/trl/main/examples/scripts/grpo.py",  # 使用官方 GRPO 训练脚本
+    "script_args": [  # 脚本参数
+        "--model_name_or_path", "Qwen/Qwen2.5-0.5B-Instruct",  # 基础模型路径
+        "--dataset_name", "trl-lib/math_shepherd",  # 数据集名称
+        "--output_dir", "grpo-model",  # 输出目录
+        "--push_to_hub",  # 推送到 Hub
+        "--hub_model_id", "username/grpo-model"  # Hub 上的模型 ID
     ],
-    "flavor": "a10g-large",
-    "timeout": "4h",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}
+    "flavor": "a10g-large",  # 使用单个 A10G GPU
+    "timeout": "4h",  # 超时时间为 4 小时
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # 使用环境变量中的 HF_TOKEN
 })
 ```
 
-**For GRPO documentation:** Use `hf_doc_fetch("https://huggingface.co/docs/trl/grpo_trainer")`
+**GRPO 文档:** 使用 `hf_doc_fetch("https://huggingface.co/docs/trl/grpo_trainer")`
 
-## Trackio Configuration
+## Trackio 配置
 
-**Use sensible defaults for trackio setup.** See `references/trackio_guide.md` for complete documentation including grouping runs for experiments.
+**为 trackio 设置使用合理的默认值。** 有关完整文档,包括为实验分组运行,请参阅 `references/trackio_guide.md`。
 
-### Basic Pattern
+### 基本模式
 
 ```python
-import trackio
+import trackio  # 导入 trackio 用于训练跟踪
 
+# 初始化 trackio
 trackio.init(
-    project="my-training",
-    run_name="baseline-run",             # Descriptive name user will recognize
-    space_id="username/trackio",     # Default space: {username}/trackio
+    project="my-training",  # 项目名称
+    run_name="baseline-run",  # 运行名称 - 用户能识别的描述性名称
+    space_id="username/trackio",  # Space ID - 默认为 {username}/trackio
     config={
-        # Keep config minimal - hyperparameters and model/dataset info only
-        "model": "Qwen/Qwen2.5-0.5B",
-        "dataset": "trl-lib/Capybara",
-        "learning_rate": 2e-5,
+        # 保持配置最小化 - 仅包含超参数和模型/数据集信息
+        "model": "Qwen/Qwen2.5-0.5B",  # 使用的模型
+        "dataset": "trl-lib/Capybara",  # 使用的数据集
+        "learning_rate": 2e-5,  # 学习率
     }
 )
 
-# Your training code...
+# 您的训练代码...
 
+# 完成 trackio 记录
 trackio.finish()
 ```
 
-### Grouping for Experiments (Optional)
+### 实验分组(可选)
 
-When user wants to compare related runs, use the `group` parameter:
+当用户想要比较相关运行时,使用 `group` 参数:
 
 ```python
-# Hyperparameter sweep
-trackio.init(project="hyperparam-sweep", run_name="lr-0.001", group="lr_0.001")
-trackio.init(project="hyperparam-sweep", run_name="lr-0.01", group="lr_0.01")
+# 超参数扫描
+trackio.init(project="hyperparam-sweep", run_name="lr-0.001", group="lr_0.001")  # 学习率为 0.001 的运行
+trackio.init(project="hyperparam-sweep", run_name="lr-0.01", group="lr_0.01")    # 学习率为 0.01 的运行
 ```
 
-## Pattern Selection Guide
+## 模式选择指南
 
-| Use Case | Pattern | Hardware | Time |
+| 用例 | 模式 | 硬件 | 时间 |
 |----------|---------|----------|------|
-| SFT training | `scripts/train_sft_example.py` | a10g-large | 2-6 hours |
-| Large dataset (>10K) | Multi-GPU | a10g-largex2 | 4-12 hours |
-| Preference learning | DPO Training | a10g-large | 2-4 hours |
-| Online RL | GRPO Training | a10g-large | 3-6 hours |
+| SFT 训练 | `scripts/train_sft_example.py` | a10g-large | 2-6 小时 |
+| 大数据集(>10K) | 多 GPU | a10g-largex2 | 4-12 小时 |
+| 偏好学习 | DPO 训练 | a10g-large | 2-4 小时 |
+| 在线强化学习 | GRPO 训练 | a10g-large | 3-6 小时 |
 
-## Critical: Evaluation Dataset Requirements
+## 关键:评估数据集要求
 
-**⚠️ IMPORTANT**: If you set `eval_strategy="steps"` or `eval_strategy="epoch"`, you **MUST** provide an `eval_dataset` to the trainer, or the training will hang.
+**⚠️ 重要**: 如果您设置了 `eval_strategy="steps"` 或 `eval_strategy="epoch"`,您**必须**向训练器提供一个 `eval_dataset`,否则训练将挂起。
 
-### ✅ CORRECT - With eval dataset:
+### ✅ 正确 - 带有评估数据集:
 ```python
+# 将数据集分割为训练集和验证集
 dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
 
 trainer = SFTTrainer(
-    model="Qwen/Qwen2.5-0.5B",
-    train_dataset=dataset_split["train"],
-    eval_dataset=dataset_split["test"],  # ← MUST provide when eval_strategy is enabled
-    args=SFTConfig(eval_strategy="steps", ...),
+    model="Qwen/Qwen2.5-0.5B",  # 基础模型
+    train_dataset=dataset_split["train"],  # 训练数据集
+    eval_dataset=dataset_split["test"],  # ← 启用 eval_strategy 时必须提供验证数据集
+    args=SFTConfig(eval_strategy="steps", ...),  # 按步骤进行评估
 )
 ```
 
-### ❌ WRONG - Will hang:
+### ❌ 错误 - 将挂起:
 ```python
 trainer = SFTTrainer(
-    model="Qwen/Qwen2.5-0.5B",
-    train_dataset=dataset,
-    # NO eval_dataset but eval_strategy="steps" ← WILL HANG
+    model="Qwen/Qwen2.5-0.5B",  # 基础模型
+    train_dataset=dataset,  # 训练数据集
+    # 没有提供 eval_dataset 但设置了 eval_strategy="steps" ← 将导致训练挂起
     args=SFTConfig(eval_strategy="steps", ...),
 )
 ```
 
-### Option: Disable evaluation if no eval dataset
+### 选项:如果没有评估数据集则禁用评估
 ```python
+# 配置训练参数
 config = SFTConfig(
-    eval_strategy="no",  # ← Explicitly disable evaluation
-    # ... other config
+    eval_strategy="no",  # ← 显式禁用评估
+    # ... 其他配置
 )
 
 trainer = SFTTrainer(
-    model="Qwen/Qwen2.5-0.5B",
-    train_dataset=dataset,
-    # No eval_dataset needed
+    model="Qwen/Qwen2.5-0.5B",  # 基础模型
+    train_dataset=dataset,  # 训练数据集
+    # 不需要 eval_dataset
     args=config,
 )
 ```
 
-## Best Practices
+## 最佳实践
 
-1. **Use train/eval splits** - Create evaluation split for monitoring progress
-2. **Enable Trackio** - Monitor progress in real-time
-3. **Add 20-30% buffer to timeout** - Account for loading/saving overhead
-4. **Test with TRL official scripts first** - Use maintained examples before custom code
-5. **Always provide eval_dataset** - When using eval_strategy, or set to "no"
-6. **Use multi-GPU for large models** - 7B+ models benefit significantly
+1. **使用训练/验证分割** - 创建评估分割以监控训练进度
+2. **启用 Trackio** - 实时监控训练进度
+3. **为超时时间添加 20-30% 的缓冲** - 考虑加载/保存的开销
+4. **首先使用 TRL 官方脚本测试** - 在自定义代码之前使用维护的示例
+5. **始终提供 eval_dataset** - 当使用 eval_strategy 时,或设置为 "no"
+6. **对大模型使用多 GPU** - 7B+ 模型受益显著
 
-## See Also
+## 另请参阅
 
-- `scripts/train_sft_example.py` - Complete SFT template with Trackio and eval split
-- `scripts/train_dpo_example.py` - Complete DPO template
-- `scripts/train_grpo_example.py` - Complete GRPO template
-- `references/hardware_guide.md` - Detailed hardware specifications
-- `references/training_methods.md` - Overview of all TRL training methods
-- `references/troubleshooting.md` - Common issues and solutions
+- `scripts/train_sft_example.py` - 包含 Trackio 和评估分割的完整 SFT 模板
+- `scripts/train_dpo_example.py` - 完整的 DPO 模板
+- `scripts/train_grpo_example.py` - 完整的 GRPO 模板
+- `references/hardware_guide.md` - 详细的硬件规格
+- `references/training_methods.md` - 所有 TRL 训练方法的概述
+- `references/troubleshooting.md` - 常见问题和解决方案

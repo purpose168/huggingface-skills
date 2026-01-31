@@ -1,33 +1,33 @@
-# Week 3: Supervised Fine-Tuning on the Hub
+# 第3周：在Hub上进行监督微调
 
-Fine-tune and share models on the Hub. Take a base model, train it on your data, and publish the result for the community to use.
+在Hub上微调并分享模型。获取一个基础模型，在你的数据上训练它，并发布结果供社区使用。
 
-## Why This Matters
+## 为什么这很重要
 
-Fine-tuning is how we adapt foundation models to specific tasks. By sharing fine-tuned models—along with your training methodology—you're giving the community ready-to-use solutions and reproducible recipes they can learn from.
+微调是我们将基础模型适应特定任务的方式。通过分享微调后的模型——连同你的训练方法——你为社区提供了即用型解决方案和可重现的配方，供他们学习。
 
-## The Skill
+## 技能
 
-Use `hf-llm-trainer/` for this quest. Key capabilities:
+使用`hf-llm-trainer/`完成此任务。关键功能：
 
-- **SFT** (Supervised Fine-Tuning) — Standard instruction tuning
-- **DPO** (Direct Preference Optimization) — Alignment from preference data
-- **GRPO** (Group Relative Policy Optimization) — Online RL training
-- Cloud GPU training on HF Jobs—no local setup required
-- Trackio integration for real-time monitoring
-- GGUF conversion for local deployment
+- **SFT**（监督微调）—— 标准指令调优
+- **DPO**（直接偏好优化）—— 从偏好数据中进行对齐
+- **GRPO**（组相对策略优化）—— 在线RL训练
+- 在HF Jobs上进行云GPU训练——无需本地设置
+- Trackio集成用于实时监控
+- GGUF转换用于本地部署
 
-Your coding agent uses `hf_jobs()` to submit training scripts directly to HF infrastructure.
+你的编码代理使用`hf_jobs()`将训练脚本直接提交到HF基础设施。
 
-## XP Tiers
+## XP等级
 
-We'll announce the XP tiers for this quest soon.
+我们将很快公布此任务的XP等级。
 
-## Resources
+## 资源
 
-- [SKILL.md](../../hf-llm-trainer/SKILL.md) — Full skill documentation
-- [SFT Example](../../hf-llm-trainer/scripts/train_sft_example.py) — Production SFT template
-- [DPO Example](../../hf-llm-trainer/scripts/train_dpo_example.py) — Production DPO template
-- [GRPO Example](../../hf-llm-trainer/scripts/train_grpo_example.py) — Production GRPO template
-- [Training Methods](../../hf-llm-trainer/references/training_methods.md) — Method selection guide
-- [Hardware Guide](../../hf-llm-trainer/references/hardware_guide.md) — GPU selection
+- [SKILL.md](../../hf-llm-trainer/SKILL.md) — 完整技能文档
+- [SFT示例](../../hf-llm-trainer/scripts/train_sft_example.py) — 生产级SFT模板
+- [DPO示例](../../hf-llm-trainer/scripts/train_dpo_example.py) — 生产级DPO模板
+- [GRPO示例](../../hf-llm-trainer/scripts/train_grpo_example.py) — 生产级GRPO模板
+- [训练方法](../../hf-llm-trainer/references/training_methods.md) — 方法选择指南
+- [硬件指南](../../hf-llm-trainer/references/hardware_guide.md) — GPU选择

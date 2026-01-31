@@ -10,14 +10,15 @@
 # ///
 
 """
-Manage evaluation results in Hugging Face model cards.
+管理 Hugging Face 模型卡片中的评估结果。
 
-This script provides two methods:
-1. Extract evaluation tables from model README files
-2. Import evaluation scores from Artificial Analysis API
+本脚本提供两种方法：
+1. 从模型 README 文件中提取评估表格
+2. 从 Artificial Analysis API 导入评估分数
 
-Both methods update the model-index metadata in model cards.
+两种方法都会更新模型卡片中的 model-index 元数据。
 """
+
 
 import argparse
 import os
@@ -27,7 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 def load_env() -> None:
-    """Load .env if python-dotenv is available; keep help usable without it."""
+    """如果 python-dotenv 可用，则加载 .env 文件；在没有它的情况下保持帮助可用。"""
     try:
         import dotenv  # type: ignore
     except ModuleNotFoundError:
@@ -35,15 +36,17 @@ def load_env() -> None:
     dotenv.load_dotenv()
 
 
+
 def require_markdown_it():
     try:
         from markdown_it import MarkdownIt  # type: ignore
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError(
-            "markdown-it-py is required for table parsing. "
-            "Install with `uv add markdown-it-py` or `pip install markdown-it-py`."
+            "表格解析需要 markdown-it-py。 "
+            "使用 `uv add markdown-it-py` 或 `pip install markdown-it-py` 安装。"
         ) from exc
     return MarkdownIt
+
 
 
 def require_model_card():
@@ -51,10 +54,11 @@ def require_model_card():
         from huggingface_hub import ModelCard  # type: ignore
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError(
-            "huggingface-hub is required for model card operations. "
-            "Install with `uv add huggingface_hub` or `pip install huggingface-hub`."
+            "模型卡片操作需要 huggingface-hub。 "
+            "使用 `uv add huggingface_hub` 或 `pip install huggingface-hub` 安装。"
         ) from exc
     return ModelCard
+
 
 
 def require_requests():
@@ -62,10 +66,11 @@ def require_requests():
         import requests  # type: ignore
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError(
-            "requests is required for Artificial Analysis import. "
-            "Install with `uv add requests` or `pip install requests`."
+            "Artificial Analysis 导入需要 requests。 "
+            "使用 `uv add requests` 或 `pip install requests` 安装。"
         ) from exc
     return requests
+
 
 
 def require_yaml():
@@ -73,10 +78,11 @@ def require_yaml():
         import yaml  # type: ignore
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError(
-            "PyYAML is required for YAML output. "
-            "Install with `uv add pyyaml` or `pip install pyyaml`."
+            "YAML 输出需要 PyYAML。 "
+            "使用 `uv add pyyaml` 或 `pip install pyyaml` 安装。"
         ) from exc
     return yaml
+
 
 
 # ============================================================================
@@ -85,32 +91,33 @@ def require_yaml():
 
 
 def extract_tables_from_markdown(markdown_content: str) -> List[str]:
-    """Extract all markdown tables from content."""
-    # Pattern to match markdown tables
+    """从内容中提取所有 markdown 表格。"""
+    # 匹配 markdown 表格的模式
     table_pattern = r"(\|[^\n]+\|(?:\r?\n\|[^\n]+\|)+)"
     tables = re.findall(table_pattern, markdown_content)
     return tables
 
 
+
 def parse_markdown_table(table_str: str) -> Tuple[List[str], List[List[str]]]:
     """
-    Parse a markdown table string into headers and rows.
+    将 markdown 表格字符串解析为表头和行数据。
 
-    Returns:
-        Tuple of (headers, data_rows)
+    返回:
+        (表头, 数据行) 的元组
     """
     lines = [line.strip() for line in table_str.strip().split("\n")]
 
-    # Remove separator line (the one with dashes)
+    # 删除分隔线（带破折号的行）
     lines = [line for line in lines if not re.match(r"^\|[\s\-:]+\|$", line)]
 
     if len(lines) < 2:
         return [], []
 
-    # Parse header
+    # 解析表头
     header = [cell.strip() for cell in lines[0].split("|")[1:-1]]
 
-    # Parse data rows
+    # 解析数据行
     data_rows = []
     for line in lines[1:]:
         cells = [cell.strip() for cell in line.split("|")[1:-1]]
@@ -120,12 +127,13 @@ def parse_markdown_table(table_str: str) -> Tuple[List[str], List[List[str]]]:
     return header, data_rows
 
 
+
 def is_evaluation_table(header: List[str], rows: List[List[str]]) -> bool:
-    """Determine if a table contains evaluation results."""
+    """判断表格是否包含评估结果。"""
     if not header or not rows:
         return False
 
-    # Check if first column looks like benchmark names
+    # 检查第一列是否看起来像基准测试名称
     benchmark_keywords = [
         "benchmark", "task", "dataset", "eval", "test", "metric",
         "mmlu", "humaneval", "gsm", "hellaswag", "arc", "winogrande",
@@ -135,7 +143,7 @@ def is_evaluation_table(header: List[str], rows: List[List[str]]) -> bool:
     first_col = header[0].lower()
     has_benchmark_header = any(keyword in first_col for keyword in benchmark_keywords)
 
-    # Check if there are numeric values in the table
+    # 检查表格中是否有数值
     has_numeric_values = False
     for row in rows:
         for cell in row:
@@ -151,84 +159,86 @@ def is_evaluation_table(header: List[str], rows: List[List[str]]) -> bool:
     return has_benchmark_header or has_numeric_values
 
 
+
 def normalize_model_name(name: str) -> tuple[set[str], str]:
     """
-    Normalize a model name for matching.
+    规范化模型名称以进行匹配。
 
-    Args:
-        name: Model name to normalize
+    参数:
+        name: 要规范化的模型名称
 
-    Returns:
-        Tuple of (token_set, normalized_string)
+    返回:
+        (token_set, normalized_string) 的元组
     """
-    # Remove markdown formatting
-    cleaned = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', name)  # Remove markdown links
-    cleaned = re.sub(r'\*\*([^\*]+)\*\*', r'\1', cleaned)  # Remove bold
+    # 移除 markdown 格式
+    cleaned = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', name)  # 移除 markdown 链接
+    cleaned = re.sub(r'\*\*([^\*]+)\*\*', r'\1', cleaned)  # 移除粗体
     cleaned = cleaned.strip()
 
-    # Normalize and tokenize
+    # 规范化并分词
     normalized = cleaned.lower().replace("-", " ").replace("_", " ")
     tokens = set(normalized.split())
 
     return tokens, normalized
 
 
+
 def find_main_model_column(header: List[str], model_name: str) -> Optional[int]:
     """
-    Identify the column index that corresponds to the main model.
+    识别与主模型对应的列索引。
 
-    Only returns a column if there's an exact normalized match with the model name.
-    This prevents extracting scores from training checkpoints or similar models.
+    只有当与模型名称存在精确的规范化匹配时才返回列。
+    这样可以防止从训练检查点或类似模型中提取分数。
 
-    Args:
-        header: Table column headers
-        model_name: Model name from repo_id (e.g., "OLMo-3-32B-Think")
+    参数:
+        header: 表格列标题
+        model_name: 来自 repo_id 的模型名称（例如，"OLMo-3-32B-Think"）
 
-    Returns:
-        Column index of the main model, or None if no exact match found
+    返回:
+        主模型的列索引，如果未找到精确匹配则返回 None
     """
     if not header or not model_name:
         return None
 
-    # Normalize model name and extract tokens
+    # 规范化模型名称并提取令牌
     model_tokens, _ = normalize_model_name(model_name)
 
-    # Find exact matches only
+    # 只查找精确匹配
     for i, col_name in enumerate(header):
         if not col_name:
             continue
 
-        # Skip first column (benchmark names)
+        # 跳过第一列（基准测试名称）
         if i == 0:
             continue
 
         col_tokens, _ = normalize_model_name(col_name)
 
-        # Check for exact token match
+        # 检查精确令牌匹配
         if model_tokens == col_tokens:
             return i
 
-    # No exact match found
+    # 未找到精确匹配
     return None
+
 
 
 def find_main_model_row(
     rows: List[List[str]], model_name: str
 ) -> tuple[Optional[int], List[str]]:
     """
-    Identify the row index that corresponds to the main model in a transposed table.
+    在转置表格中识别与主模型对应的行索引。
 
-    In transposed tables, each row represents a different model, with the first
-    column containing the model name.
+    在转置表格中，每一行代表一个不同的模型，第一列包含模型名称。
 
-    Args:
-        rows: Table data rows
-        model_name: Model name from repo_id (e.g., "OLMo-3-32B")
+    参数:
+        rows: 表格数据行
+        model_name: 来自 repo_id 的模型名称（例如，"OLMo-3-32B"）
 
-    Returns:
-        Tuple of (row_index, available_models)
-        - row_index: Index of the main model, or None if no exact match found
-        - available_models: List of all model names found in the table
+    返回:
+        (row_index, available_models) 的元组
+        - row_index: 主模型的索引，如果未找到精确匹配则返回 None
+        - available_models: 表格中找到的所有模型名称列表
     """
     if not rows or not model_name:
         return None, []
@@ -242,48 +252,49 @@ def find_main_model_row(
 
         row_name = row[0].strip()
 
-        # Skip separator/header rows
+        # 跳过分隔符/标题行
         if not row_name or row_name.startswith('---'):
             continue
 
         row_tokens, _ = normalize_model_name(row_name)
 
-        # Collect all non-empty model names
+        # 收集所有非空模型名称
         if row_tokens:
             available_models.append(row_name)
 
-        # Check for exact token match
+        # 检查精确令牌匹配
         if model_tokens == row_tokens:
             return i, available_models
 
     return None, available_models
 
 
+
 def is_transposed_table(header: List[str], rows: List[List[str]]) -> bool:
     """
-    Determine if a table is transposed (models as rows, benchmarks as columns).
+    判断表格是否是转置的（模型作为行，基准测试作为列）。
 
-    A table is considered transposed if:
-    - The first column contains model-like names (not benchmark names)
-    - Most other columns contain numeric values
-    - Header row contains benchmark-like names
+    表格被认为是转置的条件：
+    - 第一列包含模型类名称（而非基准测试名称）
+    - 大多数其他列包含数值
+    - 标题行包含基准测试类名称
 
-    Args:
-        header: Table column headers
-        rows: Table data rows
+    参数:
+        header: 表格列标题
+        rows: 表格数据行
 
-    Returns:
-        True if table appears to be transposed, False otherwise
+    返回:
+        如果表格看起来是转置的，则返回 True，否则返回 False
     """
     if not header or not rows or len(header) < 3:
         return False
 
-    # Check if first column header suggests model names
+    # 检查第一列标题是否暗示模型名称
     first_col = header[0].lower()
     model_indicators = ["model", "system", "llm", "name"]
     has_model_header = any(indicator in first_col for indicator in model_indicators)
 
-    # Check if remaining headers look like benchmarks
+    # 检查其余标题是否看起来像基准测试
     benchmark_keywords = [
         "mmlu", "humaneval", "gsm", "hellaswag", "arc", "winogrande",
         "eval", "score", "benchmark", "test", "math", "code", "mbpp",
@@ -298,12 +309,12 @@ def is_transposed_table(header: List[str], rows: List[List[str]]) -> bool:
 
     has_benchmark_headers = benchmark_header_count >= 2
 
-    # Check if data rows have numeric values in most columns (except first)
+    # 检查数据行是否在大多数列中包含数值（除第一列外）
     numeric_count = 0
     total_cells = 0
 
-    for row in rows[:5]:  # Check first 5 rows
-        for cell in row[1:]:  # Skip first column
+    for row in rows[:5]:  # 检查前 5 行
+        for cell in row[1:]:  # 跳过第一列
             total_cells += 1
             try:
                 float(cell.replace("%", "").replace(",", "").strip())
@@ -316,6 +327,7 @@ def is_transposed_table(header: List[str], rows: List[List[str]]) -> bool:
     return (has_model_header or has_benchmark_headers) and has_numeric_data
 
 
+
 def extract_metrics_from_table(
     header: List[str],
     rows: List[List[str]],
@@ -324,33 +336,34 @@ def extract_metrics_from_table(
     model_column_index: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """
-    Extract metrics from parsed table data.
+    从解析的表格数据中提取指标。
 
-    Args:
-        header: Table column headers
-        rows: Table data rows
-        table_format: "rows" (benchmarks as rows), "columns" (benchmarks as columns),
-                     "transposed" (models as rows, benchmarks as columns), or "auto"
-        model_name: Optional model name to identify the correct column/row
+    参数:
+        header: 表格列标题
+        rows: 表格数据行
+        table_format: "rows"（基准测试作为行）、"columns"（基准测试作为列）、
+                     "transposed"（模型作为行，基准测试作为列）或 "auto"
+        model_name: 可选的模型名称，用于识别正确的列/行
 
-    Returns:
-        List of metric dictionaries with name, type, and value
+    返回:
+        带有名称、类型和值的指标字典列表
     """
+
     metrics = []
 
     if table_format == "auto":
-        # First check if it's a transposed table (models as rows)
+        # 首先检查是否是转置表格（模型作为行）
         if is_transposed_table(header, rows):
             table_format = "transposed"
         else:
-            # Check if first column header is empty/generic (indicates benchmarks in rows)
+            # 检查第一列标题是否为空/通用（表示基准测试在行中）
             first_header = header[0].lower().strip() if header else ""
             is_first_col_benchmarks = not first_header or first_header in ["", "benchmark", "task", "dataset", "metric", "eval"]
 
             if is_first_col_benchmarks:
                 table_format = "rows"
             else:
-                # Heuristic: if first row has mostly numeric values, benchmarks are columns
+                # 启发式：如果第一行大部分是数值，基准测试在列中
                 try:
                     numeric_count = sum(
                         1 for cell in rows[0] if cell and
@@ -361,8 +374,8 @@ def extract_metrics_from_table(
                     table_format = "rows"
 
     if table_format == "rows":
-        # Benchmarks are in rows, scores in columns
-        # Try to identify the main model column if model_name is provided
+        # 基准测试在行中，分数在列中
+        # 如果提供了 model_name，尝试识别主模型列
         target_column = model_column_index
         if target_column is None and model_name:
             target_column = find_main_model_column(header, model_name)
@@ -375,7 +388,7 @@ def extract_metrics_from_table(
             if not benchmark_name:
                 continue
 
-            # If we identified a specific column, use it; otherwise use first numeric value
+            # 如果我们识别了特定列，使用它；否则使用第一个数值
             if target_column is not None and target_column < len(row):
                 try:
                     value_str = row[target_column].replace("%", "").replace(",", "").strip()
@@ -389,17 +402,17 @@ def extract_metrics_from_table(
                 except (ValueError, IndexError):
                     pass
             else:
-                # Extract numeric values from remaining columns (original behavior)
+                # 从剩余列中提取数值（原始行为）
                 for i, cell in enumerate(row[1:], start=1):
                     try:
-                        # Remove common suffixes and convert to float
+                        # 移除常见后缀并转换为浮点数
                         value_str = cell.replace("%", "").replace(",", "").strip()
                         if not value_str:
                             continue
 
                         value = float(value_str)
 
-                        # Determine metric name
+                        # 确定指标名称
                         metric_name = benchmark_name
                         if len(header) > i and header[i].lower() not in ["score", "value", "result"]:
                             metric_name = f"{benchmark_name} ({header[i]})"
@@ -409,33 +422,33 @@ def extract_metrics_from_table(
                             "type": benchmark_name.lower().replace(" ", "_"),
                             "value": value
                         })
-                        break  # Only take first numeric value per row
+                        break  # 每行只取第一个数值
                     except (ValueError, IndexError):
                         continue
 
     elif table_format == "transposed":
-        # Models are in rows (first column), benchmarks are in columns (header)
-        # Find the row that matches the target model
+        # 模型在行中（第一列），基准测试在列中（标题）
+        # 找到与目标模型匹配的行
         if not model_name:
-            print("Warning: model_name required for transposed table format")
+            print("警告：转置表格格式需要 model_name")
             return metrics
 
         target_row_idx, available_models = find_main_model_row(rows, model_name)
 
         if target_row_idx is None:
-            print(f"\n⚠ Could not find model '{model_name}' in transposed table")
+            print(f"\n⚠ 无法在转置表格中找到模型 '{model_name}'")
             if available_models:
-                print("\nAvailable models in table:")
+                print("\n表格中的可用模型：")
                 for i, model in enumerate(available_models, 1):
                     print(f"  {i}. {model}")
-                print("\nPlease select the correct model name from the list above.")
-                print("You can specify it using the --model-name-override flag:")
+                print("\n请从上面的列表中选择正确的模型名称。")
+                print("您可以使用 --model-name-override 标志指定：")
                 print(f'  --model-name-override "{available_models[0]}"')
             return metrics
 
         target_row = rows[target_row_idx]
 
-        # Extract metrics from each column (skip first column which is model name)
+        # 从每列提取指标（跳过第一列，因为是模型名称）
         for i in range(1, len(header)):
             benchmark_name = header[i].strip()
             if not benchmark_name or i >= len(target_row):
@@ -457,11 +470,11 @@ def extract_metrics_from_table(
                 continue
 
     else:  # table_format == "columns"
-        # Benchmarks are in columns
+        # 基准测试在列中
         if not rows:
             return metrics
 
-        # Use first data row for values
+        # 使用第一数据行的值
         data_row = rows[0]
 
         for i, benchmark_name in enumerate(header):
@@ -486,6 +499,7 @@ def extract_metrics_from_table(
     return metrics
 
 
+
 def extract_evaluations_from_readme(
     repo_id: str,
     task_type: str = "text-generation",
@@ -496,19 +510,20 @@ def extract_evaluations_from_readme(
     model_column_index: Optional[int] = None
 ) -> Optional[List[Dict[str, Any]]]:
     """
-    Extract evaluation results from a model's README.
+    从模型的 README 中提取评估结果。
 
-    Args:
-        repo_id: Hugging Face model repository ID
-        task_type: Task type for model-index (e.g., "text-generation")
-        dataset_name: Name for the benchmark dataset
-        dataset_type: Type identifier for the dataset
-        model_name_override: Override model name for matching (column header for comparison tables)
-        table_index: 1-indexed table number from inspect-tables output
+    参数:
+        repo_id: Hugging Face 模型仓库 ID
+        task_type: model-index 的任务类型（例如，"text-generation"）
+        dataset_name: 基准测试数据集的名称
+        dataset_type: 数据集的类型标识符
+        model_name_override: 用于匹配的覆盖模型名称（比较表格的列标题）
+        table_index: 来自 inspect-tables 输出的 1-索引表格编号
 
-    Returns:
-        Model-index formatted results or None if no evaluations found
+    返回:
+        model-index 格式的结果，如果未找到评估则返回 None
     """
+
     try:
         load_env()
         ModelCard = require_model_card()
@@ -517,32 +532,32 @@ def extract_evaluations_from_readme(
         readme_content = card.content
 
         if not readme_content:
-            print(f"No README content found for {repo_id}")
+            print(f"未找到 {repo_id} 的 README 内容")
             return None
 
-        # Extract model name from repo_id or use override
+        # 从 repo_id 提取模型名称或使用覆盖
         if model_name_override:
             model_name = model_name_override
-            print(f"Using model name override: '{model_name}'")
+            print(f"使用模型名称覆盖: '{model_name}'")
         else:
             model_name = repo_id.split("/")[-1] if "/" in repo_id else repo_id
 
-        # Use markdown-it parser for accurate table extraction
+        # 使用 markdown-it 解析器进行准确的表格提取
         all_tables = extract_tables_with_parser(readme_content)
 
         if not all_tables:
-            print(f"No tables found in README for {repo_id}")
+            print(f"在 {repo_id} 的 README 中未找到表格")
             return None
 
-        # If table_index specified, use that specific table
+        # 如果指定了 table_index，使用该特定表格
         if table_index is not None:
             if table_index < 1 or table_index > len(all_tables):
-                print(f"Invalid table index {table_index}. Found {len(all_tables)} tables.")
-                print("Run inspect-tables to see available tables.")
+                print(f"无效的表格索引 {table_index}。找到 {len(all_tables)} 个表格。")
+                print("运行 inspect-tables 查看可用表格。")
                 return None
             tables_to_process = [all_tables[table_index - 1]]
         else:
-            # Filter to evaluation tables only
+            # 仅过滤评估表格
             eval_tables = []
             for table in all_tables:
                 header = table.get("headers", [])
@@ -551,17 +566,17 @@ def extract_evaluations_from_readme(
                     eval_tables.append(table)
 
             if len(eval_tables) > 1:
-                print(f"\n⚠ Found {len(eval_tables)} evaluation tables.")
-                print("Run inspect-tables first, then use --table to select one:")
+                print(f"\n⚠ 找到 {len(eval_tables)} 个评估表格。")
+                print("首先运行 inspect-tables，然后使用 --table 选择一个：")
                 print(f'  uv run scripts/evaluation_manager.py inspect-tables --repo-id "{repo_id}"')
                 return None
             elif len(eval_tables) == 0:
-                print(f"No evaluation tables found in README for {repo_id}")
+                print(f"在 {repo_id} 的 README 中未找到评估表格")
                 return None
 
             tables_to_process = eval_tables
 
-        # Extract metrics from selected table(s)
+        # 从选定的表格中提取指标
         all_metrics = []
         for table in tables_to_process:
             header = table.get("headers", [])
@@ -575,10 +590,10 @@ def extract_evaluations_from_readme(
             all_metrics.extend(metrics)
 
         if not all_metrics:
-            print(f"No metrics extracted from table")
+            print(f"未从表格中提取指标")
             return None
 
-        # Build model-index structure
+        # 构建 model-index 结构
         display_name = repo_id.split("/")[-1] if "/" in repo_id else repo_id
 
         results = [{
@@ -597,8 +612,9 @@ def extract_evaluations_from_readme(
         return results
 
     except Exception as e:
-        print(f"Error extracting evaluations from README: {e}")
+        print(f"从 README 提取评估时出错: {e}")
         return None
+
 
 
 # ============================================================================
@@ -608,11 +624,11 @@ def extract_evaluations_from_readme(
 
 def extract_tables_with_parser(markdown_content: str) -> List[Dict[str, Any]]:
     """
-    Extract tables from markdown using markdown-it-py parser.
-    Uses GFM (GitHub Flavored Markdown) which includes table support.
+    使用 markdown-it-py 解析器从 markdown 中提取表格。
+    使用 GFM（GitHub Flavored Markdown），它包含表格支持。
     """
     MarkdownIt = require_markdown_it()
-    # Disable linkify to avoid optional dependency errors; not needed for table parsing.
+    # 禁用 linkify 以避免可选依赖错误；表格解析不需要它。
     md = MarkdownIt("gfm-like", {"linkify": False})
     tokens = md.parse(markdown_content)
 
@@ -653,8 +669,9 @@ def extract_tables_with_parser(markdown_content: str) -> List[Dict[str, Any]]:
     return tables
 
 
+
 def detect_table_format(table: Dict[str, Any], repo_id: str) -> Dict[str, Any]:
-    """Analyze a table to detect its format and identify model columns."""
+    """分析表格以检测其格式并识别模型列。"""
     headers = table.get("headers", [])
     rows = table.get("rows", [])
 
@@ -664,7 +681,7 @@ def detect_table_format(table: Dict[str, Any], repo_id: str) -> Dict[str, Any]:
     first_header = headers[0].lower() if headers else ""
     is_first_col_benchmarks = not first_header or first_header in ["", "benchmark", "task", "dataset", "metric", "eval"]
 
-    # Check for numeric columns
+    # 检查数值列
     numeric_columns = []
     for col_idx in range(1, len(headers)):
         numeric_count = 0
@@ -679,7 +696,7 @@ def detect_table_format(table: Dict[str, Any], repo_id: str) -> Dict[str, Any]:
         if numeric_count > len(rows[:5]) / 2:
             numeric_columns.append(col_idx)
 
-    # Determine format
+    # 确定格式
     if is_first_col_benchmarks and len(numeric_columns) > 1:
         format_type = "comparison"
     elif is_first_col_benchmarks and len(numeric_columns) == 1:
@@ -689,7 +706,7 @@ def detect_table_format(table: Dict[str, Any], repo_id: str) -> Dict[str, Any]:
     else:
         format_type = "unknown"
 
-    # Find model columns
+    # 查找模型列
     model_columns = []
     model_name = repo_id.split("/")[-1] if "/" in repo_id else repo_id
     model_tokens, _ = normalize_model_name(model_name)
@@ -717,8 +734,10 @@ def detect_table_format(table: Dict[str, Any], repo_id: str) -> Dict[str, Any]:
     }
 
 
+
 def inspect_tables(repo_id: str) -> None:
-    """Inspect and display all evaluation tables in a model's README."""
+    """检查并显示模型 README 中的所有评估表格。"""
+
     try:
         load_env()
         ModelCard = require_model_card()
@@ -727,18 +746,19 @@ def inspect_tables(repo_id: str) -> None:
         readme_content = card.content
 
         if not readme_content:
-            print(f"No README content found for {repo_id}")
+            print(f"未找到 {repo_id} 的 README 内容")
             return
 
         tables = extract_tables_with_parser(readme_content)
 
         if not tables:
-            print(f"No tables found in README for {repo_id}")
+            print(f"在 {repo_id} 的 README 中未找到表格")
             return
 
         print(f"\n{'='*70}")
-        print(f"Tables found in README for: {repo_id}")
+        print(f"在 README 中找到的表格: {repo_id}")
         print(f"{'='*70}")
+
 
         eval_table_count = 0
         for table in tables:

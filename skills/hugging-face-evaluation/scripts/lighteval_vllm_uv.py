@@ -10,18 +10,18 @@
 # ///
 
 """
-Entry point script for running lighteval evaluations with vLLM backend via `hf jobs uv run`.
+通过 `hf jobs uv run` 使用 vLLM 后端运行 lighteval 评估的入口脚本。
 
-This script runs evaluations using vLLM for efficient GPU inference on custom HuggingFace models.
-It is separate from inference provider scripts and evaluates models directly on the hardware.
+此脚本使用 vLLM 在自定义 HuggingFace 模型上进行高效的 GPU 推理来运行评估。
+它与推理提供商脚本分开，直接在硬件上评估模型。
 
-Usage (standalone):
+用法（独立运行）：
     python lighteval_vllm_uv.py --model "meta-llama/Llama-3.2-1B" --tasks "leaderboard|mmlu|5"
 
-Usage (via HF Jobs):
-    hf jobs uv run lighteval_vllm_uv.py \\
-        --flavor a10g-small \\
-        --secret HF_TOKEN=$HF_TOKEN \\
+用法（通过 HF Jobs）：
+    hf jobs uv run lighteval_vllm_uv.py \
+        --flavor a10g-small \
+        --secret HF_TOKEN=$HF_TOKEN \
         -- --model "meta-llama/Llama-3.2-1B" --tasks "leaderboard|mmlu|5"
 """
 
@@ -35,7 +35,7 @@ from typing import Optional
 
 
 def setup_environment() -> None:
-    """Configure environment variables for HuggingFace authentication."""
+    """配置 HuggingFace 身份验证的环境变量。"""
     hf_token = os.getenv("HF_TOKEN")
     if hf_token:
         os.environ.setdefault("HUGGING_FACE_HUB_TOKEN", hf_token)
@@ -56,24 +56,24 @@ def run_lighteval_vllm(
     system_prompt: Optional[str] = None,
 ) -> None:
     """
-    Run lighteval with vLLM backend for efficient GPU inference.
+    使用 vLLM 后端运行 lighteval 以进行高效的 GPU 推理。
 
-    Args:
-        model_id: HuggingFace model ID (e.g., "meta-llama/Llama-3.2-1B")
-        tasks: Task specification (e.g., "leaderboard|mmlu|5" or "lighteval|hellaswag|0")
-        output_dir: Directory for evaluation results
-        max_samples: Limit number of samples per task
-        batch_size: Batch size for evaluation
-        tensor_parallel_size: Number of GPUs for tensor parallelism
-        gpu_memory_utilization: GPU memory fraction to use (0.0-1.0)
-        dtype: Data type for model weights (auto, float16, bfloat16)
-        trust_remote_code: Allow executing remote code from model repo
-        use_chat_template: Apply chat template for conversational models
-        system_prompt: System prompt for chat models
+    参数：
+        model_id: HuggingFace 模型 ID（例如，"meta-llama/Llama-3.2-1B"）
+        tasks: 任务规范（例如，"leaderboard|mmlu|5" 或 "lighteval|hellaswag|0"）
+        output_dir: 评估结果的目录
+        max_samples: 限制每个任务的样本数量
+        batch_size: 评估的批处理大小
+        tensor_parallel_size: 用于张量并行的 GPU 数量
+        gpu_memory_utilization: 要使用的 GPU 内存分数（0.0-1.0）
+        dtype: 模型权重的数据类型（auto、float16、bfloat16）
+        trust_remote_code: 允许执行来自模型仓库的远程代码
+        use_chat_template: 为对话模型应用聊天模板
+        system_prompt: 聊天模型的系统提示
     """
     setup_environment()
 
-    # Build lighteval vllm command
+    # 构建 lighteval vllm 命令
     cmd = [
         "lighteval",
         "vllm",
@@ -100,13 +100,13 @@ def run_lighteval_vllm(
     if system_prompt:
         cmd.extend(["--system-prompt", system_prompt])
 
-    print(f"Running: {' '.join(cmd)}")
+    print(f"运行中: {' '.join(cmd)}")
 
     try:
         subprocess.run(cmd, check=True)
-        print("Evaluation complete.")
+        print("评估完成。")
     except subprocess.CalledProcessError as exc:
-        print(f"Evaluation failed with exit code {exc.returncode}", file=sys.stderr)
+        print(f"评估失败，退出代码为 {exc.returncode}", file=sys.stderr)
         sys.exit(exc.returncode)
 
 
@@ -122,24 +122,24 @@ def run_lighteval_accelerate(
     system_prompt: Optional[str] = None,
 ) -> None:
     """
-    Run lighteval with accelerate backend for multi-GPU distributed inference.
+    使用 accelerate 后端运行 lighteval 以进行多 GPU 分布式推理。
 
-    Use this backend when vLLM is not available or for models not supported by vLLM.
+    当 vLLM 不可用或对于 vLLM 不支持的模型时使用此后端。
 
-    Args:
-        model_id: HuggingFace model ID
-        tasks: Task specification
-        output_dir: Directory for evaluation results
-        max_samples: Limit number of samples per task
-        batch_size: Batch size for evaluation
-        dtype: Data type for model weights
-        trust_remote_code: Allow executing remote code
-        use_chat_template: Apply chat template
-        system_prompt: System prompt for chat models
+    参数：
+        model_id: HuggingFace 模型 ID
+        tasks: 任务规范
+        output_dir: 评估结果的目录
+        max_samples: 限制每个任务的样本数量
+        batch_size: 评估的批处理大小
+        dtype: 模型权重的数据类型
+        trust_remote_code: 允许执行远程代码
+        use_chat_template: 应用聊天模板
+        system_prompt: 聊天模型的系统提示
     """
     setup_environment()
 
-    # Build lighteval accelerate command
+    # 构建 lighteval accelerate 命令
     cmd = [
         "lighteval",
         "accelerate",
@@ -164,108 +164,108 @@ def run_lighteval_accelerate(
     if system_prompt:
         cmd.extend(["--system-prompt", system_prompt])
 
-    print(f"Running: {' '.join(cmd)}")
+    print(f"运行中: {' '.join(cmd)}")
 
     try:
         subprocess.run(cmd, check=True)
-        print("Evaluation complete.")
+        print("评估完成。")
     except subprocess.CalledProcessError as exc:
-        print(f"Evaluation failed with exit code {exc.returncode}", file=sys.stderr)
+        print(f"评估失败，退出代码为 {exc.returncode}", file=sys.stderr)
         sys.exit(exc.returncode)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run lighteval evaluations with vLLM or accelerate backend on custom HuggingFace models",
+        description="在自定义 HuggingFace 模型上使用 vLLM 或 accelerate 后端运行 lighteval 评估",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Run MMLU evaluation with vLLM
+示例：
+  # 使用 vLLM 运行 MMLU 评估
   python lighteval_vllm_uv.py --model meta-llama/Llama-3.2-1B --tasks "leaderboard|mmlu|5"
 
-  # Run with accelerate backend instead of vLLM
+  # 使用 accelerate 后端而不是 vLLM 运行
   python lighteval_vllm_uv.py --model meta-llama/Llama-3.2-1B --tasks "leaderboard|mmlu|5" --backend accelerate
 
-  # Run with chat template for instruction-tuned models
+  # 为指令调优模型使用聊天模板运行
   python lighteval_vllm_uv.py --model meta-llama/Llama-3.2-1B-Instruct --tasks "leaderboard|mmlu|5" --use-chat-template
 
-  # Run with limited samples for testing
+  # 运行有限样本进行测试
   python lighteval_vllm_uv.py --model meta-llama/Llama-3.2-1B --tasks "leaderboard|mmlu|5" --max-samples 10
 
-Task format:
-  Tasks use the format: "suite|task|num_fewshot"
-  - leaderboard|mmlu|5 (MMLU with 5-shot)
-  - lighteval|hellaswag|0 (HellaSwag zero-shot)
-  - leaderboard|gsm8k|5 (GSM8K with 5-shot)
-  - Multiple tasks: "leaderboard|mmlu|5,leaderboard|gsm8k|5"
+任务格式：
+  任务使用格式："suite|task|num_fewshot"
+  - leaderboard|mmlu|5（5-shot 的 MMLU）
+  - lighteval|hellaswag|0（零样本的 HellaSwag）
+  - leaderboard|gsm8k|5（5-shot 的 GSM8K）
+  - 多个任务："leaderboard|mmlu|5,leaderboard|gsm8k|5"
         """,
     )
 
     parser.add_argument(
         "--model",
         required=True,
-        help="HuggingFace model ID (e.g., meta-llama/Llama-3.2-1B)",
+        help="HuggingFace 模型 ID（例如，meta-llama/Llama-3.2-1B）",
     )
     parser.add_argument(
         "--tasks",
         required=True,
-        help="Task specification (e.g., 'leaderboard|mmlu|5')",
+        help="任务规范（例如，'leaderboard|mmlu|5'）",
     )
     parser.add_argument(
         "--backend",
         choices=["vllm", "accelerate"],
         default="vllm",
-        help="Inference backend to use (default: vllm)",
+        help="要使用的推理后端（默认：vllm）",
     )
     parser.add_argument(
         "--output-dir",
         default=None,
-        help="Directory for evaluation results",
+        help="评估结果的目录",
     )
     parser.add_argument(
         "--max-samples",
         type=int,
         default=None,
-        help="Limit number of samples per task (useful for testing)",
+        help="限制每个任务的样本数量（对测试有用）",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
         default=1,
-        help="Batch size for evaluation (default: 1)",
+        help="评估的批处理大小（默认：1）",
     )
     parser.add_argument(
         "--tensor-parallel-size",
         type=int,
         default=1,
-        help="Number of GPUs for tensor parallelism (vLLM only, default: 1)",
+        help="用于张量并行的 GPU 数量（仅 vLLM，默认：1）",
     )
     parser.add_argument(
         "--gpu-memory-utilization",
         type=float,
         default=0.8,
-        help="GPU memory fraction to use (vLLM only, default: 0.8)",
+        help="要使用的 GPU 内存分数（仅 vLLM，默认：0.8）",
     )
     parser.add_argument(
         "--dtype",
         default="auto",
         choices=["auto", "float16", "bfloat16", "float32"],
-        help="Data type for model weights (default: auto)",
+        help="模型权重的数据类型（默认：auto）",
     )
     parser.add_argument(
         "--trust-remote-code",
         action="store_true",
-        help="Allow executing remote code from model repository",
+        help="允许执行来自模型仓库的远程代码",
     )
     parser.add_argument(
         "--use-chat-template",
         action="store_true",
-        help="Apply chat template for instruction-tuned/chat models",
+        help="为指令调优/聊天模型应用聊天模板",
     )
     parser.add_argument(
         "--system-prompt",
         default=None,
-        help="System prompt for chat models",
+        help="聊天模型的系统提示",
     )
 
     args = parser.parse_args()
@@ -300,4 +300,3 @@ Task format:
 
 if __name__ == "__main__":
     main()
-

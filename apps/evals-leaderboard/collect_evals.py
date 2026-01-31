@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
-Collect evaluation scores from trending models' model-index metadata.
+从热门模型的 model-index 元数据中收集评估分数。
 
-Scans trending text-generation models on the Hub and extracts benchmark
-scores from their model-index metadata or open pull requests.
+扫描 Hub 上的热门文本生成模型，并从其 model-index 元数据或开放的拉取请求中提取基准测试分数。
 
-Results are saved to a dataset for the evals leaderboard.
+结果将保存到评估排行榜的数据集。
 
-Usage:
+使用方法:
     python collect_evals.py [--push-to-hub]
 """
 
@@ -102,7 +101,7 @@ BENCHMARKS: Dict[str, BenchmarkSpec] = {
 
 
 class EvalsCollector:
-    """Collects evaluation scores from model-index metadata."""
+    """从 model-index 元数据中收集评估分数。"""
 
     def __init__(self, token: str | None = None) -> None:
         self.token = token
@@ -114,13 +113,13 @@ class EvalsCollector:
         self.results: List[Dict[str, Any]] = []
 
     def log(self, message: str) -> None:
-        """Add a log message."""
+        """添加日志消息。"""
         print(message)
         self.logs.append(message)
 
     def collect_all(self) -> List[Dict[str, Any]]:
-        """Collect evaluation scores from trending models."""
-        self.log("🔍 Fetching trending text-generation models...")
+        """从热门模型中收集评估分数。"""
+        self.log("🔍 获取热门文本生成模型...")
         trending = self._fetch_trending_models()
 
         for entry in trending:
@@ -131,7 +130,7 @@ class EvalsCollector:
             if scores["scores"]:
                 self.results.extend(self._format_scores(repo_id, scores["scores"]))
 
-        self.log(f"✅ Collected {len(self.results)} evaluation entries")
+        self.log(f"✅ 已收集 {len(self.results)} 个评估条目")
         return self.results
 
     def _fetch_trending_models(self) -> List[Dict[str, Any]]:
@@ -144,17 +143,17 @@ class EvalsCollector:
         response.raise_for_status()
         data = response.json()
         if not isinstance(data, list):
-            raise ValueError("Unexpected trending response.")
+            raise ValueError("意外的热门模型响应。")
         filtered = [
             model
             for model in data
             if (model.get("pipeline_tag") == PIPELINE_FILTER or PIPELINE_FILTER in (model.get("tags") or []))
         ]
         if not filtered:
-            self.log("⚠️ No text-generation models in trending feed.")
+            self.log("⚠️ 热门模型中没有文本生成模型。")
             return []
         limited = filtered[:TRENDING_LIMIT]
-        self.log(f"📊 Found {len(limited)} trending text-generation models")
+        self.log(f"📊 找到 {len(limited)} 个热门文本生成模型")
         return limited
 
     def _collect_scores(self, repo_id: str) -> Dict[str, Any]:
@@ -162,7 +161,7 @@ class EvalsCollector:
         card_meta = self._read_model_card(repo_id)
         model_index = card_meta.get("model-index")
         if model_index:
-            self.log(f"✅ {repo_id}: model card metadata found.")
+            self.log(f"✅ {repo_id}: 找到模型卡片元数据。")
             scores = self._extract_scores(
                 repo_id=repo_id,
                 model_index=model_index,
@@ -194,11 +193,11 @@ class EvalsCollector:
                 revision=revision,
             )
             if scores:
-                note = f"📝 {repo_id}: PR #{pr['num']} by {contributor}."
+                note = f"📝 {repo_id}: PR #{pr['num']} by {contributor}。"
                 self.log(note)
                 return {"model_id": repo_id, "scores": scores}
 
-        self.log(f"⚠️ {repo_id}: no target benchmarks located.")
+        self.log(f"⚠️ {repo_id}: 未找到目标基准测试。")
         return {"model_id": repo_id, "scores": {}}
 
     def _read_model_card(
@@ -216,7 +215,7 @@ class EvalsCollector:
             )
         except HfHubHTTPError as err:
             ctx = f"{repo_id} ({revision or 'main'})"
-            self.log(f"🚫 {ctx}: README download failed ({err}).")
+            self.log(f"🚫 {ctx}: README 下载失败 ({err})。")
             return {}
         text = Path(path).read_text(encoding="utf-8", errors="ignore")
         return self._parse_front_matter(text)
@@ -251,7 +250,7 @@ class EvalsCollector:
             )
             response.raise_for_status()
         except requests.RequestException as err:
-            self.log(f"🚫 {repo_id}: PR list request failed ({err}).")
+            self.log(f"🚫 {repo_id}: PR 列表请求失败 ({err})。")
             return []
 
         payload = response.json()
@@ -259,7 +258,7 @@ class EvalsCollector:
         prs = [disc for disc in discussions if disc.get("isPullRequest")]
         prs.sort(key=lambda item: item.get("createdAt", ""), reverse=True)
         if prs:
-            self.log(f"📬 {repo_id}: scanning {len(prs)} pull requests.")
+            self.log(f"📬 {repo_id}: 扫描 {len(prs)} 个拉取请求。")
         return prs
 
     def _extract_scores(
@@ -340,7 +339,7 @@ class EvalsCollector:
         return None
 
     def _format_scores(self, model_id: str, scores: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Format scores as flat records for the dataset."""
+        """将分数格式化为数据集中的扁平记录。"""
         rows = []
         for benchmark_key, payload in scores.items():
             rows.append(
@@ -358,11 +357,11 @@ class EvalsCollector:
         return rows
 
     def get_leaderboard(self) -> List[Dict[str, Any]]:
-        """Get results sorted by score descending."""
+        """获取按分数降序排序的结果。"""
         return sorted(self.results, key=lambda x: x["score"], reverse=True)
 
     def save_json(self, filepath: str) -> None:
-        """Save the leaderboard to a JSON file."""
+        """将排行榜保存到JSON文件。"""
         leaderboard = self.get_leaderboard()
         output = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -372,23 +371,23 @@ class EvalsCollector:
         }
         with open(filepath, "w") as f:
             json.dump(output, f, indent=2)
-        self.log(f"💾 Saved leaderboard to {filepath}")
+        self.log(f"💾 已保存排行榜到 {filepath}")
 
     def push_to_hub(self, repo_id: str = "hf-skills/evals-leaderboard") -> None:
-        """Push the leaderboard data to a HF dataset."""
+        """将排行榜数据推送到HF数据集。"""
         try:
             from huggingface_hub import HfApi
         except ImportError:
-            self.log("❌ huggingface_hub not installed. Run: pip install huggingface_hub")
+            self.log("❌ huggingface_hub 未安装。运行：pip install huggingface_hub")
             return
 
         api = HfApi(token=self.token)
         leaderboard = self.get_leaderboard()
 
-        # Create dataset as JSONL
+        # 创建JSONL格式数据集
         jsonl_content = "\n".join(json.dumps(row) for row in leaderboard)
 
-        # Create metadata file
+        # 创建元数据文件
         metadata = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "total_entries": len(leaderboard),
@@ -397,11 +396,11 @@ class EvalsCollector:
         }
 
         try:
-            # Create repo if it doesn't exist
+            # 如果仓库不存在则创建
             api.create_repo(repo_id=repo_id, repo_type="dataset", exist_ok=True)
-            self.log(f"📁 Ensured dataset repo exists: {repo_id}")
+            self.log(f"📁 确保数据集仓库存在：{repo_id}")
 
-            # Upload leaderboard data
+            # 上传排行榜数据
             api.upload_file(
                 path_or_fileobj=jsonl_content.encode(),
                 path_in_repo="data/leaderboard.jsonl",
@@ -410,7 +409,7 @@ class EvalsCollector:
                 commit_message=f"Update leaderboard - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",
             )
 
-            # Upload metadata
+            # 上传元数据
             api.upload_file(
                 path_or_fileobj=json.dumps(metadata, indent=2).encode(),
                 path_in_repo="data/metadata.json",
@@ -419,42 +418,42 @@ class EvalsCollector:
                 commit_message=f"Update metadata - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC",
             )
 
-            self.log(f"🚀 Pushed leaderboard to {repo_id}")
+            self.log(f"🚀 已将排行榜推送到 {repo_id}")
         except Exception as e:
-            self.log(f"❌ Failed to push to hub: {e}")
+            self.log(f"❌ 推送到hub失败：{e}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Collect evaluation scores from model-index metadata")
+    parser = argparse.ArgumentParser(description="从 model-index 元数据收集评估分数")
     parser.add_argument(
         "--push-to-hub",
         action="store_true",
-        help="Push results to HF dataset",
+        help="将结果推送到 HF 数据集",
     )
     parser.add_argument(
         "--output",
         type=str,
         default="leaderboard.json",
-        help="Output JSON file path",
+        help="输出 JSON 文件路径",
     )
     parser.add_argument(
         "--repo-id",
         type=str,
         default="hf-skills/evals-leaderboard",
-        help="HF dataset repo ID for pushing",
+        help="用于推送的 HF 数据集仓库 ID",
     )
     args = parser.parse_args()
 
     token = os.environ.get("HF_TOKEN")
     if not token:
-        print("⚠️ No HF_TOKEN found. Some requests may be rate-limited.")
+        print("⚠️ 未找到 HF_TOKEN。某些请求可能会受到速率限制。")
 
     collector = EvalsCollector(token=token)
     collector.collect_all()
 
-    # Print leaderboard summary
+    # 打印排行榜摘要
     print("\n" + "=" * 60)
-    print("📊 EVALUATION LEADERBOARD")
+    print("📊 评估排行榜")
     print("=" * 60)
 
     leaderboard = collector.get_leaderboard()
@@ -462,16 +461,16 @@ def main() -> None:
         print(f"{entry['model_id']:40} | {entry['benchmark']:12} | {entry['score']:6.2f}")
 
     if len(leaderboard) > 20:
-        print(f"   ... and {len(leaderboard) - 20} more entries")
+        print(f"   ... 还有 {len(leaderboard) - 20} 个条目")
 
     print("=" * 60)
-    print(f"Total entries: {len(leaderboard)}")
-    print(f"Models with scores: {len(set(r['model_id'] for r in leaderboard))}")
+    print(f"总条目数: {len(leaderboard)}")
+    print(f"有分数的模型: {len(set(r['model_id'] for r in leaderboard))}")
 
-    # Save locally
+    # 保存到本地
     collector.save_json(args.output)
 
-    # Push to hub if requested
+    # 如果请求，推送到 hub
     if args.push_to_hub:
         collector.push_to_hub(args.repo_id)
 

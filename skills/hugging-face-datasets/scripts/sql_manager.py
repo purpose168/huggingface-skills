@@ -9,34 +9,34 @@
 # ]
 # ///
 """
-Hugging Face Dataset SQL Manager
+Hugging Face 数据集 SQL 管理器
 
-Query, transform, and push Hugging Face datasets using DuckDB's SQL interface.
-Supports the hf:// protocol for direct dataset access, data wrangling, and 
-pushing results back to the Hub.
+使用 DuckDB 的 SQL 接口查询、转换和推送 Hugging Face 数据集。
+支持 hf:// 协议进行直接数据集访问、数据处理和将结果推送回 Hub。
 
-Version: 1.0.0
+版本: 1.0.0
 
-Usage:
-    # Query a dataset
+使用方法:
+    # 查询数据集
     uv run sql_manager.py query --dataset "cais/mmlu" --sql "SELECT * FROM data LIMIT 10"
     
-    # Query and push to new dataset
+    # 查询并推送到新数据集
     uv run sql_manager.py query --dataset "cais/mmlu" --sql "SELECT * FROM data WHERE subject='nutrition'" \
         --push-to "username/nutrition-subset"
     
-    # Describe dataset schema
+    # 描述数据集架构
     uv run sql_manager.py describe --dataset "cais/mmlu"
     
-    # List available splits/configs
+    # 列出可用的分割/配置
     uv run sql_manager.py info --dataset "cais/mmlu"
     
-    # Get random sample
+    # 获取随机样本
     uv run sql_manager.py sample --dataset "cais/mmlu" --n 5
     
-    # Export to parquet
+    # 导出到 parquet
     uv run sql_manager.py export --dataset "cais/mmlu" --output "data.parquet"
 """
+
 
 import os
 import json
@@ -53,9 +53,9 @@ HF_TOKEN = os.environ.get("HF_TOKEN")
 
 class HFDatasetSQL:
     """
-    Query Hugging Face datasets using DuckDB SQL.
+    使用 DuckDB SQL 查询 Hugging Face 数据集。
 
-    Examples:
+    示例:
         >>> sql = HFDatasetSQL()
         >>> results = sql.query("cais/mmlu", "SELECT * FROM data LIMIT 5")
         >>> schema = sql.describe("cais/mmlu")
@@ -63,14 +63,14 @@ class HFDatasetSQL:
     """
 
     def __init__(self, token: Optional[str] = None):
-        """Initialize the SQL manager with optional HF token."""
+        """使用可选的 HF token 初始化 SQL 管理器。"""
         self.token = token or HF_TOKEN
         self.conn = duckdb.connect()
         self._setup_connection()
 
     def _setup_connection(self):
-        """Configure DuckDB connection for HF access."""
-        # Set HF token if available (for private datasets)
+        """配置 DuckDB 连接以访问 HF。"""
+        # 如果可用，设置 HF token（用于私有数据集）
         if self.token:
             self.conn.execute(f"CREATE SECRET hf_token (TYPE HUGGINGFACE, TOKEN '{self.token}');")
 
@@ -78,16 +78,16 @@ class HFDatasetSQL:
         self, dataset_id: str, split: str = "*", config: Optional[str] = None, revision: str = "~parquet"
     ) -> str:
         """
-        Build the hf:// path for a dataset.
+        构建数据集的 hf:// 路径。
 
-        Args:
-            dataset_id: Dataset ID (e.g., "cais/mmlu")
-            split: Split name or "*" for all splits
-            config: Optional config/subset name
-            revision: Revision, defaults to ~parquet for auto-converted parquet
+        参数:
+            dataset_id: 数据集 ID（例如，"cais/mmlu"）
+            split: 分割名称或 "*" 表示所有分割
+            config: 可选的配置/子集名称
+            revision: 修订版本，默认为 ~parquet 以获取自动转换的 parquet
 
-        Returns:
-            hf:// path string
+        返回:
+            hf:// 路径字符串
         """
         if config:
             return f"hf://datasets/{dataset_id}@{revision}/{config}/{split}/*.parquet"
@@ -101,15 +101,15 @@ class HFDatasetSQL:
         config: Optional[str] = None,
     ) -> str:
         """
-        Build flexible hf:// path with wildcards for discovery.
+        构建带有通配符的灵活 hf:// 路径以进行发现。
 
-        Args:
-            dataset_id: Dataset ID
-            split: Optional specific split
-            config: Optional config name
+        参数:
+            dataset_id: 数据集 ID
+            split: 可选的特定分割
+            config: 可选的配置名称
 
-        Returns:
-            hf:// path with appropriate wildcards
+        返回:
+            带有适当通配符的 hf:// 路径
         """
         base = f"hf://datasets/{dataset_id}@~parquet"
 
@@ -132,23 +132,24 @@ class HFDatasetSQL:
         output_format: str = "dict",
     ) -> Union[List[Dict], Any]:
         """
-        Execute SQL query on a Hugging Face dataset.
+        在 Hugging Face 数据集上执行 SQL 查询。
 
-        Args:
-            dataset_id: Dataset ID (e.g., "cais/mmlu", "ibm/duorc")
-            sql: SQL query. Use 'data' as table name (will be replaced with actual path)
-            split: Dataset split (train, test, validation, or * for all)
-            config: Optional dataset config/subset
-            limit: Optional limit override
-            output_format: Output format - "dict", "df" (pandas), "arrow", "raw"
+        参数:
+            dataset_id: 数据集 ID（例如，"cais/mmlu"，"ibm/duorc"）
+            sql: SQL 查询。使用 'data' 作为表名（将被替换为实际路径）
+            split: 数据集分割（train、test、validation 或 * 表示所有）
+            config: 可选的数据集配置/子集
+            limit: 可选的限制覆盖
+            output_format: 输出格式 - "dict"、"df"（pandas）、"arrow"、"raw"
 
-        Returns:
-            Query results in specified format
+        返回:
+            指定格式的查询结果
 
-        Examples:
+        示例:
             >>> sql.query("cais/mmlu", "SELECT * FROM data WHERE subject='nutrition' LIMIT 10")
             >>> sql.query("cais/mmlu", "SELECT subject, COUNT(*) as cnt FROM data GROUP BY subject")
         """
+
         # Build the HF path
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
@@ -188,18 +189,18 @@ class HFDatasetSQL:
 
     def query_raw(self, sql: str, output_format: str = "dict") -> Union[List[Dict], Any]:
         """
-        Execute raw SQL query without path substitution.
+        执行原始 SQL 查询，不进行路径替换。
 
-        Useful for queries that already contain full hf:// paths or for
-        multi-dataset queries.
+        适用于已经包含完整 hf:// 路径的查询或多数据集查询。
 
-        Args:
-            sql: Complete SQL query
-            output_format: Output format
+        参数:
+            sql: 完整的 SQL 查询
+            output_format: 输出格式
 
-        Returns:
-            Query results
+        返回:
+            查询结果
         """
+
         result = self.conn.execute(sql)
 
         if output_format == "df":
@@ -215,16 +216,17 @@ class HFDatasetSQL:
 
     def describe(self, dataset_id: str, split: str = "train", config: Optional[str] = None) -> List[Dict[str, str]]:
         """
-        Get schema/structure of a dataset.
+        获取数据集的架构/结构。
 
-        Args:
-            dataset_id: Dataset ID
-            split: Dataset split
-            config: Optional config
+        参数:
+            dataset_id: 数据集 ID
+            split: 数据集分割
+            config: 可选配置
 
-        Returns:
-            List of column definitions with name, type, nullable info
+        返回:
+            带有名称、类型、可空信息的列定义列表
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
         sql = f"DESCRIBE SELECT * FROM '{hf_path}' LIMIT 1"
@@ -244,18 +246,19 @@ class HFDatasetSQL:
         seed: Optional[int] = None,
     ) -> List[Dict]:
         """
-        Get a random sample from a dataset.
+        从数据集获取随机样本。
 
-        Args:
-            dataset_id: Dataset ID
-            n: Number of samples
-            split: Dataset split
-            config: Optional config
-            seed: Random seed for reproducibility
+        参数:
+            dataset_id: 数据集 ID
+            n: 样本数量
+            split: 数据集分割
+            config: 可选配置
+            seed: 用于可重现性的随机种子
 
-        Returns:
-            List of sampled rows
+        返回:
+            采样行的列表
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
         if seed is not None:
@@ -269,17 +272,18 @@ class HFDatasetSQL:
         self, dataset_id: str, split: str = "train", config: Optional[str] = None, where: Optional[str] = None
     ) -> int:
         """
-        Count rows in a dataset, optionally with filter.
+        计算数据集中的行数，可选带过滤器。
 
-        Args:
-            dataset_id: Dataset ID
-            split: Dataset split
-            config: Optional config
-            where: Optional WHERE clause (without WHERE keyword)
+        参数:
+            dataset_id: 数据集 ID
+            split: 数据集分割
+            config: 可选配置
+            where: 可选的 WHERE 子句（不含 WHERE 关键字）
 
-        Returns:
-            Row count
+        返回:
+            行数
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
         sql = f"SELECT COUNT(*) FROM '{hf_path}'"
@@ -293,18 +297,19 @@ class HFDatasetSQL:
         self, dataset_id: str, column: str, split: str = "train", config: Optional[str] = None, limit: int = 100
     ) -> List[Any]:
         """
-        Get unique values in a column.
+        获取列中的唯一值。
 
-        Args:
-            dataset_id: Dataset ID
-            column: Column name
-            split: Dataset split
-            config: Optional config
-            limit: Max unique values to return
+        参数:
+            dataset_id: 数据集 ID
+            column: 列名
+            split: 数据集分割
+            config: 可选配置
+            limit: 要返回的最大唯一值数量
 
-        Returns:
-            List of unique values
+        返回:
+            唯一值列表
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
         sql = f"SELECT DISTINCT {column} FROM '{hf_path}' LIMIT {limit}"
@@ -316,18 +321,19 @@ class HFDatasetSQL:
         self, dataset_id: str, column: str, split: str = "train", config: Optional[str] = None, bins: int = 10
     ) -> List[Dict]:
         """
-        Get value distribution/histogram for a column.
+        获取列的值分布/直方图。
 
-        Args:
-            dataset_id: Dataset ID
-            column: Column name
-            split: Dataset split
-            config: Optional config
-            bins: Number of bins for numeric columns
+        参数:
+            dataset_id: 数据集 ID
+            column: 列名
+            split: 数据集分割
+            config: 可选配置
+            bins: 数值列的箱数
 
-        Returns:
-            Distribution data
+        返回:
+            分布数据
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
         sql = f"""
@@ -354,22 +360,22 @@ class HFDatasetSQL:
         limit: Optional[int] = None,
     ) -> List[Dict]:
         """
-        Filter and transform dataset with SQL clauses.
+        使用 SQL 子句过滤和转换数据集。
 
-        Args:
-            dataset_id: Dataset ID
-            select: SELECT clause (columns, expressions, aggregations)
-            where: WHERE clause (filter conditions)
-            group_by: GROUP BY clause
-            order_by: ORDER BY clause
-            split: Dataset split
-            config: Optional config
-            limit: Row limit
+        参数:
+            dataset_id: 数据集 ID
+            select: SELECT 子句（列、表达式、聚合）
+            where: WHERE 子句（过滤条件）
+            group_by: GROUP BY 子句
+            order_by: ORDER BY 子句
+            split: 数据集分割
+            config: 可选配置
+            limit: 行限制
 
-        Returns:
-            Transformed data
+        返回:
+            转换后的数据
 
-        Examples:
+        示例:
             >>> sql.filter_and_transform(
             ...     "cais/mmlu",
             ...     select="subject, COUNT(*) as cnt",
@@ -378,6 +384,7 @@ class HFDatasetSQL:
             ...     limit=10
             ... )
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
         sql_parts = [f"SELECT {select}", f"FROM '{hf_path}'"]
@@ -408,23 +415,24 @@ class HFDatasetSQL:
         limit: Optional[int] = None,
     ) -> List[Dict]:
         """
-        Join two datasets.
+        连接两个数据集。
 
-        Args:
-            left_dataset: Left dataset ID
-            right_dataset: Right dataset ID
-            on: JOIN condition (e.g., "left.id = right.id")
-            select: SELECT clause
-            join_type: Type of join (INNER, LEFT, RIGHT, FULL)
-            left_split: Split for left dataset
-            right_split: Split for right dataset
-            left_config: Config for left dataset
-            right_config: Config for right dataset
-            limit: Row limit
+        参数:
+            left_dataset: 左侧数据集 ID
+            right_dataset: 右侧数据集 ID
+            on: 连接条件（例如，"left.id = right.id"）
+            select: SELECT 子句
+            join_type: 连接类型（INNER、LEFT、RIGHT、FULL）
+            left_split: 左侧数据集的分割
+            right_split: 右侧数据集的分割
+            left_config: 左侧数据集的配置
+            right_config: 右侧数据集的配置
+            limit: 行限制
 
-        Returns:
-            Joined data
+        返回:
+            连接后的数据
         """
+
         left_path = self._build_hf_path(left_dataset, split=left_split, config=left_config)
         right_path = self._build_hf_path(right_dataset, split=right_split, config=right_config)
 
@@ -449,18 +457,19 @@ class HFDatasetSQL:
         config: Optional[str] = None,
     ) -> str:
         """
-        Export query results to a local Parquet file.
+        将查询结果导出到本地 Parquet 文件。
 
-        Args:
-            dataset_id: Source dataset ID
-            output_path: Local path for output Parquet file
-            sql: Optional SQL query (uses SELECT * if not provided)
-            split: Dataset split
-            config: Optional config
+        参数:
+            dataset_id: 源数据集 ID
+            output_path: 输出 Parquet 文件的本地路径
+            sql: 可选的 SQL 查询（如果未提供则使用 SELECT *）
+            split: 数据集分割
+            config: 可选配置
 
-        Returns:
-            Path to created file
+        返回:
+            创建文件的路径
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
 
         if sql:
@@ -485,18 +494,19 @@ class HFDatasetSQL:
         config: Optional[str] = None,
     ) -> str:
         """
-        Export query results to JSONL format.
+        将查询结果导出到 JSONL 格式。
 
-        Args:
-            dataset_id: Source dataset ID
-            output_path: Local path for output JSONL file
-            sql: Optional SQL query
-            split: Dataset split
-            config: Optional config
+        参数:
+            dataset_id: 源数据集 ID
+            output_path: 输出 JSONL 文件的本地路径
+            sql: 可选的 SQL 查询
+            split: 数据集分割
+            config: 可选配置
 
-        Returns:
-            Path to created file
+        返回:
+            创建文件的路径
         """
+
         results = self.query(dataset_id, sql or "SELECT * FROM data", split=split, config=config)
 
         with open(output_path, "w") as f:
@@ -518,21 +528,22 @@ class HFDatasetSQL:
         commit_message: Optional[str] = None,
     ) -> str:
         """
-        Query a dataset and push results to a new Hub repository.
+        查询数据集并将结果推送到新的 Hub 仓库。
 
-        Args:
-            dataset_id: Source dataset ID
-            target_repo: Target repository ID (e.g., "username/new-dataset")
-            sql: SQL query to transform data (optional, defaults to SELECT *)
-            split: Source split
-            config: Source config
-            target_split: Target split name
-            private: Whether to create private repo
-            commit_message: Commit message
+        参数:
+            dataset_id: 源数据集 ID
+            target_repo: 目标仓库 ID（例如，"username/new-dataset"）
+            sql: 转换数据的 SQL 查询（可选，默认为 SELECT *）
+            split: 源分割
+            config: 源配置
+            target_split: 目标分割名称
+            private: 是否创建私有仓库
+            commit_message: 提交消息
 
-        Returns:
-            URL of created dataset
+        返回:
+            创建的数据集的 URL
         """
+
         try:
             from datasets import Dataset
         except ImportError:
@@ -563,28 +574,30 @@ class HFDatasetSQL:
 
     def create_view(self, name: str, dataset_id: str, split: str = "train", config: Optional[str] = None):
         """
-        Create a DuckDB view for easier querying.
+        创建 DuckDB 视图以简化查询。
 
-        Args:
-            name: View name
-            dataset_id: Dataset ID
-            split: Dataset split
-            config: Optional config
+        参数:
+            name: 视图名称
+            dataset_id: 数据集 ID
+            split: 数据集分割
+            config: 可选配置
         """
+
         hf_path = self._build_hf_path(dataset_id, split=split, config=config)
         self.conn.execute(f"CREATE OR REPLACE VIEW {name} AS SELECT * FROM '{hf_path}'")
         print(f"✅ Created view '{name}' for {dataset_id}")
 
     def info(self, dataset_id: str) -> Dict[str, Any]:
         """
-        Get information about a dataset including available configs and splits.
+        获取关于数据集的信息，包括可用的配置和分割。
 
-        Args:
-            dataset_id: Dataset ID
+        参数:
+            dataset_id: 数据集 ID
 
-        Returns:
-            Dataset information
+        返回:
+            数据集信息
         """
+
         api = HfApi(token=self.token)
 
         try:
@@ -612,14 +625,17 @@ class HFDatasetSQL:
             return {}
 
     def close(self):
-        """Close the database connection."""
+        """关闭数据库连接。"""
+
         self.conn.close()
 
 
 def main():
-    """CLI entry point."""
+    """命令行入口点。"""
+
     parser = argparse.ArgumentParser(
-        description="Query Hugging Face datasets with SQL",
+        description="使用 SQL 查询 Hugging Face 数据集",
+
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -655,73 +671,84 @@ Examples:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # Common arguments
+    # 通用参数
     def add_common_args(p):
-        p.add_argument("--dataset", "-d", required=True, help="Dataset ID (e.g., cais/mmlu)")
-        p.add_argument("--split", "-s", default="train", help="Dataset split (default: train)")
-        p.add_argument("--config", "-c", help="Dataset config/subset")
+        p.add_argument("--dataset", "-d", required=True, help="数据集 ID（例如，cais/mmlu）")
+        p.add_argument("--split", "-s", default="train", help="数据集分割（默认：train）")
+        p.add_argument("--config", "-c", help="数据集配置/子集")
 
-    # Query command
-    query_parser = subparsers.add_parser("query", help="Execute SQL query on dataset")
+
+    # 查询命令
+    query_parser = subparsers.add_parser("query", help="在数据集上执行 SQL 查询")
     add_common_args(query_parser)
-    query_parser.add_argument("--sql", required=True, help="SQL query (use 'data' as table name)")
-    query_parser.add_argument("--limit", "-l", type=int, help="Limit results")
-    query_parser.add_argument("--format", choices=["json", "table", "csv"], default="json", help="Output format")
-    query_parser.add_argument("--push-to", help="Push results to this Hub repo")
-    query_parser.add_argument("--private", action="store_true", help="Make pushed repo private")
+    query_parser.add_argument("--sql", required=True, help="SQL 查询（使用 'data' 作为表名）")
+    query_parser.add_argument("--limit", "-l", type=int, help="限制结果")
+    query_parser.add_argument("--format", choices=["json", "table", "csv"], default="json", help="输出格式")
+    query_parser.add_argument("--push-to", help="将结果推送到此 Hub 仓库")
+    query_parser.add_argument("--private", action="store_true", help="使推送的仓库变为私有")
 
-    # Sample command
-    sample_parser = subparsers.add_parser("sample", help="Get random sample from dataset")
+
+    # 样本命令
+    sample_parser = subparsers.add_parser("sample", help="从数据集获取随机样本")
     add_common_args(sample_parser)
-    sample_parser.add_argument("--n", type=int, default=10, help="Number of samples")
-    sample_parser.add_argument("--seed", type=int, help="Random seed")
+    sample_parser.add_argument("--n", type=int, default=10, help="样本数量")
+    sample_parser.add_argument("--seed", type=int, help="随机种子")
 
-    # Describe command
-    describe_parser = subparsers.add_parser("describe", help="Get dataset schema")
+
+    # 描述命令
+    describe_parser = subparsers.add_parser("describe", help="获取数据集架构")
     add_common_args(describe_parser)
 
-    # Count command
-    count_parser = subparsers.add_parser("count", help="Count rows in dataset")
+
+    # 计数命令
+    count_parser = subparsers.add_parser("count", help="计算数据集中的行数")
     add_common_args(count_parser)
-    count_parser.add_argument("--where", "-w", help="WHERE clause for filtering")
+    count_parser.add_argument("--where", "-w", help="用于过滤的 WHERE 子句")
 
-    # Histogram command
-    histogram_parser = subparsers.add_parser("histogram", help="Get value distribution")
+
+    # 直方图命令
+    histogram_parser = subparsers.add_parser("histogram", help="获取值分布")
     add_common_args(histogram_parser)
-    histogram_parser.add_argument("--column", required=True, help="Column name")
-    histogram_parser.add_argument("--bins", type=int, default=20, help="Number of bins")
+    histogram_parser.add_argument("--column", required=True, help="列名")
+    histogram_parser.add_argument("--bins", type=int, default=20, help="箱数")
 
-    # Unique command
-    unique_parser = subparsers.add_parser("unique", help="Get unique values in column")
+
+    # 唯一值命令
+    unique_parser = subparsers.add_parser("unique", help="获取列中的唯一值")
     add_common_args(unique_parser)
-    unique_parser.add_argument("--column", required=True, help="Column name")
-    unique_parser.add_argument("--limit", "-l", type=int, default=100, help="Max values")
+    unique_parser.add_argument("--column", required=True, help="列名")
+    unique_parser.add_argument("--limit", "-l", type=int, default=100, help="最大值数量")
 
-    # Transform command
-    transform_parser = subparsers.add_parser("transform", help="Filter and transform dataset")
+
+    # 转换命令
+    transform_parser = subparsers.add_parser("transform", help="过滤和转换数据集")
     add_common_args(transform_parser)
-    transform_parser.add_argument("--select", default="*", help="SELECT clause")
-    transform_parser.add_argument("--where", "-w", help="WHERE clause")
-    transform_parser.add_argument("--group-by", help="GROUP BY clause")
-    transform_parser.add_argument("--order-by", help="ORDER BY clause")
+    transform_parser.add_argument("--select", default="*", help="SELECT 子句")
+    transform_parser.add_argument("--where", "-w", help="WHERE 子句")
+    transform_parser.add_argument("--group-by", help="GROUP BY 子句")
+    transform_parser.add_argument("--order-by", help="ORDER BY 子句")
     transform_parser.add_argument("--limit", "-l", type=int, help="LIMIT")
-    transform_parser.add_argument("--push-to", help="Push results to Hub repo")
+    transform_parser.add_argument("--push-to", help="将结果推送到 Hub 仓库")
 
-    # Export command
-    export_parser = subparsers.add_parser("export", help="Export query results to file")
+
+    # 导出命令
+    export_parser = subparsers.add_parser("export", help="将查询结果导出到文件")
     add_common_args(export_parser)
-    export_parser.add_argument("--sql", help="SQL query (defaults to SELECT *)")
-    export_parser.add_argument("--output", "-o", required=True, help="Output file path")
-    export_parser.add_argument("--format", choices=["parquet", "jsonl"], default="parquet", help="Output format")
+    export_parser.add_argument("--sql", help="SQL 查询（默认为 SELECT *）")
+    export_parser.add_argument("--output", "-o", required=True, help="输出文件路径")
+    export_parser.add_argument("--format", choices=["parquet", "jsonl"], default="parquet", help="输出格式")
 
-    # Info command
-    info_parser = subparsers.add_parser("info", help="Get dataset information")
-    info_parser.add_argument("--dataset", "-d", required=True, help="Dataset ID")
 
-    # Raw SQL command
-    raw_parser = subparsers.add_parser("raw", help="Execute raw SQL with full hf:// paths")
-    raw_parser.add_argument("--sql", required=True, help="Complete SQL query")
-    raw_parser.add_argument("--format", choices=["json", "table", "csv"], default="json", help="Output format")
+    # 信息命令
+    info_parser = subparsers.add_parser("info", help="获取数据集信息")
+    info_parser.add_argument("--dataset", "-d", required=True, help="数据集 ID")
+
+
+    # 原始 SQL 命令
+    raw_parser = subparsers.add_parser("raw", help="执行带有完整 hf:// 路径的原始 SQL")
+    raw_parser.add_argument("--sql", required=True, help="完整的 SQL 查询")
+    raw_parser.add_argument("--format", choices=["json", "table", "csv"], default="json", help="输出格式")
+
 
     args = parser.parse_args()
 
@@ -809,10 +836,12 @@ Examples:
 
 
 def _print_results(results: List[Dict], format: str):
-    """Print results in specified format."""
+    """以指定格式打印结果。"""
+
     if not results:
-        print("No results")
+        print("无结果")
         return
+
 
     if format == "json":
         print(json.dumps(results, indent=2, default=str))

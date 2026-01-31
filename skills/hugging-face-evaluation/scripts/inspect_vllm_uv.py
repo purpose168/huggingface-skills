@@ -10,23 +10,23 @@
 # ///
 
 """
-Entry point script for running inspect-ai evaluations with vLLM or HuggingFace Transformers backend.
+通过 vLLM 或 HuggingFace Transformers 后端运行 inspect-ai 评估的入口脚本。
 
-This script runs evaluations on custom HuggingFace models using local GPU inference,
-separate from inference provider scripts (which use external APIs).
+此脚本使用本地 GPU 推理对自定义 HuggingFace 模型运行评估，
+与推理提供商脚本（使用外部 API）分开。
 
-Usage (standalone):
+用法（独立运行）：
     python inspect_vllm_uv.py --model "meta-llama/Llama-3.2-1B" --task "mmlu"
 
-Usage (via HF Jobs):
-    hf jobs uv run inspect_vllm_uv.py \\
-        --flavor a10g-small \\
-        --secret HF_TOKEN=$HF_TOKEN \\
+用法（通过 HF Jobs）：
+    hf jobs uv run inspect_vllm_uv.py \
+        --flavor a10g-small \
+        --secret HF_TOKEN=$HF_TOKEN \
         -- --model "meta-llama/Llama-3.2-1B" --task "mmlu"
 
-Model backends:
-    - vllm: Fast inference with vLLM (recommended for large models)
-    - hf: HuggingFace Transformers backend (broader model compatibility)
+模型后端：
+    - vllm: 使用 vLLM 进行快速推理（推荐用于大型模型）
+    - hf: HuggingFace Transformers 后端（更广泛的模型兼容性）
 """
 
 from __future__ import annotations
@@ -39,7 +39,7 @@ from typing import Optional
 
 
 def setup_environment() -> None:
-    """Configure environment variables for HuggingFace authentication."""
+    """配置 HuggingFace 身份验证的环境变量。"""
     hf_token = os.getenv("HF_TOKEN")
     if hf_token:
         os.environ.setdefault("HUGGING_FACE_HUB_TOKEN", hf_token)
@@ -59,19 +59,19 @@ def run_inspect_vllm(
     log_level: str = "info",
 ) -> None:
     """
-    Run inspect-ai evaluation with vLLM backend.
+    使用 vLLM 后端运行 inspect-ai 评估。
 
-    Args:
-        model_id: HuggingFace model ID
-        task: inspect-ai task to execute (e.g., "mmlu", "gsm8k")
-        limit: Limit number of samples to evaluate
-        max_connections: Maximum concurrent connections
-        temperature: Sampling temperature
-        tensor_parallel_size: Number of GPUs for tensor parallelism
-        gpu_memory_utilization: GPU memory fraction
-        dtype: Data type (auto, float16, bfloat16)
-        trust_remote_code: Allow remote code execution
-        log_level: Logging level
+    参数：
+        model_id: HuggingFace 模型 ID
+        task: 要执行的 inspect-ai 任务（例如，"mmlu"、"gsm8k"）
+        limit: 限制要评估的样本数量
+        max_connections: 最大并发连接数
+        temperature: 采样温度
+        tensor_parallel_size: 用于张量并行的 GPU 数量
+        gpu_memory_utilization: GPU 内存分数
+        dtype: 数据类型（auto、float16、bfloat16）
+        trust_remote_code: 允许远程代码执行
+        log_level: 日志级别
     """
     setup_environment()
 
@@ -88,11 +88,11 @@ def run_inspect_vllm(
         str(max_connections),
     ]
 
-    # vLLM supports temperature=0 unlike HF inference providers
+    # 与 HF 推理提供商不同，vLLM 支持 temperature=0
     cmd.extend(["--temperature", str(temperature)])
 
-    # Older inspect-ai CLI versions do not support --model-args; rely on defaults
-    # and let vLLM choose sensible settings for small models.
+    # 旧版本的 inspect-ai CLI 不支持 --model-args；依赖默认值
+    # 让 vLLM 为小型模型选择合理的设置。
     if tensor_parallel_size != 1:
         cmd.extend(["--tensor-parallel-size", str(tensor_parallel_size)])
     if gpu_memory_utilization != 0.8:
@@ -105,13 +105,13 @@ def run_inspect_vllm(
     if limit:
         cmd.extend(["--limit", str(limit)])
 
-    print(f"Running: {' '.join(cmd)}")
+    print(f"运行中: {' '.join(cmd)}")
 
     try:
         subprocess.run(cmd, check=True)
-        print("Evaluation complete.")
+        print("评估完成。")
     except subprocess.CalledProcessError as exc:
-        print(f"Evaluation failed with exit code {exc.returncode}", file=sys.stderr)
+        print(f"评估失败，退出代码为 {exc.returncode}", file=sys.stderr)
         sys.exit(exc.returncode)
 
 
@@ -127,20 +127,20 @@ def run_inspect_hf(
     log_level: str = "info",
 ) -> None:
     """
-    Run inspect-ai evaluation with HuggingFace Transformers backend.
+    使用 HuggingFace Transformers 后端运行 inspect-ai 评估。
 
-    Use this when vLLM doesn't support the model architecture.
+    当 vLLM 不支持模型架构时使用此函数。
 
-    Args:
-        model_id: HuggingFace model ID
-        task: inspect-ai task to execute
-        limit: Limit number of samples
-        max_connections: Maximum concurrent connections (keep low for memory)
-        temperature: Sampling temperature
-        device: Device to use (auto, cuda, cpu)
-        dtype: Data type
-        trust_remote_code: Allow remote code execution
-        log_level: Logging level
+    参数：
+        model_id: HuggingFace 模型 ID
+        task: 要执行的 inspect-ai 任务
+        limit: 限制样本数量
+        max_connections: 最大并发连接数（为内存考虑，请保持较低）
+        temperature: 采样温度
+        device: 要使用的设备（auto、cuda、cpu）
+        dtype: 数据类型
+        trust_remote_code: 允许远程代码执行
+        log_level: 日志级别
     """
     setup_environment()
 
@@ -170,47 +170,47 @@ def run_inspect_hf(
     if limit:
         cmd.extend(["--limit", str(limit)])
 
-    print(f"Running: {' '.join(cmd)}")
+    print(f"运行中: {' '.join(cmd)}")
 
     try:
         subprocess.run(cmd, check=True)
-        print("Evaluation complete.")
+        print("评估完成。")
     except subprocess.CalledProcessError as exc:
-        print(f"Evaluation failed with exit code {exc.returncode}", file=sys.stderr)
+        print(f"评估失败，退出代码为 {exc.returncode}", file=sys.stderr)
         sys.exit(exc.returncode)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run inspect-ai evaluations with vLLM or HuggingFace Transformers on custom models",
+        description="使用 vLLM 或 HuggingFace Transformers 在自定义模型上运行 inspect-ai 评估",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
-  # Run MMLU with vLLM backend
+示例：
+  # 使用 vLLM 后端运行 MMLU
   python inspect_vllm_uv.py --model meta-llama/Llama-3.2-1B --task mmlu
 
-  # Run with HuggingFace Transformers backend
+  # 使用 HuggingFace Transformers 后端运行
   python inspect_vllm_uv.py --model meta-llama/Llama-3.2-1B --task mmlu --backend hf
 
-  # Run with limited samples for testing
+  # 运行有限样本进行测试
   python inspect_vllm_uv.py --model meta-llama/Llama-3.2-1B --task mmlu --limit 10
 
-  # Run on multiple GPUs with tensor parallelism
+  # 使用张量并行在多个 GPU 上运行
   python inspect_vllm_uv.py --model meta-llama/Llama-3.2-70B --task mmlu --tensor-parallel-size 4
 
-Available tasks (from inspect-evals):
-  - mmlu: Massive Multitask Language Understanding
-  - gsm8k: Grade School Math
-  - hellaswag: Common sense reasoning
-  - arc_challenge: AI2 Reasoning Challenge
-  - truthfulqa: TruthfulQA benchmark
-  - winogrande: Winograd Schema Challenge
-  - humaneval: Code generation (HumanEval)
+可用任务（来自 inspect-evals）：
+  - mmlu: 大规模多任务语言理解
+  - gsm8k: 小学数学
+  - hellaswag: 常识推理
+  - arc_challenge: AI2 推理挑战
+  - truthfulqa: TruthfulQA 基准测试
+  - winogrande: Winograd 模式挑战
+  - humaneval: 代码生成（HumanEval）
 
-Via HF Jobs:
-  hf jobs uv run inspect_vllm_uv.py \\
-      --flavor a10g-small \\
-      --secret HF_TOKEN=$HF_TOKEN \\
+通过 HF Jobs：
+  hf jobs uv run inspect_vllm_uv.py \
+      --flavor a10g-small \
+      --secret HF_TOKEN=$HF_TOKEN \
       -- --model meta-llama/Llama-3.2-1B --task mmlu
         """,
     )
@@ -218,70 +218,70 @@ Via HF Jobs:
     parser.add_argument(
         "--model",
         required=True,
-        help="HuggingFace model ID (e.g., meta-llama/Llama-3.2-1B)",
+        help="HuggingFace 模型 ID（例如，meta-llama/Llama-3.2-1B）",
     )
     parser.add_argument(
         "--task",
         required=True,
-        help="inspect-ai task to execute (e.g., mmlu, gsm8k)",
+        help="要执行的 inspect-ai 任务（例如，mmlu、gsm8k）",
     )
     parser.add_argument(
         "--backend",
         choices=["vllm", "hf"],
         default="vllm",
-        help="Model backend (default: vllm)",
+        help="模型后端（默认：vllm）",
     )
     parser.add_argument(
         "--limit",
         type=int,
         default=None,
-        help="Limit number of samples to evaluate",
+        help="限制要评估的样本数量",
     )
     parser.add_argument(
         "--max-connections",
         type=int,
         default=None,
-        help="Maximum concurrent connections (default: 4 for vllm, 1 for hf)",
+        help="最大并发连接数（默认：vllm 为 4，hf 为 1）",
     )
     parser.add_argument(
         "--temperature",
         type=float,
         default=None,
-        help="Sampling temperature (default: 0.0 for vllm, 0.001 for hf)",
+        help="采样温度（默认：vllm 为 0.0，hf 为 0.001）",
     )
     parser.add_argument(
         "--tensor-parallel-size",
         type=int,
         default=1,
-        help="Number of GPUs for tensor parallelism (vLLM only, default: 1)",
+        help="用于张量并行的 GPU 数量（仅 vLLM，默认：1）",
     )
     parser.add_argument(
         "--gpu-memory-utilization",
         type=float,
         default=0.8,
-        help="GPU memory fraction to use (vLLM only, default: 0.8)",
+        help="要使用的 GPU 内存分数（仅 vLLM，默认：0.8）",
     )
     parser.add_argument(
         "--dtype",
         default="auto",
         choices=["auto", "float16", "bfloat16", "float32"],
-        help="Data type for model weights (default: auto)",
+        help="模型权重的数据类型（默认：auto）",
     )
     parser.add_argument(
         "--device",
         default="auto",
-        help="Device for HF backend (auto, cuda, cpu)",
+        help="HF 后端的设备（auto、cuda、cpu）",
     )
     parser.add_argument(
         "--trust-remote-code",
         action="store_true",
-        help="Allow executing remote code from model repository",
+        help="允许执行来自模型仓库的远程代码",
     )
     parser.add_argument(
         "--log-level",
         default="info",
         choices=["debug", "info", "warning", "error"],
-        help="Logging level (default: info)",
+        help="日志级别（默认：info）",
     )
 
     args = parser.parse_args()

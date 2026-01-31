@@ -1,65 +1,67 @@
-# Usage Examples
+# 使用示例
 
-This document provides practical examples for both methods of adding evaluations to HuggingFace model cards.
+本文档提供了向 HuggingFace 模型卡片添加评估结果的两种方法的实用示例。
 
-## Table of Contents
-1. [Setup](#setup)
-2. [Method 1: Extract from README](#method-1-extract-from-readme)
-3. [Method 2: Import from Artificial Analysis](#method-2-import-from-artificial-analysis)
-4. [Standalone vs Integrated](#standalone-vs-integrated)
-5. [Common Workflows](#common-workflows)
+## 目录
+1. [设置](#setup)
+2. [方法 1：从 README 提取](#method-1-extract-from-readme)
+3. [方法 2：从 Artificial Analysis 导入](#method-2-import-from-artificial-analysis)
+4. [独立脚本与集成脚本](#standalone-vs-integrated)
+5. [常见工作流](#common-workflows)
 
-## Setup
 
-### Initial Configuration
+## 设置
+
+### 初始配置
 
 ```bash
-# Navigate to skill directory
+# 导航到技能目录
 cd hf_evaluation_skill
 
-# Install dependencies
+# 安装依赖
 uv add huggingface_hub python-dotenv pyyaml requests
 
-# Configure environment variables
+# 配置环境变量
 cp examples/.env.example .env
-# Edit .env with your tokens
+# 编辑 .env 文件，添加您的令牌
 ```
 
-Your `.env` file should contain:
+您的 `.env` 文件应包含：
 ```env
 HF_TOKEN=hf_your_write_token_here
-AA_API_KEY=aa_your_api_key_here  # Optional for AA imports
+AA_API_KEY=aa_your_api_key_here  # 对于 AA 导入是可选的
 ```
 
-### Verify Installation
+### 验证安装
 
 ```bash
 cd scripts
 python3 test_extraction.py
 ```
 
-## Method 1: Extract from README
 
-Extract evaluation tables from your model's existing README.
+## 方法 1：从 README 提取
 
-### Basic Extraction
+从模型现有的 README 中提取评估表格。
+
+### 基本提取
 
 ```bash
-# Preview what will be extracted (dry run)
+# 预览将提取的内容（干运行）
 python3 scripts/evaluation_manager.py extract-readme \
   --repo-id "meta-llama/Llama-3.3-70B-Instruct" \
   --dry-run
 ```
 
-### Apply Extraction to Your Model
+### 将提取应用到您的模型
 
 ```bash
-# Extract and update model card directly
+# 直接提取并更新模型卡片
 python3 scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/your-model-7b"
 ```
 
-### Custom Task and Dataset Names
+### 自定义任务和数据集名称
 
 ```bash
 python3 scripts/evaluation_manager.py extract-readme \
@@ -69,7 +71,7 @@ python3 scripts/evaluation_manager.py extract-readme \
   --dataset-type "llm_benchmarks"
 ```
 
-### Create Pull Request (for models you don't own)
+### 创建拉取请求（对于您不拥有的模型）
 
 ```bash
 python3 scripts/evaluation_manager.py extract-readme \
@@ -77,14 +79,14 @@ python3 scripts/evaluation_manager.py extract-readme \
   --create-pr
 ```
 
-### Example README Format
+### README 格式示例
 
-Your model README should contain tables like:
+您的模型 README 应包含如下表格：
 
 ```markdown
-## Evaluation Results
+## 评估结果
 
-| Benchmark     | Score |
+| 基准测试     | 分数 |
 |---------------|-------|
 | MMLU          | 85.2  |
 | HumanEval     | 72.5  |
@@ -92,24 +94,25 @@ Your model README should contain tables like:
 | HellaSwag     | 88.9  |
 ```
 
-## Method 2: Import from Artificial Analysis
 
-Fetch benchmark scores directly from Artificial Analysis API.
+## 方法 2：从 Artificial Analysis 导入
 
-### Integrated Approach (Recommended)
+直接从 Artificial Analysis API 获取基准测试分数。
+
+### 集成方法（推荐）
 
 ```bash
-# Import scores for Claude Sonnet 4.5
+# 导入 Claude Sonnet 4.5 的分数
 python3 scripts/evaluation_manager.py import-aa \
   --creator-slug "anthropic" \
   --model-name "claude-sonnet-4" \
   --repo-id "your-username/claude-mirror"
 ```
 
-### With Pull Request
+### 创建拉取请求
 
 ```bash
-# Create PR instead of direct commit
+# 创建 PR 而不是直接提交
 python3 scripts/evaluation_manager.py import-aa \
   --creator-slug "openai" \
   --model-name "gpt-4" \
@@ -117,15 +120,15 @@ python3 scripts/evaluation_manager.py import-aa \
   --create-pr
 ```
 
-### Standalone Script
+### 独立脚本
 
-For simple, one-off imports, use the standalone script:
+对于简单的一次性导入，使用独立脚本：
 
 ```bash
-# Navigate to examples directory
+# 导航到 examples 目录
 cd examples
 
-# Run standalone script
+# 运行独立脚本
 AA_API_KEY="your-key" HF_TOKEN="your-token" \
 python3 artificial_analysis_to_hub.py \
   --creator-slug "anthropic" \
@@ -133,71 +136,73 @@ python3 artificial_analysis_to_hub.py \
   --repo-id "your-username/your-repo"
 ```
 
-### Finding Creator Slug and Model Name
+### 查找 Creator Slug 和 Model Name
 
-1. Visit [Artificial Analysis](https://artificialanalysis.ai/)
-2. Navigate to the model you want to import
-3. The URL format is: `https://artificialanalysis.ai/models/{creator-slug}/{model-name}`
-4. Or check their [API documentation](https://artificialanalysis.ai/api)
+1. 访问 [Artificial Analysis](https://artificialanalysis.ai/)
+2. 导航到您要导入的模型
+3. URL 格式为：`https://artificialanalysis.ai/models/{creator-slug}/{model-name}`
+4. 或查看他们的 [API 文档](https://artificialanalysis.ai/api)
 
-Common examples:
+常见示例：
 - Anthropic: `--creator-slug "anthropic" --model-name "claude-sonnet-4"`
 - OpenAI: `--creator-slug "openai" --model-name "gpt-4-turbo"`
 - Meta: `--creator-slug "meta" --model-name "llama-3-70b"`
 
-## Standalone vs Integrated
 
-### Standalone Script Features
-- ✓ Simple, single-purpose
-- ✓ Can run via `uv run` from URL
-- ✓ Minimal dependencies
-- ✗ No README extraction
-- ✗ No validation
-- ✗ No dry-run mode
+## 独立脚本与集成脚本
 
-**Use when:** You only need AA imports and want a simple script.
+### 独立脚本特点
+- ✓ 简单，单一用途
+- ✓ 可以通过 URL 使用 `uv run` 运行
+- ✓ 最小依赖
+- ✗ 无法从 README 提取
+- ✗ 无验证功能
+- ✗ 无干运行模式
 
-### Integrated Script Features
-- ✓ Both README extraction AND AA import
-- ✓ Validation and show commands
-- ✓ Dry-run preview mode
-- ✓ Better error handling
-- ✓ Merge with existing evaluations
-- ✓ More flexible options
+**使用场景：** 您只需要 AA 导入并想要一个简单的脚本。
 
-**Use when:** You want full evaluation management capabilities.
+### 集成脚本特点
+- ✓ 同时支持 README 提取和 AA 导入
+- ✓ 验证和显示命令
+- ✓ 干运行预览模式
+- ✓ 更好的错误处理
+- ✓ 与现有评估合并
+- ✓ 更灵活的选项
 
-## Common Workflows
+**使用场景：** 您需要完整的评估管理功能。
 
-### Workflow 1: New Model with README Tables
 
-You've just created a model with evaluation tables in the README.
+## 常见工作流
+
+### 工作流 1：带有 README 表格的新模型
+
+您刚刚创建了一个在 README 中包含评估表格的模型。
 
 ```bash
-# Step 1: Preview extraction
+# 步骤 1：预览提取
 python3 scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/new-model-7b" \
   --dry-run
 
-# Step 2: Apply if it looks good
+# 步骤 2：如果看起来不错，应用提取
 python3 scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/new-model-7b"
 
-# Step 3: Validate
+# 步骤 3：验证
 python3 scripts/evaluation_manager.py validate \
   --repo-id "your-username/new-model-7b"
 
-# Step 4: View results
+# 步骤 4：查看结果
 python3 scripts/evaluation_manager.py show \
   --repo-id "your-username/new-model-7b"
 ```
 
-### Workflow 2: Model Benchmarked on AA
+### 工作流 2：在 AA 上进行基准测试的模型
 
-Your model appears on Artificial Analysis with fresh benchmarks.
+您的模型在 Artificial Analysis 上有新的基准测试。
 
 ```bash
-# Import scores and create PR for review
+# 导入分数并创建 PR 以供审核
 python3 scripts/evaluation_manager.py import-aa \
   --creator-slug "your-org" \
   --model-name "your-model" \
@@ -205,56 +210,56 @@ python3 scripts/evaluation_manager.py import-aa \
   --create-pr
 ```
 
-### Workflow 3: Combine Both Methods
+### 工作流 3：结合两种方法
 
-You have README tables AND AA scores.
+您同时拥有 README 表格和 AA 分数。
 
 ```bash
-# Step 1: Extract from README
+# 步骤 1：从 README 提取
 python3 scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/hybrid-model"
 
-# Step 2: Import from AA (will merge with existing)
+# 步骤 2：从 AA 导入（将与现有评估合并）
 python3 scripts/evaluation_manager.py import-aa \
   --creator-slug "your-org" \
   --model-name "hybrid-model" \
   --repo-id "your-username/hybrid-model"
 
-# Step 3: View combined results
+# 步骤 3：查看合并结果
 python3 scripts/evaluation_manager.py show \
   --repo-id "your-username/hybrid-model"
 ```
 
-### Workflow 4: Contributing to Community Models
+### 工作流 4：为社区模型做贡献
 
-Help improve community models by adding missing evaluations.
+通过添加缺失的评估来帮助改进社区模型。
 
 ```bash
-# Find a model with evaluations in README but no model-index
-# Example: community/awesome-7b
+# 找到在 README 中有评估但没有 model-index 的模型
+# 示例：community/awesome-7b
 
-# Create PR with extracted evaluations
+# 创建带有提取的评估的 PR
 python3 scripts/evaluation_manager.py extract-readme \
   --repo-id "community/awesome-7b" \
   --create-pr
 
-# GitHub will notify the repository owner
-# They can review and merge your PR
+# GitHub 将通知仓库所有者
+# 他们可以审查并合并您的 PR
 ```
 
-### Workflow 5: Batch Processing
+### 工作流 5：批量处理
 
-Update multiple models at once.
+一次更新多个模型。
 
 ```bash
-# Create a list of repos
+# 创建仓库列表
 cat > models.txt << EOF
 your-org/model-1-7b
 your-org/model-2-13b
 your-org/model-3-70b
 EOF
 
-# Process each
+# 处理每个仓库
 while read repo_id; do
   echo "Processing $repo_id..."
   python3 scripts/evaluation_manager.py extract-readme \
@@ -262,17 +267,17 @@ while read repo_id; do
 done < models.txt
 ```
 
-### Workflow 6: Automated Updates (CI/CD)
+### 工作流 6：自动更新（CI/CD）
 
-Set up automatic evaluation updates using GitHub Actions.
+使用 GitHub Actions 设置自动评估更新。
 
 ```yaml
 # .github/workflows/update-evals.yml
-name: Update Evaluations Weekly
+name: 每周更新评估
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Every Sunday
-  workflow_dispatch:  # Manual trigger
+    - cron: '0 0 * * 0'  # 每周日
+  workflow_dispatch:  # 手动触发
 
 jobs:
   update:
@@ -280,16 +285,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: 设置 Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.13'
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: |
           pip install huggingface-hub python-dotenv pyyaml requests
 
-      - name: Update from Artificial Analysis
+      - name: 从 Artificial Analysis 更新
         env:
           AA_API_KEY: ${{ secrets.AA_API_KEY }}
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -301,82 +306,86 @@ jobs:
             --create-pr
 ```
 
-## Verification and Validation
 
-### Check Current Evaluations
+## 验证和确认
+
+### 检查当前评估
 
 ```bash
 python3 scripts/evaluation_manager.py show \
   --repo-id "your-username/your-model"
 ```
 
-### Validate Format
+### 验证格式
 
 ```bash
 python3 scripts/evaluation_manager.py validate \
   --repo-id "your-username/your-model"
 ```
 
-### View in HuggingFace UI
+### 在 HuggingFace UI 中查看
 
-After updating, visit:
+更新后，访问：
 ```
 https://huggingface.co/your-username/your-model
 ```
 
-The evaluation widget should display your scores automatically.
+评估小部件应自动显示您的分数。
 
-## Troubleshooting Examples
 
-### Problem: No tables found
+## 故障排除示例
+
+### 问题：未找到表格
 
 ```bash
-# Check what tables exist in your README
+# 检查您的 README 中存在哪些表格
 python3 scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/your-model" \
   --dry-run
 
-# If no output, ensure your README has markdown tables with numeric scores
+# 如果没有输出，请确保您的 README 中有带数字分数的 markdown 表格
 ```
 
-### Problem: AA model not found
+### 问题：AA 模型未找到
 
 ```bash
-# Verify the creator and model slugs
-# Check the AA website URL or API directly
+# 验证创建者和模型 slugs
+# 直接检查 AA 网站 URL 或 API
 curl -H "x-api-key: $AA_API_KEY" \
   https://artificialanalysis.ai/api/v2/data/llms/models | jq
 ```
 
-### Problem: Token permission error
+### 问题：令牌权限错误
 
 ```bash
-# Verify your token has write access
-# Generate a new token at: https://huggingface.co/settings/tokens
-# Ensure "Write" scope is enabled
+# 验证您的令牌具有写入权限
+# 在以下位置生成新令牌：https://huggingface.co/settings/tokens
+# 确保启用了 "Write" 范围
 ```
 
-## Tips and Best Practices
 
-1. **Always dry-run first**: Use `--dry-run` to preview changes
-2. **Use PRs for others' repos**: Always use `--create-pr` for repositories you don't own
-3. **Validate after updates**: Run `validate` to ensure proper formatting
-4. **Keep evaluations current**: Set up automated updates for AA scores
-5. **Document sources**: The tool automatically adds source attribution
-6. **Check the UI**: Always verify the evaluation widget displays correctly
+## 提示和最佳实践
 
-## Getting Help
+1. **始终先干运行**：使用 `--dry-run` 预览更改
+2. **对他人的仓库使用 PR**：对于您不拥有的仓库，始终使用 `--create-pr`
+3. **更新后验证**：运行 `validate` 确保格式正确
+4. **保持评估最新**：为 AA 分数设置自动更新
+5. **记录来源**：工具会自动添加来源归因
+6. **检查 UI**：始终验证评估小部件显示正确
+
+## 获取帮助
 
 ```bash
-# General help
+# 一般帮助
 python3 scripts/evaluation_manager.py --help
 
-# Command-specific help
+# 命令特定帮助
 python3 scripts/evaluation_manager.py extract-readme --help
 python3 scripts/evaluation_manager.py import-aa --help
 ```
 
-For issues or questions, consult:
-- `../SKILL.md` - Complete documentation
-- `../README.md` - Troubleshooting guide
-- `../QUICKSTART.md` - Quick start guide
+有关问题或疑问，请参考：
+- `../SKILL.md` - 完整文档
+- `../README.md` - 故障排除指南
+- `../QUICKSTART.md` - 快速入门指南
+

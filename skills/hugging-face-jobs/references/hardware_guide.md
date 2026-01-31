@@ -1,301 +1,301 @@
-# Hardware Selection Guide
+# 硬件选择指南
 
-Choosing the right hardware (flavor) is critical for cost-effective workloads.
+选择合适的硬件（类型）对于成本效益高的工作负载至关重要。
 
-> **Reference:** [HF Jobs Hardware Documentation](https://huggingface.co/docs/hub/en/spaces-config-reference) (updated 07/2025)
+> **参考：** [HF Jobs 硬件文档](https://huggingface.co/docs/hub/en/spaces-config-reference)（更新于 2025 年 7 月）
 
-## Available Hardware
+## 可用硬件
 
-### CPU Flavors
-| Flavor | Description | Use Case |
-|--------|-------------|----------|
-| `cpu-basic` | Basic CPU instance | Testing, lightweight scripts |
-| `cpu-upgrade` | Enhanced CPU instance | Data processing, parallel workloads |
+### CPU 类型
+| 类型 | 描述 | 用例 |
+|------|------|------|
+| `cpu-basic` | 基础 CPU 实例 | 测试、轻量级脚本 |
+| `cpu-upgrade` | 增强型 CPU 实例 | 数据处理、并行工作负载 |
 
-**Use cases:** Data processing, testing scripts, lightweight workloads
-**Not recommended for:** Model training, GPU-accelerated workloads
+**用例：** 数据处理、测试脚本、轻量级工作负载
+**不推荐：** 模型训练、GPU 加速工作负载
 
-### GPU Flavors
+### GPU 类型
 
-| Flavor | GPU | VRAM | Use Case |
-|--------|-----|------|----------|
-| `t4-small` | NVIDIA T4 | 16GB | <1B models, demos, quick tests |
-| `t4-medium` | NVIDIA T4 | 16GB | 1-3B models, development |
-| `l4x1` | NVIDIA L4 | 24GB | 3-7B models, efficient workloads |
-| `l4x4` | 4x NVIDIA L4 | 96GB | Multi-GPU, parallel workloads |
-| `a10g-small` | NVIDIA A10G | 24GB | 3-7B models, production |
-| `a10g-large` | NVIDIA A10G | 24GB | 7-13B models, batch inference |
-| `a10g-largex2` | 2x NVIDIA A10G | 48GB | Multi-GPU, large models |
-| `a10g-largex4` | 4x NVIDIA A10G | 96GB | Multi-GPU, very large models |
-| `a100-large` | NVIDIA A100 | 40GB | 13B+ models, fastest GPU option |
+| 类型 | GPU | 显存 | 用例 |
+|------|-----|------|------|
+| `t4-small` | NVIDIA T4 | 16GB | <1B 模型、演示、快速测试 |
+| `t4-medium` | NVIDIA T4 | 16GB | 1-3B 模型、开发 |
+| `l4x1` | NVIDIA L4 | 24GB | 3-7B 模型、高效工作负载 |
+| `l4x4` | 4x NVIDIA L4 | 96GB | 多 GPU、并行工作负载 |
+| `a10g-small` | NVIDIA A10G | 24GB | 3-7B 模型、生产环境 |
+| `a10g-large` | NVIDIA A10G | 24GB | 7-13B 模型、批量推理 |
+| `a10g-largex2` | 2x NVIDIA A10G | 48GB | 多 GPU、大型模型 |
+| `a10g-largex4` | 4x NVIDIA A10G | 96GB | 多 GPU、超大型模型 |
+| `a100-large` | NVIDIA A100 | 40GB | 13B+ 模型、最快的 GPU 选项 |
 
-### TPU Flavors
+### TPU 类型
 
-| Flavor | Configuration | Use Case |
-|--------|---------------|----------|
-| `v5e-1x1` | TPU v5e (1x1) | Small TPU workloads |
-| `v5e-2x2` | TPU v5e (2x2) | Medium TPU workloads |
-| `v5e-2x4` | TPU v5e (2x4) | Large TPU workloads |
+| 类型 | 配置 | 用例 |
+|------|------|------|
+| `v5e-1x1` | TPU v5e (1x1) | 小型 TPU 工作负载 |
+| `v5e-2x2` | TPU v5e (2x2) | 中型 TPU 工作负载 |
+| `v5e-2x4` | TPU v5e (2x4) | 大型 TPU 工作负载 |
 
-**TPU Use Cases:**
-- JAX/Flax model training
-- Large-scale inference
-- TPU-optimized workloads
+**TPU 用例：**
+- JAX/Flax 模型训练
+- 大规模推理
+- TPU 优化的工作负载
 
-## Selection Guidelines
+## 选择指南
 
-### By Workload Type
+### 按工作负载类型
 
-**Data Processing**
-- **Recommended:** `cpu-upgrade` or `l4x1`
-- **Use case:** Transform, filter, analyze datasets
-- **Batch size:** Depends on data size
-- **Time:** Varies by dataset size
+**数据处理**
+- **推荐：** `cpu-upgrade` 或 `l4x1`
+- **用例：** 转换、过滤、分析数据集
+- **批处理大小：** 取决于数据大小
+- **时间：** 因数据集大小而异
 
-**Batch Inference**
-- **Recommended:** `a10g-large` or `a100-large`
-- **Use case:** Run inference on thousands of samples
-- **Batch size:** 8-32 depending on model
-- **Time:** Depends on number of samples
+**批量推理**
+- **推荐：** `a10g-large` 或 `a100-large`
+- **用例：** 对数千个样本运行推理
+- **批处理大小：** 根据模型 8-32
+- **时间：** 取决于样本数量
 
-**Experiments & Benchmarks**
-- **Recommended:** `a10g-small` or `a10g-large`
-- **Use case:** Reproducible ML experiments
-- **Batch size:** Varies
-- **Time:** Depends on experiment complexity
+**实验和基准测试**
+- **推荐：** `a10g-small` 或 `a10g-large`
+- **用例：** 可重现的 ML 实验
+- **批处理大小：** 可变
+- **时间：** 取决于实验复杂性
 
-**Model Training** (see `model-trainer` skill for details)
-- **Recommended:** See model-trainer skill
-- **Use case:** Fine-tuning models
-- **Batch size:** Depends on model size
-- **Time:** Hours to days
+**模型训练**（详见 `model-trainer` 技能）
+- **推荐：** 参见 model-trainer 技能
+- **用例：** 微调模型
+- **批处理大小：** 取决于模型大小
+- **时间：** 数小时到数天
 
-**Synthetic Data Generation**
-- **Recommended:** `a10g-large` or `a100-large`
-- **Use case:** Generate datasets using LLMs
-- **Batch size:** Depends on generation method
-- **Time:** Hours for large datasets
+**合成数据生成**
+- **推荐：** `a10g-large` 或 `a100-large`
+- **用例：** 使用 LLM 生成数据集
+- **批处理大小：** 取决于生成方法
+- **时间：** 大型数据集需要数小时
 
-### By Budget
+### 按预算
 
-**Minimal Budget (<$5 total)**
-- Use `cpu-basic` or `t4-small`
-- Process small datasets
-- Quick tests and demos
+**最小预算（总计 <$5）**
+- 使用 `cpu-basic` 或 `t4-small`
+- 处理小型数据集
+- 快速测试和演示
 
-**Small Budget ($5-20)**
-- Use `t4-medium` or `a10g-small`
-- Process medium datasets
-- Run experiments
+**小型预算（$5-20）**
+- 使用 `t4-medium` 或 `a10g-small`
+- 处理中型数据集
+- 运行实验
 
-**Medium Budget ($20-50)**
-- Use `a10g-small` or `a10g-large`
-- Process large datasets
-- Production workloads
+**中型预算（$20-50）**
+- 使用 `a10g-small` 或 `a10g-large`
+- 处理大型数据集
+- 生产工作负载
 
-**Large Budget ($50-200)**
-- Use `a10g-large` or `a100-large`
-- Large-scale processing
-- Multiple experiments
+**大型预算（$50-200）**
+- 使用 `a10g-large` 或 `a100-large`
+- 大规模处理
+- 多个实验
 
-### By Model Size (for inference/processing)
+### 按模型大小（用于推理/处理）
 
-**Tiny Models (<1B parameters)**
-- **Recommended:** `t4-small`
-- **Example:** Qwen2.5-0.5B, TinyLlama
-- **Batch size:** 8-16
+**微型模型（<1B 参数）**
+- **推荐：** `t4-small`
+- **示例：** Qwen2.5-0.5B、TinyLlama
+- **批处理大小：** 8-16
 
-**Small Models (1-3B parameters)**
-- **Recommended:** `t4-medium` or `a10g-small`
-- **Example:** Qwen2.5-1.5B, Phi-2
-- **Batch size:** 4-8
+**小型模型（1-3B 参数）**
+- **推荐：** `t4-medium` 或 `a10g-small`
+- **示例：** Qwen2.5-1.5B、Phi-2
+- **批处理大小：** 4-8
 
-**Medium Models (3-7B parameters)**
-- **Recommended:** `a10g-small` or `a10g-large`
-- **Example:** Qwen2.5-7B, Mistral-7B
-- **Batch size:** 2-4
+**中型模型（3-7B 参数）**
+- **推荐：** `a10g-small` 或 `a10g-large`
+- **示例：** Qwen2.5-7B、Mistral-7B
+- **批处理大小：** 2-4
 
-**Large Models (7-13B parameters)**
-- **Recommended:** `a10g-large` or `a100-large`
-- **Example:** Llama-3-8B
-- **Batch size:** 1-2
+**大型模型（7-13B 参数）**
+- **推荐：** `a10g-large` 或 `a100-large`
+- **示例：** Llama-3-8B
+- **批处理大小：** 1-2
 
-**Very Large Models (13B+ parameters)**
-- **Recommended:** `a100-large`
-- **Example:** Llama-3-13B, Llama-3-70B
-- **Batch size:** 1
+**超大型模型（13B+ 参数）**
+- **推荐：** `a100-large`
+- **示例：** Llama-3-13B、Llama-3-70B
+- **批处理大小：** 1
 
-## Memory Considerations
+## 内存考虑
 
-### Estimating Memory Requirements
+### 估计内存需求
 
-**For inference:**
+**对于推理：**
 ```
-Memory (GB) ≈ (Model params in billions) × 2-4
-```
-
-**For training:**
-```
-Memory (GB) ≈ (Model params in billions) × 20 (full) or × 4 (LoRA)
+内存（GB）≈（模型参数量（十亿））× 2-4
 ```
 
-**Examples:**
-- Qwen2.5-0.5B inference: ~1-2GB ✅ fits t4-small
-- Qwen2.5-7B inference: ~14-28GB ✅ fits a10g-large
-- Qwen2.5-7B training: ~140GB ❌ not feasible without LoRA
+**对于训练：**
+```
+内存（GB）≈（模型参数量（十亿））× 20（完整）或 × 4（LoRA）
+```
 
-### Memory Optimization
+**示例：**
+- Qwen2.5-0.5B 推理：~1-2GB ✅ 适合 t4-small
+- Qwen2.5-7B 推理：~14-28GB ✅ 适合 a10g-large
+- Qwen2.5-7B 训练：~140GB ❌ 不使用 LoRA 不可行
 
-If hitting memory limits:
+### 内存优化
 
-1. **Reduce batch size**
+如果遇到内存限制：
+
+1. **减少批处理大小**
    ```python
    batch_size = 1
    ```
 
-2. **Process in chunks**
+2. **分块处理**
    ```python
    for chunk in chunks:
        process(chunk)
    ```
 
-3. **Use smaller models**
-   - Use quantized models
-   - Use LoRA adapters
+3. **使用更小的模型**
+   - 使用量化模型
+   - 使用 LoRA 适配器
 
-4. **Upgrade hardware**
+4. **升级硬件**
    - cpu → t4 → a10g → a100
 
-## Cost Estimation
+## 成本估算
 
-### Formula
+### 公式
 
 ```
-Total Cost = (Hours of runtime) × (Cost per hour)
+总成本 =（运行时间（小时））×（每小时成本）
 ```
 
-### Example Calculations
+### 示例计算
 
-**Data processing:**
-- Hardware: cpu-upgrade ($0.50/hour)
-- Time: 1 hour
-- Cost: $0.50
+**数据处理：**
+- 硬件：cpu-upgrade（$0.50/小时）
+- 时间：1 小时
+- 成本：$0.50
 
-**Batch inference:**
-- Hardware: a10g-large ($5/hour)
-- Time: 2 hours
-- Cost: $10.00
+**批量推理：**
+- 硬件：a10g-large（$5/小时）
+- 时间：2 小时
+- 成本：$10.00
 
-**Experiments:**
-- Hardware: a10g-small ($3.50/hour)
-- Time: 4 hours
-- Cost: $14.00
+**实验：**
+- 硬件：a10g-small（$3.50/小时）
+- 时间：4 小时
+- 成本：$14.00
 
-### Cost Optimization Tips
+### 成本优化提示
 
-1. **Start small:** Test on cpu-basic or t4-small
-2. **Monitor runtime:** Set appropriate timeouts
-3. **Optimize code:** Reduce unnecessary compute
-4. **Choose right hardware:** Don't over-provision
-5. **Use checkpoints:** Resume if job fails
-6. **Monitor costs:** Check running jobs regularly
+1. **从小开始：** 在 cpu-basic 或 t4-small 上测试
+2. **监控运行时间：** 设置适当的超时
+3. **优化代码：** 减少不必要的计算
+4. **选择合适的硬件：** 不过度配置
+5. **使用检查点：** 如果作业失败，可恢复
+6. **监控成本：** 定期检查运行中的作业
 
-## Multi-GPU Workloads
+## 多 GPU 工作负载
 
-Multi-GPU flavors automatically distribute workloads:
+多 GPU 类型自动分配工作负载：
 
-**Multi-GPU flavors:**
-- `l4x4` - 4x L4 GPUs (96GB total VRAM)
-- `a10g-largex2` - 2x A10G GPUs (48GB total VRAM)
-- `a10g-largex4` - 4x A10G GPUs (96GB total VRAM)
+**多 GPU 类型：**
+- `l4x4` - 4x L4 GPU（总计 96GB 显存）
+- `a10g-largex2` - 2x A10G GPU（总计 48GB 显存）
+- `a10g-largex4` - 4x A10G GPU（总计 96GB 显存）
 
-**When to use:**
-- Large models (>13B parameters)
-- Need faster processing (linear speedup)
-- Large datasets (>100K samples)
-- Parallel workloads
-- Tensor parallelism for inference
+**何时使用：**
+- 大型模型（>13B 参数）
+- 需要更快的处理（线性加速）
+- 大型数据集（>100K 样本）
+- 并行工作负载
+- 推理的张量并行
 
-**MCP Tool Example:**
+**MCP 工具示例：**
 ```python
 hf_jobs("uv", {
     "script": "process.py",
-    "flavor": "a10g-largex2",  # 2 GPUs
+    "flavor": "a10g-largex2",  # 2 GPU
     "timeout": "4h",
     "secrets": {"HF_TOKEN": "$HF_TOKEN"}
 })
 ```
 
-**CLI Equivalent:**
+**CLI 等效：**
 ```bash
 hf jobs uv run process.py --flavor a10g-largex2 --timeout 4h
 ```
 
-## Choosing Between Options
+## 在选项之间选择
 
 ### CPU vs GPU
 
-**Choose CPU when:**
-- No GPU acceleration needed
-- Data processing only
-- Budget constrained
-- Simple workloads
+**选择 CPU 当：**
+- 不需要 GPU 加速
+- 仅数据处理
+- 预算受限
+- 简单工作负载
 
-**Choose GPU when:**
-- Model inference/training
-- GPU-accelerated libraries
-- Need faster processing
-- Large models
+**选择 GPU 当：**
+- 模型推理/训练
+- GPU 加速库
+- 需要更快的处理
+- 大型模型
 
 ### a10g vs a100
 
-**Choose a10g when:**
-- Model <13B parameters
-- Budget conscious
-- Processing time not critical
+**选择 a10g 当：**
+- 模型 <13B 参数
+- 预算有限
+- 处理时间不重要
 
-**Choose a100 when:**
-- Model 13B+ parameters
-- Need fastest processing
-- Memory requirements high
-- Budget allows
+**选择 a100 当：**
+- 模型 13B+ 参数
+- 需要最快的处理
+- 内存需求高
+- 预算允许
 
-### Single vs Multi-GPU
+### 单 GPU vs 多 GPU
 
-**Choose single GPU when:**
-- Model <7B parameters
-- Budget constrained
-- Simpler debugging
+**选择单 GPU 当：**
+- 模型 <7B 参数
+- 预算受限
+- 调试更简单
 
-**Choose multi-GPU when:**
-- Model >13B parameters
-- Need faster processing
-- Large batch sizes required
-- Cost-effective for large jobs
+**选择多 GPU 当：**
+- 模型 >13B 参数
+- 需要更快的处理
+- 需要大批次大小
+- 对大型作业成本效益高
 
-## Quick Reference
+## 快速参考
 
-### All Available Flavors
+### 所有可用类型
 
 ```python
-# Official flavor list (updated 07/2025)
+# 官方类型列表（2025 年 7 月更新）
 FLAVORS = {
     # CPU
-    "cpu-basic",      # Testing, lightweight
-    "cpu-upgrade",    # Data processing
+    "cpu-basic",      # 测试、轻量级
+    "cpu-upgrade",    # 数据处理
     
-    # GPU - Single
-    "t4-small",       # 16GB - <1B models
-    "t4-medium",      # 16GB - 1-3B models
-    "l4x1",           # 24GB - 3-7B models
-    "a10g-small",     # 24GB - 3-7B production
-    "a10g-large",     # 24GB - 7-13B models
-    "a100-large",     # 40GB - 13B+ models
+    # GPU - 单 GPU
+    "t4-small",       # 16GB - <1B 模型
+    "t4-medium",      # 16GB - 1-3B 模型
+    "l4x1",           # 24GB - 3-7B 模型
+    "a10g-small",     # 24GB - 3-7B 生产环境
+    "a10g-large",     # 24GB - 7-13B 模型
+    "a100-large",     # 40GB - 13B+ 模型
     
-    # GPU - Multi
-    "l4x4",           # 4x L4 (96GB total)
-    "a10g-largex2",   # 2x A10G (48GB total)
-    "a10g-largex4",   # 4x A10G (96GB total)
+    # GPU - 多 GPU
+    "l4x4",           # 4x L4（总计 96GB）
+    "a10g-largex2",   # 2x A10G（总计 48GB）
+    "a10g-largex4",   # 4x A10G（总计 96GB）
     
     # TPU
     "v5e-1x1",        # TPU v5e 1x1
@@ -304,7 +304,7 @@ FLAVORS = {
 }
 ```
 
-### Workload → Hardware Mapping
+### 工作负载 → 硬件映射
 
 ```python
 HARDWARE_MAP = {
@@ -318,19 +318,18 @@ HARDWARE_MAP = {
 }
 ```
 
-### CLI Examples
+### CLI 示例
 
 ```bash
-# CPU job
+# CPU 作业
 hf jobs run python:3.12 python script.py
 
-# GPU job
+# GPU 作业
 hf jobs run --flavor a10g-large pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel python script.py
 
-# TPU job
+# TPU 作业
 hf jobs run --flavor v5e-1x1 your-tpu-image python script.py
 
-# UV script with GPU
+# 带 GPU 的 UV 脚本
 hf jobs uv run --flavor a10g-small my_script.py
 ```
-

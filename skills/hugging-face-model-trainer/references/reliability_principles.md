@@ -1,108 +1,108 @@
-# Reliability Principles for Training Jobs
+# 训练任务的可靠性原则
 
-These principles are derived from real production failures and successful fixes. Following them prevents common failure modes and ensures reliable job execution.
+这些原则源自真实的生产环境故障和成功修复方案。遵循这些原则可以防止常见的失败模式，确保任务可靠执行。
 
-## Principle 1: Always Verify Before Use
+## 原则 1：使用前务必验证
 
-**Rule:** Never assume repos, datasets, or resources exist. Verify with tools first.
+**规则：** 永远不要假设代码仓库、数据集或资源存在。先使用工具进行验证。
 
-### What It Prevents
+### 防止的问题
 
-- **Non-existent datasets** - Jobs fail immediately when dataset doesn't exist
-- **Typos in names** - Simple mistakes like "argilla-dpo-mix-7k" vs "ultrafeedback_binarized"
-- **Incorrect paths** - Old or moved repos, renamed files
-- **Missing dependencies** - Undocumented requirements
+- **不存在的数据集** - 当数据集不存在时任务会立即失败
+- **名称拼写错误** - 如 "argilla-dpo-mix-7k" 与 "ultrafeedback_binarized" 这样的简单错误
+- **路径错误** - 旧的或已移动的仓库、重命名的文件
+- **缺少依赖** - 未记录的要求
 
-### How to Apply
+### 如何应用
 
-**Before submitting ANY job:**
+**在提交任何任务之前：**
 
 ```python
-# Verify dataset exists
+# 验证数据集是否存在
 dataset_search({"query": "dataset-name", "author": "author-name", "limit": 5})
 hub_repo_details(["author/dataset-name"], repo_type="dataset")
 
-# Verify model exists
+# 验证模型是否存在
 hub_repo_details(["org/model-name"], repo_type="model")
 
-# Check script/file paths (for URL-based scripts)
-# Verify before using: https://github.com/user/repo/blob/main/script.py
+# 检查脚本/文件路径（对于基于 URL 的脚本）
+# 使用前验证：https://github.com/user/repo/blob/main/script.py
 ```
 
-**Examples that would have caught errors:**
+**能够捕获错误的示例：**
 
 ```python
-# ❌ WRONG: Assumed dataset exists
+# ❌ 错误：假设数据集存在
 hf_jobs("uv", {
     "script": """...""",
-    "env": {"DATASET": "trl-lib/argilla-dpo-mix-7k"}  # Doesn't exist!
+    "env": {"DATASET": "trl-lib/argilla-dpo-mix-7k"}  # 不存在！
 })
 
-# ✅ CORRECT: Verify first
+# ✅ 正确：先验证
 dataset_search({"query": "argilla dpo", "author": "trl-lib"})
-# Would show: "trl-lib/ultrafeedback_binarized" is the correct name
+# 会显示："trl-lib/ultrafeedback_binarized" 是正确的名称
 
 hub_repo_details(["trl-lib/ultrafeedback_binarized"], repo_type="dataset")
-# Confirms it exists before using
+# 使用前确认其存在
 ```
 
-### Implementation Checklist
+### 实施检查清单
 
-- [ ] Check dataset exists before training
-- [ ] Verify base model exists before fine-tuning
-- [ ] Confirm adapter model exists before GGUF conversion
-- [ ] Test script URLs are valid before submitting
-- [ ] Validate file paths in repositories
-- [ ] Check for recent updates/renames of resources
+- [ ] 训练前检查数据集是否存在
+- [ ] 微调前验证基础模型是否存在
+- [ ] GGUF 转换前确认适配器模型是否存在
+- [ ] 提交前测试脚本 URL 是否有效
+- [ ] 验证仓库中的文件路径
+- [ ] 检查资源的近期更新/重命名情况
 
-**Time cost:** 5-10 seconds  
-**Time saved:** Hours of failed job time + debugging
+**时间成本：** 5-10 秒
+**节省时间：** 数小时的失败任务时间 + 调试时间
 
 ---
 
-## Principle 2: Prioritize Reliability Over Performance
+## 原则 2：可靠性优先于性能
 
-**Rule:** Default to what is most likely to succeed, not what is theoretically fastest.
+**规则：** 默认选择最可能成功的方案，而不是理论上最快的方案。
 
-### What It Prevents
+### 防止的问题
 
-- **Hardware incompatibilities** - Features that fail on certain GPUs
-- **Unstable optimizations** - Speed-ups that cause crashes
-- **Complex configurations** - More failure points
-- **Build system issues** - Unreliable compilation methods
+- **硬件不兼容** - 在某些 GPU 上会失败的功能
+- **不稳定的优化** - 导致崩溃的加速方法
+- **复杂配置** - 更多的失败点
+- **构建系统问题** - 不可靠的编译方法
 
-### How to Apply
+### 如何应用
 
-**Choose reliability:**
+**选择可靠性：**
 
 ```python
-# ❌ RISKY: Aggressive optimization that may fail
+# ❌ 有风险：可能失败的激进优化
 SFTConfig(
-    torch_compile=True,  # Can fail on T4, A10G GPUs
-    optim="adamw_bnb_8bit",  # Requires specific setup
-    fp16=False,  # May cause training instability
+    torch_compile=True,  # 在 T4、A10G GPU 上可能失败
+    optim="adamw_bnb_8bit",  # 需要特定设置
+    fp16=False,  # 可能导致训练不稳定
     ...
 )
 
-# ✅ SAFE: Proven defaults
+# ✅ 安全：经过验证的默认值
 SFTConfig(
-    # torch_compile=True,  # Commented with note: "Enable on H100 for 20% speedup"
-    optim="adamw_torch",  # Standard, always works
-    fp16=True,  # Stable and fast
+    # torch_compile=True,  # 已注释并备注："在 H100 上启用可提升 20% 速度"
+    optim="adamw_torch",  # 标准，始终有效
+    fp16=True,  # 稳定且快速
     ...
 )
 ```
 
-**For build processes:**
+**对于构建过程：**
 
 ```python
-# ❌ UNRELIABLE: Uses make (platform-dependent)
+# ❌ 不可靠：使用 make（依赖平台）
 subprocess.run(["make", "-C", "/tmp/llama.cpp", "llama-quantize"], check=True)
 
-# ✅ RELIABLE: Uses CMake (consistent, documented)
+# ✅ 可靠：使用 CMake（一致、有文档）
 subprocess.run([
     "cmake", "-B", "/tmp/llama.cpp/build", "-S", "/tmp/llama.cpp",
-    "-DGGML_CUDA=OFF"  # Disable CUDA for faster, more reliable build
+    "-DGGML_CUDA=OFF"  # 禁用 CUDA 以获得更快、更可靠的构建
 ], check=True)
 
 subprocess.run([
@@ -111,47 +111,47 @@ subprocess.run([
 ], check=True)
 ```
 
-### Real-World Example
+### 真实案例
 
-**The `torch.compile` failure:**
-- Added for "20% speedup" on H100
-- **Failed fatally on T4-medium** with cryptic error
-- Misdiagnosed as dataset issue (cost hours)
-- **Fix:** Disable by default, add as optional comment
+**`torch.compile` 失败案例：**
+- 为在 H100 上"提升 20% 速度"而添加
+- **在 T4-medium 上致命失败**，错误信息晦涩难懂
+- 被误诊为数据集问题（耗费数小时）
+- **修复：** 默认禁用，作为可选注释添加
 
-**Result:** Reliability > 20% performance gain
+**结果：** 可靠性 > 20% 的性能提升
 
-### Implementation Checklist
+### 实施检查清单
 
-- [ ] Use proven, standard configurations by default
-- [ ] Comment out performance optimizations with hardware notes
-- [ ] Use stable build systems (CMake > make)
-- [ ] Test on target hardware before production
-- [ ] Document known incompatibilities
-- [ ] Provide "safe" and "fast" variants when needed
+- [ ] 默认使用经过验证的标准配置
+- [ ] 用硬件说明注释掉性能优化
+- [ ] 使用稳定的构建系统（CMake > make）
+- [ ] 生产前在目标硬件上测试
+- [ ] 记录已知的不兼容性
+- [ ] 需要时提供"安全"和"快速"的变体
 
-**Performance loss:** 10-20% in best case  
-**Reliability gain:** 95%+ success rate vs 60-70%
+**性能损失：** 最佳情况下 10-20%
+**可靠性提升：** 95%+ 成功率 vs 60-70%
 
 ---
 
-## Principle 3: Create Atomic, Self-Contained Scripts
+## 原则 3：创建原子化、自包含的脚本
 
-**Rule:** Scripts should work as complete, independent units. Don't remove parts to "simplify."
+**规则：** 脚本应作为完整的独立单元工作。不要为了"简化"而删除部分内容。
 
-### What It Prevents
+### 防止的问题
 
-- **Missing dependencies** - Removed "unnecessary" packages that are actually required
-- **Incomplete processes** - Skipped steps that seem redundant
-- **Environment assumptions** - Scripts that need pre-setup
-- **Partial failures** - Some parts work, others fail silently
+- **缺少依赖** - 删除了"不必要"但实际上需要的包
+- **不完整的过程** - 跳过了看似多余的步骤
+- **环境假设** - 需要预先设置的脚本
+- **部分失败** - 部分部分工作，其他部分静默失败
 
-### How to Apply
+### 如何应用
 
-**Complete dependency specifications:**
+**完整的依赖规范：**
 
 ```python
-# ❌ INCOMPLETE: "Simplified" by removing dependencies
+# ❌ 不完整：通过删除依赖来"简化"
 # /// script
 # dependencies = [
 #     "transformers",
@@ -160,7 +160,7 @@ subprocess.run([
 # ]
 # ///
 
-# ✅ COMPLETE: All dependencies explicit
+# ✅ 完整：所有依赖明确列出
 # /// script
 # dependencies = [
 #     "transformers>=4.36.0",
@@ -168,66 +168,66 @@ subprocess.run([
 #     "torch>=2.0.0",
 #     "accelerate>=0.24.0",
 #     "huggingface_hub>=0.20.0",
-#     "sentencepiece>=0.1.99",  # Required for tokenizers
-#     "protobuf>=3.20.0",        # Required for tokenizers
+#     "sentencepiece>=0.1.99",  # 分词器需要
+#     "protobuf>=3.20.0",        # 分词器需要
 #     "numpy",
 #     "gguf",
 # ]
 # ///
 ```
 
-**Complete build processes:**
+**完整的构建过程：**
 
 ```python
-# ❌ INCOMPLETE: Assumes build tools exist
+# ❌ 不完整：假设构建工具存在
 subprocess.run(["git", "clone", "https://github.com/ggerganov/llama.cpp.git", "/tmp/llama.cpp"])
-subprocess.run(["make", "-C", "/tmp/llama.cpp", "llama-quantize"])  # FAILS: no gcc/make
+subprocess.run(["make", "-C", "/tmp/llama.cpp", "llama-quantize"])  # 失败：没有 gcc/make
 
-# ✅ COMPLETE: Installs all requirements
+# ✅ 完整：安装所有要求
 subprocess.run(["apt-get", "update", "-qq"], check=True)
 subprocess.run(["apt-get", "install", "-y", "-qq", "build-essential", "cmake"], check=True)
 subprocess.run(["git", "clone", "https://github.com/ggerganov/llama.cpp.git", "/tmp/llama.cpp"])
-# ... then build
+# ... 然后构建
 ```
 
-### Real-World Example
+### 真实案例
 
-**The `sentencepiece` failure:**
-- Original script had it: worked fine
-- "Simplified" version removed it: "doesn't look necessary"
-- **GGUF conversion failed silently** - tokenizer couldn't convert
-- Hard to debug: no obvious error message
-- **Fix:** Restore all original dependencies
+**`sentencepiece` 失败案例：**
+- 原始脚本包含它：工作正常
+- "简化"版本删除了它："看起来不必要"
+- **GGUF 转换静默失败** - 分词器无法转换
+- 难以调试：没有明显的错误消息
+- **修复：** 恢复所有原始依赖
 
-**Result:** Don't remove dependencies without thorough testing
+**结果：** 不要在没有充分测试的情况下删除依赖
 
-### Implementation Checklist
+### 实施检查清单
 
-- [ ] All dependencies in PEP 723 header with version pins
-- [ ] All system packages installed by script
-- [ ] No assumptions about pre-existing environment
-- [ ] No "optional" steps that are actually required
-- [ ] Test scripts in clean environment
-- [ ] Document why each dependency is needed
+- [ ] 所有依赖在 PEP 723 头部中，带有版本锁定
+- [ ] 所有系统包由脚本安装
+- [ ] 不假设预先存在的环境
+- [ ] 没有实际上需要的"可选"步骤
+- [ ] 在干净环境中测试脚本
+- [ ] 记录为什么需要每个依赖
 
-**Complexity:** Slightly longer scripts  
-**Reliability:** Scripts "just work" every time
+**复杂度：** 脚本稍长
+**可靠性：** 脚本每次都"正常工作"
 
 ---
 
-## Principle 4: Provide Clear Error Context
+## 原则 4：提供清晰的错误上下文
 
-**Rule:** When things fail, make it obvious what went wrong and how to fix it.
+**规则：** 当事情失败时，使问题所在和修复方法显而易见。
 
-### How to Apply
+### 如何应用
 
-**Wrap subprocess calls:**
+**包装子进程调用：**
 
 ```python
-# ❌ UNCLEAR: Silent failure
+# ❌ 不清晰：静默失败
 subprocess.run([...], check=True, capture_output=True)
 
-# ✅ CLEAR: Shows what failed
+# ✅ 清晰：显示失败内容
 try:
     result = subprocess.run(
         [...],
@@ -245,13 +245,13 @@ except subprocess.CalledProcessError as e:
     raise
 ```
 
-**Validate inputs:**
+**验证输入：**
 
 ```python
-# ❌ UNCLEAR: Fails later with cryptic error
+# ❌ 不清晰：稍后失败，错误晦涩
 model = load_model(MODEL_NAME)
 
-# ✅ CLEAR: Fails fast with clear message
+# ✅ 清晰：快速失败，消息明确
 if not MODEL_NAME:
     raise ValueError("MODEL_NAME environment variable not set!")
 
@@ -266,106 +266,106 @@ except Exception as e:
     raise
 ```
 
-### Implementation Checklist
+### 实施检查清单
 
-- [ ] Wrap external calls with try/except
-- [ ] Print stdout/stderr on failure
-- [ ] Validate environment variables early
-- [ ] Add progress indicators (✅, ❌, 🔄)
-- [ ] Include hints for common failures
-- [ ] Log configuration at start
+- [ ] 用 try/except 包装外部调用
+- [ ] 失败时打印 stdout/stderr
+- [ ] 尽早验证环境变量
+- [ ] 添加进度指示器（✅, ❌, 🔄）
+- [ ] 包含常见失败的提示
+- [ ] 开始时记录配置
 
 ---
 
-## Principle 5: Test the Happy Path on Known-Good Inputs
+## 原则 5：在已知良好输入上测试正常路径
 
-**Rule:** Before using new code in production, test with inputs you know work.
+**规则：** 在生产中使用新代码之前，先用已知有效的输入进行测试。
 
-### How to Apply
+### 如何应用
 
-**Known-good test inputs:**
+**已知良好的测试输入：**
 
 ```python
-# For training
-TEST_DATASET = "trl-lib/Capybara"  # Small, well-formatted, widely used
-TEST_MODEL = "Qwen/Qwen2.5-0.5B"  # Small, fast, reliable
+# 用于训练
+TEST_DATASET = "trl-lib/Capybara"  # 小型、格式良好、广泛使用
+TEST_MODEL = "Qwen/Qwen2.5-0.5B"  # 小型、快速、可靠
 
-# For GGUF conversion
-TEST_ADAPTER = "evalstate/qwen-capybara-medium"  # Known working model
-TEST_BASE = "Qwen/Qwen2.5-0.5B"  # Compatible base
+# 用于 GGUF 转换
+TEST_ADAPTER = "evalstate/qwen-capybara-medium"  # 已知可用的模型
+TEST_BASE = "Qwen/Qwen2.5-0.5B"  # 兼容的基础模型
 ```
 
-**Testing workflow:**
+**测试工作流程：**
 
-1. Test with known-good inputs first
-2. If that works, try production inputs
-3. If production fails, you know it's the inputs (not code)
-4. Isolate the difference
+1. 首先用已知良好的输入测试
+2. 如果有效，尝试生产输入
+3. 如果生产失败，你知道是输入问题（不是代码问题）
+4. 隔离差异
 
-### Implementation Checklist
+### 实施检查清单
 
-- [ ] Maintain list of known-good test models/datasets
-- [ ] Test new scripts with test inputs first
-- [ ] Document what makes inputs "good"
-- [ ] Keep test jobs cheap (small models, short timeouts)
-- [ ] Only move to production after test succeeds
+- [ ] 维护已知良好的测试模型/数据集列表
+- [ ] 首先用测试输入测试新脚本
+- [ ] 记录什么使输入"良好"
+- [ ] 保持测试任务低成本（小模型、短超时）
+- [ ] 仅在测试成功后才进入生产
 
-**Time cost:** 5-10 minutes for test run  
-**Debugging time saved:** Hours
-
----
-
-## Summary: The Reliability Checklist
-
-Before submitting ANY job:
-
-### Pre-Flight Checks
-- [ ] **Verified** all repos/datasets exist (hub_repo_details)
-- [ ] **Tested** with known-good inputs if new code
-- [ ] **Using** proven hardware/configuration
-- [ ] **Included** all dependencies in PEP 723 header
-- [ ] **Installed** system requirements (build tools, etc.)
-- [ ] **Set** appropriate timeout (not default 30m)
-- [ ] **Configured** Hub push with HF_TOKEN
-- [ ] **Added** clear error handling
-
-### Script Quality
-- [ ] Self-contained (no external setup needed)
-- [ ] Complete dependencies listed
-- [ ] Build tools installed by script
-- [ ] Progress indicators included
-- [ ] Error messages are clear
-- [ ] Configuration logged at start
-
-### Job Configuration
-- [ ] Timeout > expected runtime + 30% buffer
-- [ ] Hardware appropriate for model size
-- [ ] Secrets include HF_TOKEN
-- [ ] Environment variables set correctly
-- [ ] Cost estimated and acceptable
-
-**Following these principles transforms job success rate from ~60-70% to ~95%+**
+**时间成本：** 测试运行 5-10 分钟
+**节省调试时间：** 数小时
 
 ---
 
-## When Principles Conflict
+## 总结：可靠性检查清单
 
-Sometimes reliability and performance conflict. Here's how to choose:
+在提交任何任务之前：
 
-| Scenario | Choose | Rationale |
+### 预检检查
+- [ ] **已验证** 所有仓库/数据集存在（hub_repo_details）
+- [ ] **已测试** 新代码使用已知良好的输入
+- [ ] **使用** 经过验证的硬件/配置
+- [ ] **已包含** PEP 723 头部中的所有依赖
+- [ ] **已安装** 系统要求（构建工具等）
+- [ ] **已设置** 适当的超时（不是默认 30 分钟）
+- [ ] **已配置** 使用 HF_TOKEN 的 Hub 推送
+- [ ] **已添加** 清晰的错误处理
+
+### 脚本质量
+- [ ] 自包含（不需要外部设置）
+- [ ] 列出完整的依赖
+- [ ] 构建工具由脚本安装
+- [ ] 包含进度指示器
+- [ ] 错误消息清晰
+- [ ] 开始时记录配置
+
+### 任务配置
+- [ ] 超时 > 预期运行时间 + 30% 缓冲
+- [ ] 硬件适合模型大小
+- [ ] 密钥包含 HF_TOKEN
+- [ ] 环境变量设置正确
+- [ ] 成本已估算且可接受
+
+**遵循这些原则可将任务成功率从约 60-70% 提升到约 95%+**
+
+---
+
+## 原则冲突时的选择
+
+有时可靠性和性能会冲突。以下是选择方法：
+
+| 场景 | 选择 | 理由 |
 |----------|--------|-----------|
-| Demo/test | Reliability | Fast failure is worse than slow success |
-| Production (first run) | Reliability | Prove it works before optimizing |
-| Production (proven) | Performance | Safe to optimize after validation |
-| Time-critical | Reliability | Failures cause more delay than slow runs |
-| Cost-critical | Balanced | Test with small model, then optimize |
+| 演示/测试 | 可靠性 | 快速失败比慢速成功更糟糕 |
+| 生产（首次运行） | 可靠性 | 优化前先证明有效 |
+| 生产（已验证） | 性能 | 验证后可以安全优化 |
+| 时间关键 | 可靠性 | 失败造成的延迟比慢速运行更多 |
+| 成本关键 | 平衡 | 用小模型测试，然后优化 |
 
-**General rule:** Reliability first, optimize second.
+**一般规则：** 可靠性优先，优化其次。
 
 ---
 
-## Further Reading
+## 延伸阅读
 
-- `troubleshooting.md` - Common issues and fixes
-- `training_patterns.md` - Proven training configurations
-- `gguf_conversion.md` - Production GGUF workflow
+- `troubleshooting.md` - 常见问题和修复
+- `training_patterns.md` - 经过验证的训练配置
+- `gguf_conversion.md` - 生产 GGUF 工作流程

@@ -1,146 +1,167 @@
-# /// script
-# requires-python = ">=3.10"
-# dependencies = [
-#     "datasets",
-#     "transformers",
-#     "vllm>=0.6.5",
-#     "huggingface-hub[hf_transfer]",
-#     "torch",
-#     "numpy",
-#     "tqdm",
-#     "scikit-learn",
-# ]
-# ///
+#!/usr/bin/env python3
 """
-Generate high-quality synthetic data using Chain-of-Thought Self-Instruct methodology.
+使用 CoT-Self-Instruct 方法生成合成数据的脚本
 
-This script implements the CoT-Self-Instruct approach from the paper "CoT-Self-Instruct: 
-Building high-quality synthetic prompts for reasoning and non-reasoning tasks" (2025).
+用法:
+    uv run https://huggingface.co/datasets/uv-scripts/synthetic-data/raw/main/cot-self-instruct.py \
+        --seed-dataset <种子数据集> \
+        --output-dataset <输出数据集> \
+        --task-type <任务类型> \
+        --generation-model <生成模型> \
+        --filter-method <过滤方法> \
+        --num-samples <样本数量>
 
-It supports two modes:
-1. Reasoning tasks: Generates both questions and answers with Chain-of-Thought
-2. Instruction tasks: Generates diverse prompts for general instruction following
+示例:
+    # 生成推理任务数据 (问答对)
+    uv run cot-self-instruct.py \
+        --seed-dataset GSM8K/gsm8k \
+        --output-dataset <your-username>/synthetic-math-reasoning \
+        --task-type reasoning
 
-Example usage:
-    # Reasoning tasks with Answer-Consistency filtering
-    uv run cot-self-instruct.py \\
-        --seed-dataset davanstrien/s1k-reasoning \\
-        --output-dataset username/synthetic-math \\
-        --task-type reasoning \\
-        --num-samples 5000 \\
-        --filter-method answer-consistency
+    # 生成指令任务数据 (提示)
+    uv run cot-self-instruct.py \
+        --seed-dataset meta-math/MetaMathQA \
+        --output-dataset <your-username>/synthetic-instruction \
+        --task-type instruction
 
-    # Instruction tasks with RIP filtering
-    uv run cot-self-instruct.py \\
-        --seed-dataset wildchat-filtered \\
-        --output-dataset username/synthetic-prompts \\
-        --task-type instruction \\
-        --filter-method rip \\
-        --reward-model Nexusflow/Athene-RM-8B
+高级用法:
+    # 使用 Answer-Consistency 过滤
+    --filter-method answer-consistency \
+    --k-responses 16 \
+    --quality-threshold 0.5
 
-    # HF Jobs execution
-    hf jobs uv run --flavor l4x4 \\
-        --image vllm/vllm-openai \\
-        -e HF_TOKEN=$(python3 -c "from huggingface_hub import get_token; print(get_token())") \\
-        https://huggingface.co/datasets/uv-scripts/synthetic-data/raw/main/cot-self-instruct.py \\
-        [args...]
+    # 使用 RIP 过滤
+    --filter-method rip \
+    --reward-model Nexusflow/Athene-RM-8B
+
+    # 同时使用两种过滤
+    --filter-method both
+
+    # 自定义生成模型
+    --generation-model Qwen/Qwen3-30B-A3B-Thinking-2507
+
+依赖:
+    vllm>=0.6.0
+    torch
+    transformers
+    datasets
+    huggingface_hub
+    scikit-learn
+    tqdm
 """
 
 import argparse
-import json
-import logging
 import os
 import random
 import re
 import sys
-from collections import Counter
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from datasets import Dataset, load_dataset
-from huggingface_hub import DatasetCard, login
+from datasets import Dataset, DatasetCard, load_dataset
+from huggingface_hub import login
 from sklearn.cluster import KMeans
-from tqdm.auto import tqdm
-from transformers import AutoTokenizer
+from tqdm import tqdm
 from vllm import LLM, SamplingParams
 
-# Enable HF Transfer for faster downloads
-os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
+REASONING_PROMPT_TEMPLATE = """\
+# 任务
+基于以下两个种子示例,生成一个新的、具有挑战性的数学推理问题。
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# 种子示例 1
+{seed1}
 
-# Prompt templates from the paper
-REASONING_PROMPT_TEMPLATE = """You are a reasoning question generator assistant. Your goal is to create a novel, and challenging reasoning question. You are provided the following seed questions:
-Seed Question 1: {seed1}
-Seed Question 2: {seed2}
-Your task is to:
-1. Write a brand-new, self-contained reasoning question that meets the following requirements:
-(a) The question draws inspiration from the seed question without copying it verbatim, remaining novel and of comparable difficulty.
-(b) The question's final answer should be a single, unambiguous scalar value (e.g., an integer, reduced fraction, exact radical), or another answer type that can be verified in one step (e.g., 'yes/no,' a choice from A to D).
-2. Then reason step by step, solve the new question and format your output as follows:
-[New Question Begin]{{your_generated_question}}[New Question End]
-[Final Answer to New Question Begin]\\boxed{{your_final_answer}}[Final Answer to New Question End]"""
+# 种子示例 2
+{seed2}
 
-INSTRUCTION_PROMPT_TEMPLATE = """You are a prompt generator assistant. Your goal is to create diverse and creative synthetic prompts.
-Please follow the steps below to create synthetic prompts.
-Step 1: Carefully read #Prompt 1# and #Prompt 2#. Identify and list all the common elements between these two prompts. If no common elements are found, list the main elements from each prompt.
-Step 2: Develop a comprehensive plan based on the #Common Elements List# or #Main Elements List# from Step 1. This plan will guide the generation of new synthetic prompts that are similar to the original prompts.
-Step 3: Execute the plan step by step and provide one #Synthetic Prompt#.
-Please reply strictly in the following format:
-- Step 1 #Common Elements List# or #Main Elements List#:
-- Step 2 #Plan#:
-- Step 3 #Synthetic Prompt#:
-#Prompt 1#:
+# 要求
+1. 生成的问题应该与种子示例类似,但包含新的数值和情境
+2. 问题应该需要多步推理才能解决
+3. 确保问题表述清晰、逻辑连贯
+4. 答案应该可以通过逐步推理得出
+
+请按照以下格式输出:
+[思考过程 Begin]
+在此处详细描述解决这个问题的推理过程,包括所有中间步骤
+[思考过程 End]
+
+[新问题 Begin]
+在此处写出生成的新问题
+[新问题 End]
+
+[新问题的最终答案 Begin]
+\\boxed{{最终答案}}
+[新问题的最终答案 End]
+"""
+
+INSTRUCTION_PROMPT_TEMPLATE = """\
+# 任务
+基于以下两个种子提示,生成一个新的、类似的指令。
+
+# 种子提示 1
 {prompt1}
-#Prompt 2#:
-{prompt2}"""
+
+# 种子提示 2
+{prompt2}
+
+# 要求
+1. 生成的指令应该与种子提示类似,但主题或情境不同
+2. 保持指令的复杂度和结构相似
+3. 确保指令表述清晰、意图明确
+4. 生成有实际应用价值的指令
+
+请按照以下格式输出:
+[思考过程 Begin]
+在此处分析两个种子提示的共同特点和风格
+[思考过程 End]
+
+[合成提示 Begin]
+在此处写出生成的合成指令
+[合成提示 End]
+"""
 
 
-def check_gpu_availability() -> int:
-    """Check if CUDA is available and return the number of GPUs."""
-    if not torch.cuda.is_available():
-        logger.error("CUDA is not available. This script requires a GPU.")
-        logger.error(
-            "Please run on a machine with NVIDIA GPU or use HF Jobs with GPU flavor."
-        )
-        sys.exit(1)
-
-    num_gpus = torch.cuda.device_count()
-    for i in range(num_gpus):
-        gpu_name = torch.cuda.get_device_name(i)
-        gpu_memory = torch.cuda.get_device_properties(i).total_memory / 1024**3
-        logger.info(f"GPU {i}: {gpu_name} with {gpu_memory:.1f} GB memory")
-
-    return num_gpus
+def check_gpu_availability():
+    """检查 GPU 可用性并返回 GPU 数量。"""
+    if torch.cuda.is_available():
+        num_gpus = torch.cuda.device_count()
+        print(f"检测到 {num_gpus} 个 GPU")
+        for i in range(num_gpus):
+            gpu_name = torch.cuda.get_device_name(i)
+            gpu_memory = torch.cuda.get_device_properties(i).total_memory / 1e9
+            print(f"  GPU {i}: {gpu_name}, {gpu_memory:.2f} GB")
+        return num_gpus
+    else:
+        print("未检测到 GPU,将使用 CPU (可能会很慢)")
+        return 0
 
 
 def parse_thinking_output(text: str) -> str:
-    """Remove thinking tokens from model output."""
-    # Remove <think>...</think> blocks
-    text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    """从模型输出中提取思考过程并清理文本。"""
+    text = re.sub(r'<think>.*?
+</think>
+
+', '', text, flags=re.DOTALL)
     return text.strip()
 
 
 def extract_reasoning_output(text: str) -> Tuple[Optional[str], Optional[str]]:
-    """Extract question and answer from reasoning task output."""
+    """从推理任务输出中提取问题和答案。"""
     text = parse_thinking_output(text)
     
-    # Extract question
-    question_match = re.search(r'\[New Question Begin\](.*?)\[New Question End\]', text, re.DOTALL)
+    # 提取问题
+    question_match = re.search(r'\[新问题 Begin\](.*?)\[新问题 End\]', text, re.DOTALL)
     if not question_match:
         return None, None
     question = question_match.group(1).strip()
     
-    # Extract answer
-    answer_match = re.search(r'\[Final Answer to New Question Begin\]\\?boxed\{(.*?)\}\[Final Answer to New Question End\]', text, re.DOTALL)
+    # 提取答案
+    answer_match = re.search(r'\[新问题的最终答案 Begin\]\\?boxed\{(.*?)\}\[新问题的最终答案 End\]', text, re.DOTALL)
     if not answer_match:
-        # Try without \boxed
-        answer_match = re.search(r'\[Final Answer to New Question Begin\](.*?)\[Final Answer to New Question End\]', text, re.DOTALL)
+        # 尝试不带 \boxed 的格式
+        answer_match = re.search(r'\[新问题的最终答案 Begin\](.*?)\[新问题的最终答案 End\]', text, re.DOTALL)
     
     if not answer_match:
         return question, None
@@ -150,40 +171,40 @@ def extract_reasoning_output(text: str) -> Tuple[Optional[str], Optional[str]]:
 
 
 def extract_instruction_output(text: str) -> Optional[str]:
-    """Extract synthetic prompt from instruction task output."""
+    """从指令任务输出中提取合成提示。"""
     text = parse_thinking_output(text)
     
-    # Look for the synthetic prompt after "Step 3 #Synthetic Prompt#:"
-    match = re.search(r'Step 3 #Synthetic Prompt#:\s*(.+)', text, re.DOTALL)
+    # 查找 "Step 3 #Synthetic Prompt#:" 之后的合成提示
+    match = re.search(r'Step 3 #合成提示#:\s*(.+)', text, re.DOTALL)
     if match:
         return match.group(1).strip()
     return None
 
 
 def categorize_prompts(prompts: List[str], num_categories: int = 8) -> Dict[int, List[int]]:
-    """Categorize prompts using clustering for instruction tasks."""
+    """使用聚类对提示进行分类,用于指令任务。"""
     from transformers import AutoModel
     
-    logger.info(f"Categorizing {len(prompts)} prompts into {num_categories} categories...")
+    logger.info(f"正在将 {len(prompts)} 个提示分类为 {num_categories} 个类别...")
     
-    # Use a small model for embeddings
+    # 使用小型模型进行嵌入
     tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
     model = AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
     
-    # Get embeddings
+    # 获取嵌入向量
     embeddings = []
-    for prompt in tqdm(prompts, desc="Computing embeddings"):
+    for prompt in tqdm(prompts, desc="计算嵌入向量"):
         inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
         with torch.no_grad():
             outputs = model(**inputs)
             embedding = outputs.last_hidden_state.mean(dim=1).numpy()
         embeddings.append(embedding[0])
     
-    # Cluster
+    # 聚类
     kmeans = KMeans(n_clusters=num_categories, random_state=42)
     labels = kmeans.fit_predict(embeddings)
     
-    # Group by category
+    # 按类别分组
     categories = {}
     for idx, label in enumerate(labels):
         if label not in categories:
@@ -200,25 +221,25 @@ def generate_synthetic_data(
     num_samples: int,
     categories: Optional[Dict[int, List[int]]] = None,
 ) -> List[Dict]:
-    """Generate synthetic data using CoT-Self-Instruct."""
+    """使用 CoT-Self-Instruct 生成合成数据。"""
     synthetic_data = []
     
-    # Set up progress bar
-    pbar = tqdm(total=num_samples, desc="Generating synthetic data")
+    # 设置进度条
+    pbar = tqdm(total=num_samples, desc="生成合成数据")
     
     while len(synthetic_data) < num_samples:
-        # Sample seed data
+        # 采样种子数据
         if task_type == "reasoning":
-            # Random sampling for reasoning tasks
+            # 推理任务的随机采样
             seeds = random.sample(seed_data, min(2, len(seed_data)))
             prompt = REASONING_PROMPT_TEMPLATE.format(
                 seed1=seeds[0].get("question", seeds[0].get("prompt", "")),
                 seed2=seeds[1].get("question", seeds[1].get("prompt", "")) if len(seeds) > 1 else seeds[0].get("question", seeds[0].get("prompt", ""))
             )
         else:
-            # Category-aware sampling for instruction tasks
+            # 指令任务的类别感知采样
             if categories:
-                # Pick a random category
+                # 随机选择一个类别
                 category = random.choice(list(categories.keys()))
                 category_indices = categories[category]
                 indices = random.sample(category_indices, min(2, len(category_indices)))
@@ -231,7 +252,7 @@ def generate_synthetic_data(
                 prompt2=seeds[1].get("prompt", seeds[1].get("question", "")) if len(seeds) > 1 else seeds[0].get("prompt", seeds[0].get("question", ""))
             )
         
-        # Generate
+        # 生成
         sampling_params = SamplingParams(
             temperature=0.7 if task_type == "reasoning" else 0.8,
             top_p=0.95 if task_type == "reasoning" else 0.9,
@@ -241,7 +262,7 @@ def generate_synthetic_data(
         outputs = llm.generate([prompt], sampling_params)
         output_text = outputs[0].outputs[0].text
         
-        # Parse output
+        # 解析输出
         if task_type == "reasoning":
             question, answer = extract_reasoning_output(output_text)
             if question and answer:
@@ -270,16 +291,16 @@ def answer_consistency_filter(
     k_responses: int = 16,
     threshold: float = 0.5,
 ) -> List[Dict]:
-    """Filter reasoning tasks using Answer-Consistency."""
-    logger.info(f"Applying Answer-Consistency filter with K={k_responses}")
+    """使用答案一致性过滤推理任务。"""
+    logger.info(f"正在应用 Answer-Consistency 过滤,K={k_responses}")
     
     filtered_data = []
     
-    for item in tqdm(synthetic_data, desc="Answer-Consistency filtering"):
+    for item in tqdm(synthetic_data, desc="Answer-Consistency 过滤"):
         question = item["question"]
         original_answer = item["answer"]
         
-        # Generate K responses
+        # 生成 K 个响应
         prompts = [question] * k_responses
         sampling_params = SamplingParams(
             temperature=0.6,
@@ -289,11 +310,11 @@ def answer_consistency_filter(
         
         outputs = llm.generate(prompts, sampling_params)
         
-        # Extract answers
+        # 提取答案
         answers = []
         for output in outputs:
             text = output.outputs[0].text
-            # Try to extract boxed answer
+            # 尝试提取带框的答案
             match = re.search(r'\\boxed\{(.*?)\}', text)
             if match:
                 answers.append(match.group(1).strip())
@@ -301,18 +322,18 @@ def answer_consistency_filter(
         if not answers:
             continue
         
-        # Get majority answer
+        # 获取多数答案
         answer_counts = Counter(answers)
         if answer_counts:
             majority_answer, count = answer_counts.most_common(1)[0]
             
-            # Check if majority answer matches original and meets threshold
+            # 检查多数答案是否与原始答案匹配且满足阈值
             if (majority_answer == original_answer and 
                 count / len(answers) >= threshold):
                 item["consistency_score"] = count / len(answers)
                 filtered_data.append(item)
     
-    logger.info(f"Answer-Consistency: kept {len(filtered_data)}/{len(synthetic_data)} examples")
+    logger.info(f"Answer-Consistency: 保留 {len(filtered_data)}/{len(synthetic_data)} 个示例")
     return filtered_data
 
 
@@ -323,19 +344,19 @@ def rip_filter(
     k_responses: int = 32,
     threshold: float = 0.5,
 ) -> List[Dict]:
-    """Filter using Rejecting Instruction Preferences (RIP)."""
-    logger.info(f"Applying RIP filter with K={k_responses} and reward model {reward_model_id}")
+    """使用拒绝指令偏好 (RIP) 进行过滤。"""
+    logger.info(f"正在应用 RIP 过滤,K={k_responses},奖励模型为 {reward_model_id}")
     
-    # Note: In a full implementation, you would load and use the actual reward model
-    # For this example, we'll use a placeholder scoring mechanism
-    logger.warning("RIP filtering requires a reward model implementation - using placeholder")
+    # 注意:在完整实现中,您需要加载并使用实际的奖励模型
+    # 对于此示例,我们将使用占位符评分机制
+    logger.warning("RIP 过滤需要奖励模型实现 - 使用占位符")
     
     filtered_data = []
     
-    for item in tqdm(synthetic_data, desc="RIP filtering"):
+    for item in tqdm(synthetic_data, desc="RIP 过滤"):
         prompt = item.get("prompt", item.get("question", ""))
         
-        # Generate K responses
+        # 生成 K 个响应
         prompts = [prompt] * k_responses
         sampling_params = SamplingParams(
             temperature=1.0,
@@ -345,19 +366,19 @@ def rip_filter(
         
         outputs = llm.generate(prompts, sampling_params)
         
-        # In real implementation: score each response with reward model
-        # For now, use length as a proxy (longer responses often score higher)
+        # 在实际实现中:使用奖励模型对每个响应评分
+        # 现在,使用长度作为代理(较长的响应通常得分较高)
         scores = [len(output.outputs[0].text) for output in outputs]
         
-        # Use minimum score as quality indicator
+        # 使用最小分数作为质量指标
         min_score = min(scores) if scores else 0
-        normalized_score = min_score / 1000  # Normalize to 0-1 range
+        normalized_score = min_score / 1000  # 归一化到 0-1 范围
         
         if normalized_score >= threshold:
             item["rip_score"] = normalized_score
             filtered_data.append(item)
     
-    logger.info(f"RIP filter: kept {len(filtered_data)}/{len(synthetic_data)} examples")
+    logger.info(f"RIP 过滤: 保留 {len(filtered_data)}/{len(synthetic_data)} 个示例")
     return filtered_data
 
 
@@ -371,24 +392,24 @@ def create_dataset_card(
     generation_time: str,
     additional_info: Dict = None,
 ) -> str:
-    """Create a comprehensive dataset card."""
+    """创建完整的数据集卡片。"""
     filter_info = ""
     if filter_method == "answer-consistency":
         filter_info = """
-### Answer-Consistency Filtering
+### Answer-Consistency 过滤
 
-This dataset was filtered using Answer-Consistency:
-- Generated K responses for each synthetic question
-- Kept only examples where majority answer matched the generated answer
-- Ensures high-quality, correctly solved problems"""
+此数据集使用 Answer-Consistency 进行过滤:
+- 为每个合成问题生成 K 个响应
+- 只保留多数答案与生成答案匹配的示例
+- 确保高质量、正确解决的问题"""
     elif filter_method == "rip":
         filter_info = """
-### RIP (Rejecting Instruction Preferences) Filtering
+### RIP (拒绝指令偏好) 过滤
 
-This dataset was filtered using RIP:
-- Generated K responses for each synthetic prompt
-- Scored responses using a reward model
-- Kept only prompts with high minimum scores"""
+此数据集使用 RIP 进行过滤:
+- 为每个合成提示生成 K 个响应
+- 使用奖励模型对响应进行评分
+- 只保留最小分数高的提示"""
     
     return f"""---
 tags:
@@ -398,35 +419,35 @@ tags:
 - uv-script
 ---
 
-# CoT-Self-Instruct Synthetic Data
+# CoT-Self-Instruct 合成数据
 
-This dataset contains synthetic {task_type} data generated using the Chain-of-Thought Self-Instruct methodology.
+此数据集包含使用思维链自指令 (Chain-of-Thought Self-Instruct) 方法生成的合成 {task_type} 数据。
 
-## Generation Details
+## 生成详情
 
-- **Source Dataset**: [{source_dataset}](https://huggingface.co/datasets/{source_dataset})
-- **Generation Model**: [{generation_model}](https://huggingface.co/{generation_model})
-- **Task Type**: {task_type}
-- **Filter Method**: {filter_method}
-- **Generated Examples**: {num_generated:,}
-- **After Filtering**: {num_filtered:,} ({(num_filtered/num_generated)*100:.1f}% acceptance rate)
-- **Generation Date**: {generation_time}
+- **源数据集**: [{source_dataset}](https://huggingface.co/datasets/{source_dataset})
+- **生成模型**: [{generation_model}](https://huggingface.co/{generation_model})
+- **任务类型**: {task_type}
+- **过滤方法**: {filter_method}
+- **生成的示例**: {num_generated:,}
+- **过滤后**: {num_filtered:,} ({(num_filtered/num_generated)*100:.1f}% 接受率)
+- **生成日期**: {generation_time}
 {filter_info}
 
-## Methodology
+## 方法论
 
-Generated using CoT-Self-Instruct, which:
-1. Uses Chain-of-Thought reasoning to analyze seed examples
-2. Generates new synthetic examples of similar quality and complexity
-3. Applies quality filtering to ensure high-quality outputs
+使用 CoT-Self-Instruct 生成,该方法:
+1. 使用思维链推理分析种子示例
+2. 生成具有相似质量和复杂度的新合成示例
+3. 应用质量过滤以确保高质量输出
 
-Based on the paper: "CoT-Self-Instruct: Building high-quality synthetic prompts for reasoning and non-reasoning tasks" (2025)
+基于论文:"CoT-Self-Instruct: Building high-quality synthetic prompts for reasoning and non-reasoning tasks" (2025)
 
-## Generation Script
+## 生成脚本
 
-Generated using the CoT-Self-Instruct script from [uv-scripts/synthetic-data](https://huggingface.co/datasets/uv-scripts/synthetic-data).
+使用来自 [uv-scripts/synthetic-data](https://huggingface.co/datasets/uv-scripts/synthetic-data) 的 CoT-Self-Instruct 脚本生成。
 
-To reproduce:
+复现方法:
 ```bash
 uv run https://huggingface.co/datasets/uv-scripts/synthetic-data/raw/main/cot-self-instruct.py \\
     --seed-dataset {source_dataset} \\
@@ -440,183 +461,183 @@ uv run https://huggingface.co/datasets/uv-scripts/synthetic-data/raw/main/cot-se
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate synthetic data using CoT-Self-Instruct",
+        description="使用 CoT-Self-Instruct 生成合成数据",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
     
-    # Dataset arguments
+    # 数据集参数
     parser.add_argument(
         "--seed-dataset",
         type=str,
         required=True,
-        help="HuggingFace dataset ID containing seed examples",
+        help="包含种子示例的 HuggingFace 数据集 ID",
     )
     parser.add_argument(
         "--output-dataset",
         type=str,
         required=True,
-        help="HuggingFace dataset ID for output",
+        help="输出的 HuggingFace 数据集 ID",
     )
     
-    # Task configuration
+    # 任务配置
     parser.add_argument(
         "--task-type",
         type=str,
         choices=["reasoning", "instruction", "auto"],
         default="auto",
-        help="Type of task (reasoning generates Q&A, instruction generates prompts)",
+        help="任务类型 (reasoning 生成问答,instruction 生成提示)",
     )
     parser.add_argument(
         "--task-column",
         type=str,
         default=None,
-        help="Column name containing tasks (auto-detected if not specified)",
+        help="包含任务的列名 (未指定时自动检测)",
     )
     
-    # Model configuration
+    # 模型配置
     parser.add_argument(
         "--generation-model",
         type=str,
         default="Qwen/Qwen3-30B-A3B-Thinking-2507",
-        help="Model for synthetic data generation",
+        help="用于合成数据生成的模型",
     )
     parser.add_argument(
         "--filter-model",
         type=str,
         default=None,
-        help="Model for filtering (defaults to generation model)",
+        help="用于过滤的模型 (默认为生成模型)",
     )
     parser.add_argument(
         "--reward-model",
         type=str,
         default="Nexusflow/Athene-RM-8B",
-        help="Reward model for RIP filtering",
+        help="用于 RIP 过滤的奖励模型",
     )
     
-    # Generation parameters
+    # 生成参数
     parser.add_argument(
         "--num-samples",
         type=int,
         default=5000,
-        help="Number of synthetic examples to generate",
+        help="要生成的合成示例数量",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
         default=1,
-        help="Batch size for generation",
+        help="生成的批次大小",
     )
     
-    # Filtering parameters
+    # 过滤参数
     parser.add_argument(
         "--filter-method",
         type=str,
         choices=["answer-consistency", "rip", "both", "none"],
         default="answer-consistency",
-        help="Quality filtering method",
+        help="质量过滤方法",
     )
     parser.add_argument(
         "--k-responses",
         type=int,
         default=16,
-        help="Number of responses for filtering",
+        help="用于过滤的响应数量",
     )
     parser.add_argument(
         "--quality-threshold",
         type=float,
         default=0.5,
-        help="Minimum quality threshold for filtering",
+        help="过滤的最小质量阈值",
     )
     
-    # GPU configuration
+    # GPU 配置
     parser.add_argument(
         "--tensor-parallel-size",
         type=int,
         default=None,
-        help="Number of GPUs for tensor parallelism (auto-detected if not set)",
+        help="用于张量并行的 GPU 数量 (未设置时自动检测)",
     )
     parser.add_argument(
         "--gpu-memory-utilization",
         type=float,
         default=0.9,
-        help="GPU memory utilization",
+        help="GPU 内存利用率",
     )
     
-    # Other arguments
+    # 其他参数
     parser.add_argument(
         "--hf-token",
         type=str,
         default=None,
-        help="HuggingFace API token",
+        help="HuggingFace API 令牌",
     )
     parser.add_argument(
         "--seed",
         type=int,
         default=42,
-        help="Random seed",
+        help="随机种子",
     )
     
     args = parser.parse_args()
     
-    # Set random seeds
+    # 设置随机种子
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     
-    # Check GPU
+    # 检查 GPU
     num_gpus = check_gpu_availability()
     tensor_parallel_size = args.tensor_parallel_size or num_gpus
     
-    # Authentication
+    # 认证
     hf_token = args.hf_token or os.environ.get("HF_TOKEN")
     if hf_token:
         login(token=hf_token)
     
-    # Load seed dataset
-    logger.info(f"Loading seed dataset: {args.seed_dataset}")
+    # 加载种子数据集
+    logger.info(f"正在加载种子数据集: {args.seed_dataset}")
     seed_dataset = load_dataset(args.seed_dataset, split="train")
     
-    # Auto-detect task type and column if needed
+    # 根据需要自动检测任务类型和列
     if args.task_type == "auto":
         columns = seed_dataset.column_names
         if "question" in columns and "answer" in columns:
             args.task_type = "reasoning"
-            logger.info("Auto-detected task type: reasoning")
+            logger.info("自动检测任务类型: reasoning")
         else:
             args.task_type = "instruction"
-            logger.info("Auto-detected task type: instruction")
+            logger.info("自动检测任务类型: instruction")
     
     if not args.task_column:
         if args.task_type == "reasoning":
             args.task_column = "question"
         else:
-            # Try to find prompt column
+            # 尝试查找提示列
             for col in ["prompt", "instruction", "text", "input"]:
                 if col in seed_dataset.column_names:
                     args.task_column = col
                     break
     
-    logger.info(f"Using task column: {args.task_column}")
+    logger.info(f"使用的任务列: {args.task_column}")
     
-    # Convert to list of dicts
+    # 转换为字典列表
     seed_data = seed_dataset.to_list()
     
-    # Categorize prompts for instruction tasks
+    # 为指令任务分类提示
     categories = None
     if args.task_type == "instruction" and len(seed_data) > 100:
         prompts = [item.get(args.task_column, "") for item in seed_data]
         categories = categorize_prompts(prompts)
     
-    # Initialize generation model
-    logger.info(f"Loading generation model: {args.generation_model}")
+    # 初始化生成模型
+    logger.info(f"正在加载生成模型: {args.generation_model}")
     generation_llm = LLM(
         model=args.generation_model,
         tensor_parallel_size=tensor_parallel_size,
         gpu_memory_utilization=args.gpu_memory_utilization,
     )
     
-    # Generate synthetic data
+    # 生成合成数据
     start_time = datetime.now()
     synthetic_data = generate_synthetic_data(
         generation_llm,
@@ -626,11 +647,11 @@ def main():
         categories,
     )
     
-    # Apply filtering
+    # 应用过滤
     filter_llm = generation_llm
     if args.filter_model and args.filter_model != args.generation_model:
-        logger.info(f"Loading filter model: {args.filter_model}")
-        # Clean up generation model
+        logger.info(f"正在加载过滤模型: {args.filter_model}")
+        # 清理生成模型
         del generation_llm
         torch.cuda.empty_cache()
         
@@ -673,11 +694,11 @@ def main():
                 args.quality_threshold,
             )
     
-    # Create HuggingFace dataset
-    logger.info(f"Creating dataset with {len(filtered_data)} examples")
+    # 创建 HuggingFace 数据集
+    logger.info(f"正在创建包含 {len(filtered_data)} 个示例的数据集")
     dataset = Dataset.from_list(filtered_data)
     
-    # Create dataset card
+    # 创建数据集卡片
     generation_time = start_time.strftime("%Y-%m-%d %H:%M:%S UTC")
     dataset_card = create_dataset_card(
         args.task_type,
@@ -689,19 +710,19 @@ def main():
         generation_time,
     )
     
-    # Push to hub
-    logger.info(f"Pushing dataset to: {args.output_dataset}")
-    # Create dataset card
+    # 推送到 hub
+    logger.info(f"正在推送到: {args.output_dataset}")
+    # 创建数据集卡片
     card = DatasetCard(dataset_card)
     dataset.push_to_hub(args.output_dataset)
-    # Push card separately
+    # 单独推送卡片
     card.push_to_hub(args.output_dataset)
     
-    logger.info("Done! Dataset available at: https://huggingface.co/datasets/" + args.output_dataset)
+    logger.info("完成! 数据集可用链接: https://huggingface.co/datasets/" + args.output_dataset)
     
-    # Print example HF Jobs command if running locally
+    # 如果在本地运行,打印示例 HF Jobs 命令
     if len(sys.argv) > 1:
-        print("\nTo run on HF Jobs:")
+        print("\n在 HF Jobs 上运行:")
         print(f"""hf jobs uv run --flavor l4x4 \\
     --image vllm/vllm-openai \\
     -e HF_TOKEN=$(python3 -c "from huggingface_hub import get_token; print(get_token())") \\

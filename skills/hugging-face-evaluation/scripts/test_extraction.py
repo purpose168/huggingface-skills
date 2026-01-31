@@ -6,13 +6,13 @@
 # ]
 # ///
 """
-Test script for evaluation extraction functionality.
+评估提取功能的测试脚本。
 
-This script demonstrates the table extraction capabilities without
-requiring HF tokens or making actual API calls.
+此脚本演示表格提取功能，无需
+HF 令牌或进行实际的 API 调用。
 
-Note: This script imports from evaluation_manager.py (same directory).
-Run from the scripts/ directory: cd scripts && uv run test_extraction.py
+注意：此脚本从同一目录的 evaluation_manager.py 导入。
+从 scripts/ 目录运行：cd scripts && uv run test_extraction.py
 """
 
 import yaml
@@ -24,38 +24,38 @@ from evaluation_manager import (
     extract_metrics_from_table
 )
 
-# Sample README content with various table formats
+# 包含各种表格格式的示例 README 内容
 SAMPLE_README = """
-# My Awesome Model
+# 我的出色模型
 
-## Evaluation Results
+## 评估结果
 
-Here are the benchmark results:
+以下是基准测试结果：
 
-| Benchmark | Score |
+| 基准测试 | 分数 |
 |-----------|-------|
 | MMLU      | 85.2  |
 | HumanEval | 72.5  |
 | GSM8K     | 91.3  |
 
-### Detailed Breakdown
+### 详细 breakdown
 
-| Category      | MMLU  | GSM8K | HumanEval |
+| 类别      | MMLU  | GSM8K | HumanEval |
 |---------------|-------|-------|-----------|
-| Performance   | 85.2  | 91.3  | 72.5      |
+| 性能   | 85.2  | 91.3  | 72.5      |
 
-## Other Information
+## 其他信息
 
-This is not an evaluation table:
+这不是一个评估表格：
 
-| Feature | Value |
+| 特性 | 值 |
 |---------|-------|
-| Size    | 7B    |
-| Type    | Chat  |
+| 大小    | 7B    |
+| 类型    | 聊天  |
 
-## More Results
+## 更多结果
 
-| Benchmark     | Accuracy | F1 Score |
+| 基准测试     | 准确率 | F1 分数 |
 |---------------|----------|----------|
 | HellaSwag     | 88.9     | 0.87     |
 | TruthfulQA    | 68.7     | 0.65     |
@@ -63,16 +63,16 @@ This is not an evaluation table:
 
 
 def test_table_extraction():
-    """Test markdown table extraction."""
+    """测试 markdown 表格提取。"""
     print("=" * 60)
-    print("TEST 1: Table Extraction")
+    print("测试 1: 表格提取")
     print("=" * 60)
 
     tables = extract_tables_from_markdown(SAMPLE_README)
-    print(f"Found {len(tables)} tables in the sample README\n")
+    print(f"在示例 README 中找到 {len(tables)} 个表格\n")
 
     for i, table in enumerate(tables, 1):
-        print(f"Table {i}:")
+        print(f"表格 {i}:")
         print(table[:100] + "..." if len(table) > 100 else table)
         print()
 
@@ -80,22 +80,22 @@ def test_table_extraction():
 
 
 def test_table_parsing(tables):
-    """Test table parsing."""
+    """测试表格解析。"""
     print("\n" + "=" * 60)
-    print("TEST 2: Table Parsing")
+    print("测试 2: 表格解析")
     print("=" * 60)
 
     parsed_tables = []
     for i, table in enumerate(tables, 1):
-        print(f"\nParsing Table {i}:")
+        print(f"\n解析表格 {i}:")
         header, rows = parse_markdown_table(table)
 
-        print(f"  Header: {header}")
-        print(f"  Rows: {len(rows)}")
-        for j, row in enumerate(rows[:3], 1):  # Show first 3 rows
-            print(f"    Row {j}: {row}")
+        print(f"  表头: {header}")
+        print(f"  行数: {len(rows)}")
+        for j, row in enumerate(rows[:3], 1):  # 显示前 3 行
+            print(f"    行 {j}: {row}")
         if len(rows) > 3:
-            print(f"    ... and {len(rows) - 3} more rows")
+            print(f"    ... 还有 {len(rows) - 3} 行")
 
         parsed_tables.append((header, rows))
 
@@ -103,39 +103,39 @@ def test_table_parsing(tables):
 
 
 def test_evaluation_detection(parsed_tables):
-    """Test evaluation table detection."""
+    """测试评估表格检测。"""
     print("\n" + "=" * 60)
-    print("TEST 3: Evaluation Table Detection")
+    print("测试 3: 评估表格检测")
     print("=" * 60)
 
     eval_tables = []
     for i, (header, rows) in enumerate(parsed_tables, 1):
         is_eval = is_evaluation_table(header, rows)
-        status = "✓ IS" if is_eval else "✗ NOT"
-        print(f"\nTable {i}: {status} an evaluation table")
-        print(f"  Header: {header}")
+        status = "✓ 是" if is_eval else "✗ 否"
+        print(f"\n表格 {i}: {status} 评估表格")
+        print(f"  表头: {header}")
 
         if is_eval:
             eval_tables.append((header, rows))
 
-    print(f"\nFound {len(eval_tables)} evaluation tables")
+    print(f"\n找到 {len(eval_tables)} 个评估表格")
     return eval_tables
 
 
 def test_metric_extraction(eval_tables):
-    """Test metric extraction."""
+    """测试指标提取。"""
     print("\n" + "=" * 60)
-    print("TEST 4: Metric Extraction")
+    print("测试 4: 指标提取")
     print("=" * 60)
 
     all_metrics = []
     for i, (header, rows) in enumerate(eval_tables, 1):
-        print(f"\nExtracting metrics from table {i}:")
+        print(f"\n从表格 {i} 提取指标:")
         metrics = extract_metrics_from_table(header, rows, table_format="auto")
 
-        print(f"  Extracted {len(metrics)} metrics:")
+        print(f"  提取了 {len(metrics)} 个指标:")
         for metric in metrics:
-            print(f"    - {metric['name']}: {metric['value']} (type: {metric['type']})")
+            print(f"    - {metric['name']}: {metric['value']} (类型: {metric['type']})")
 
         all_metrics.extend(metrics)
 
@@ -143,9 +143,9 @@ def test_metric_extraction(eval_tables):
 
 
 def test_model_index_format(metrics):
-    """Test model-index format generation."""
+    """测试 model-index 格式生成。"""
     print("\n" + "=" * 60)
-    print("TEST 5: Model-Index Format")
+    print("测试 5: Model-Index 格式")
     print("=" * 60)
 
     model_index = {
@@ -156,12 +156,12 @@ def test_model_index_format(metrics):
                     {
                         "task": {"type": "text-generation"},
                         "dataset": {
-                            "name": "Benchmarks",
+                            "name": "基准测试",
                             "type": "benchmark"
                         },
                         "metrics": metrics,
                         "source": {
-                            "name": "Model README",
+                            "name": "模型 README",
                             "url": "https://huggingface.co/test/model"
                         }
                     }
@@ -170,35 +170,35 @@ def test_model_index_format(metrics):
         ]
     }
 
-    print("\nGenerated model-index structure:")
+    print("\n生成的 model-index 结构:")
     print(yaml.dump(model_index, sort_keys=False, default_flow_style=False))
 
 
 def main():
-    """Run all tests."""
+    """运行所有测试。"""
     print("\n" + "=" * 60)
-    print("EVALUATION EXTRACTION TEST SUITE")
+    print("评估提取测试套件")
     print("=" * 60)
-    print("\nThis test demonstrates the table extraction capabilities")
-    print("without requiring API access or tokens.\n")
+    print("\n此测试演示表格提取功能")
+    print("无需 API 访问或令牌。\n")
 
-    # Run tests
+    # 运行测试
     tables = test_table_extraction()
     parsed_tables = test_table_parsing(tables)
     eval_tables = test_evaluation_detection(parsed_tables)
     metrics = test_metric_extraction(eval_tables)
     test_model_index_format(metrics)
 
-    # Summary
+    # 总结
     print("\n" + "=" * 60)
-    print("TEST SUMMARY")
+    print("测试总结")
     print("=" * 60)
-    print(f"✓ Found {len(tables)} total tables")
-    print(f"✓ Identified {len(eval_tables)} evaluation tables")
-    print(f"✓ Extracted {len(metrics)} metrics")
-    print("✓ Generated model-index format successfully")
+    print(f"✓ 找到 {len(tables)} 个总表格")
+    print(f"✓ 识别出 {len(eval_tables)} 个评估表格")
+    print(f"✓ 提取了 {len(metrics)} 个指标")
+    print("✓ 成功生成 model-index 格式")
     print("\n" + "=" * 60)
-    print("All tests completed! The extraction logic is working correctly.")
+    print("所有测试完成！提取逻辑工作正常。")
     print("=" * 60 + "\n")
 
 

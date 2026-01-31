@@ -1,106 +1,106 @@
-# Logging Metrics with Trackio
+# 使用Trackio记录指标
 
-**Trackio** is a lightweight, free experiment tracking library from Hugging Face. It provides a wandb-compatible API for logging metrics with local-first design.
+**Trackio** 是来自Hugging Face的轻量级、免费实验跟踪库。它提供了与wandb兼容的API，用于以本地优先设计记录指标。
 
-- **GitHub**: [gradio-app/trackio](https://github.com/gradio-app/trackio)
-- **Docs**: [huggingface.co/docs/trackio](https://huggingface.co/docs/trackio/index)
+- **GitHub**：[gradio-app/trackio](https://github.com/gradio-app/trackio)
+- **文档**：[huggingface.co/docs/trackio](https://huggingface.co/docs/trackio/index)
 
-## Installation
+## 安装
 
 ```bash
 pip install trackio
-# or
+# 或
 uv pip install trackio
 ```
 
-## Core API
+## 核心API
 
-### Basic Usage
+### 基本用法
 
 ```python
 import trackio
 
-# Initialize a run
+# 初始化一个运行
 trackio.init(
     project="my-project",
     config={"learning_rate": 0.001, "epochs": 10}
 )
 
-# Log metrics during training
+# 在训练期间记录指标
 for epoch in range(10):
     loss = train_epoch()
     trackio.log({"loss": loss, "epoch": epoch})
 
-# Finalize the run
+# 完成运行
 trackio.finish()
 ```
 
-### Key Functions
+### 关键函数
 
-| Function | Purpose |
+| 函数 | 用途 |
 |----------|---------|
-| `trackio.init(...)` | Start a new tracking run |
-| `trackio.log(dict)` | Log metrics (called repeatedly during training) |
-| `trackio.finish()` | Finalize run and ensure all metrics are saved |
-| `trackio.show()` | Launch the local dashboard |
-| `trackio.sync(...)` | Sync local project to HF Space |
+| `trackio.init(...)` | 开始新的跟踪运行 |
+| `trackio.log(dict)` | 记录指标（在训练期间重复调用） |
+| `trackio.finish()` | 完成运行并确保所有指标已保存 |
+| `trackio.show()` | 启动本地仪表板 |
+| `trackio.sync(...)` | 将本地项目同步到HF Space |
 
-## trackio.init() Parameters
+## trackio.init() 参数
 
 ```python
 trackio.init(
-    project="my-project",           # Project name (groups runs together)
-    name="run-name",                # Optional: name for this specific run
-    config={...},                   # Hyperparameters and config to log
-    space_id="username/trackio",    # Optional: sync to HF Space for remote dashboard
-    group="experiment-group",       # Optional: group related runs
+    project="my-project",           # 项目名称（将运行分组在一起）
+    name="run-name",                # 可选：此特定运行的名称
+    config={...},                   # 要记录的超参数和配置
+    space_id="username/trackio",    # 可选：同步到HF Space以获取远程仪表板
+    group="experiment-group",       # 可选：将相关运行分组
 )
 ```
 
-## Local vs Remote Dashboard
+## 本地 vs 远程仪表板
 
-### Local (Default)
+### 本地（默认）
 
-By default, trackio stores metrics in a local SQLite database and runs the dashboard locally:
+默认情况下，trackio将指标存储在本地SQLite数据库中并在本地运行仪表板：
 
 ```python
 trackio.init(project="my-project")
-# ... training ...
+# ... 训练 ...
 trackio.finish()
 
-# Launch local dashboard
+# 启动本地仪表板
 trackio.show()
 ```
 
-Or from terminal:
+或从终端：
 ```bash
 trackio show --project my-project
 ```
 
-### Remote (HF Space)
+### 远程（HF Space）
 
-Pass `space_id` to sync metrics to a Hugging Face Space for persistent, shareable dashboards:
+传递`space_id`以将指标同步到Hugging Face Space，以获得持久的、可共享的仪表板：
 
 ```python
 trackio.init(
     project="my-project",
-    space_id="username/trackio"  # Auto-creates Space if it doesn't exist
+    space_id="username/trackio"  # 如果Space不存在则自动创建
 )
 ```
 
-⚠️ **For remote training** (cloud GPUs, HF Jobs, etc.): Always use `space_id` since local storage is lost when the instance terminates.
+⚠️ **对于远程训练**（云GPU、HF Jobs等）：始终使用`space_id`，因为当实例终止时本地存储会丢失。
 
-### Sync Local to Remote
+### 将本地同步到远程
 
-Sync existing local projects to a Space:
+将现有的本地项目同步到Space：
 
 ```python
 trackio.sync(project="my-project", space_id="username/my-experiments")
 ```
 
-## wandb Compatibility
+## wandb兼容性
 
-Trackio is API-compatible with wandb. Drop-in replacement:
+Trackio与wandb的API兼容。即插即用的替换：
 
 ```python
 import trackio as wandb
@@ -110,9 +110,9 @@ wandb.log({"loss": 0.5})
 wandb.finish()
 ```
 
-## TRL Integration
+## TRL集成
 
-When using TRL trainers, set `report_to="trackio"` for automatic metric logging:
+使用TRL训练器时，设置`report_to="trackio"`以进行自动指标记录：
 
 ```python
 from trl import SFTConfig, SFTTrainer
@@ -126,8 +126,8 @@ trackio.init(
 
 config = SFTConfig(
     output_dir="./output",
-    report_to="trackio",  # Automatic metric logging
-    # ... other config
+    report_to="trackio",  # 自动指标记录
+    # ... 其他配置
 )
 
 trainer = SFTTrainer(model=model, args=config, ...)
@@ -135,15 +135,15 @@ trainer.train()
 trackio.finish()
 ```
 
-## What Gets Logged
+## 记录的内容
 
-With TRL/Transformers integration, trackio automatically captures:
-- Training loss
-- Learning rate
-- Eval metrics
-- Training throughput
+使用TRL/Transformers集成时，trackio自动捕获：
+- 训练损失
+- 学习率
+- 评估指标
+- 训练吞吐量
 
-For manual logging, log any numeric metrics:
+对于手动记录，记录任何数值指标：
 
 ```python
 trackio.log({
@@ -155,23 +155,23 @@ trackio.log({
 })
 ```
 
-## Grouping Runs
+## 分组运行
 
-Use `group` to organize related experiments in the dashboard sidebar:
+使用`group`在仪表板侧边栏中组织相关实验：
 
 ```python
-# Group by experiment type
+# 按实验类型分组
 trackio.init(project="my-project", name="baseline-v1", group="baseline")
 trackio.init(project="my-project", name="augmented-v1", group="augmented")
 
-# Group by hyperparameter
+# 按超参数分组
 trackio.init(project="hyperparam-sweep", name="lr-0.001", group="lr_0.001")
 trackio.init(project="hyperparam-sweep", name="lr-0.01", group="lr_0.01")
 ```
 
-## Configuration Best Practices
+## 配置最佳实践
 
-Keep config minimal — only log what's useful for comparing runs:
+保持配置最小化——只记录对比较运行有用的内容：
 
 ```python
 trackio.init(
@@ -187,9 +187,9 @@ trackio.init(
 )
 ```
 
-## Embedding Dashboards
+## 嵌入仪表板
 
-Embed Space dashboards in websites with query parameters:
+使用查询参数将Space仪表板嵌入网站：
 
 ```html
 <iframe 
@@ -198,9 +198,9 @@ Embed Space dashboards in websites with query parameters:
 </iframe>
 ```
 
-Query parameters:
-- `project`: Filter to specific project
-- `metrics`: Comma-separated metric names to show
-- `sidebar`: `hidden` or `collapsed`
-- `smoothing`: 0-20 (smoothing slider value)
-- `xmin`, `xmax`: X-axis limits
+查询参数：
+- `project`：过滤到特定项目
+- `metrics`：要显示的逗号分隔的指标名称
+- `sidebar`：`hidden` 或 `collapsed`
+- `smoothing`：0-20（平滑滑块值）
+- `xmin`, `xmax`：X轴限制

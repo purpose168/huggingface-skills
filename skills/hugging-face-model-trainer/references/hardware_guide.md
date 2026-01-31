@@ -1,283 +1,283 @@
-# Hardware Selection Guide
+# 硬件选择指南
 
-Choosing the right hardware (flavor) is critical for cost-effective training.
+选择合适的硬件(规格)对于成本效益训练至关重要。
 
-## Available Hardware
+## 可用硬件
 
 ### CPU
-- `cpu-basic` - Basic CPU, testing only
-- `cpu-upgrade` - Enhanced CPU
+- `cpu-basic` - 基础 CPU,仅用于测试
+- `cpu-upgrade` - 增强型 CPU
 
-**Use cases:** Dataset validation, preprocessing, testing scripts
-**Not recommended for training:** Too slow for any meaningful training
+**使用场景:** 数据集验证、预处理、测试脚本
+**不推荐用于训练:** 对于任何有意义的训练来说太慢
 
-### GPU Options
+### GPU 选项
 
-| Flavor | GPU | Memory | Use Case | Cost/hour |
+| 规格 | GPU | 内存 | 使用场景 | 每小时成本 |
 |--------|-----|--------|----------|-----------|
-| `t4-small` | NVIDIA T4 | 16GB | <1B models, demos | ~$0.50-1 |
-| `t4-medium` | NVIDIA T4 | 16GB | 1-3B models, development | ~$1-2 |
-| `l4x1` | NVIDIA L4 | 24GB | 3-7B models, efficient training | ~$2-3 |
-| `l4x4` | 4x NVIDIA L4 | 96GB | Multi-GPU training | ~$8-12 |
-| `a10g-small` | NVIDIA A10G | 24GB | 3-7B models, production | ~$3-4 |
-| `a10g-large` | NVIDIA A10G | 24GB | 7-13B models | ~$4-6 |
-| `a10g-largex2` | 2x NVIDIA A10G | 48GB | Multi-GPU, large models | ~$8-12 |
-| `a10g-largex4` | 4x NVIDIA A10G | 96GB | Multi-GPU, very large models | ~$16-24 |
-| `a100-large` | NVIDIA A100 | 40GB | 13B+ models, fast training | ~$8-12 |
+| `t4-small` | NVIDIA T4 | 16GB | <1B 模型、演示 | ~$0.50-1 |
+| `t4-medium` | NVIDIA T4 | 16GB | 1-3B 模型、开发 | ~$1-2 |
+| `l4x1` | NVIDIA L4 | 24GB | 3-7B 模型、高效训练 | ~$2-3 |
+| `l4x4` | 4x NVIDIA L4 | 96GB | 多 GPU 训练 | ~$8-12 |
+| `a10g-small` | NVIDIA A10G | 24GB | 3-7B 模型、生产环境 | ~$3-4 |
+| `a10g-large` | NVIDIA A10G | 24GB | 7-13B 模型 | ~$4-6 |
+| `a10g-largex2` | 2x NVIDIA A10G | 48GB | 多 GPU、大型模型 | ~$8-12 |
+| `a10g-largex4` | 4x NVIDIA A10G | 96GB | 多 GPU、超大型模型 | ~$16-24 |
+| `a100-large` | NVIDIA A100 | 40GB | 13B+ 模型、快速训练 | ~$8-12 |
 
-### TPU Options
+### TPU 选项
 
-| Flavor | Type | Use Case |
+| 规格 | 类型 | 使用场景 |
 |--------|------|----------|
-| `v5e-1x1` | TPU v5e | Small TPU workloads |
-| `v5e-2x2` | 4x TPU v5e | Medium TPU workloads |
-| `v5e-2x4` | 8x TPU v5e | Large TPU workloads |
+| `v5e-1x1` | TPU v5e | 小型 TPU 工作负载 |
+| `v5e-2x2` | 4x TPU v5e | 中型 TPU 工作负载 |
+| `v5e-2x4` | 8x TPU v5e | 大型 TPU 工作负载 |
 
-**Note:** TPUs require TPU-optimized code. Most TRL training uses GPUs.
+**注意:** TPU 需要 TPU 优化的代码。大多数 TRL 训练使用 GPU。
 
-## Selection Guidelines
+## 选择指南
 
-### By Model Size
+### 按模型大小
 
-**Tiny Models (<1B parameters)**
-- **Recommended:** `t4-small`
-- **Example:** Qwen2.5-0.5B, TinyLlama
-- **Batch size:** 4-8
-- **Training time:** 1-2 hours for 1K examples
+**微型模型(<1B 参数)**
+- **推荐:** `t4-small`
+- **示例:** Qwen2.5-0.5B、TinyLlama
+- **批大小:** 4-8
+- **训练时间:** 1K 示例需要 1-2 小时
 
-**Small Models (1-3B parameters)**
-- **Recommended:** `t4-medium` or `a10g-small`
-- **Example:** Qwen2.5-1.5B, Phi-2
-- **Batch size:** 2-4
-- **Training time:** 2-4 hours for 10K examples
+**小型模型(1-3B 参数)**
+- **推荐:** `t4-medium` 或 `a10g-small`
+- **示例:** Qwen2.5-1.5B、Phi-2
+- **批大小:** 2-4
+- **训练时间:** 10K 示例需要 2-4 小时
 
-**Medium Models (3-7B parameters)**
-- **Recommended:** `a10g-small` or `a10g-large`
-- **Example:** Qwen2.5-7B, Mistral-7B
-- **Batch size:** 1-2 (or LoRA with 4-8)
-- **Training time:** 4-8 hours for 10K examples
+**中型模型(3-7B 参数)**
+- **推荐:** `a10g-small` 或 `a10g-large`
+- **示例:** Qwen2.5-7B、Mistral-7B
+- **批大小:** 1-2(或使用 LoRA 时为 4-8)
+- **训练时间:** 10K 示例需要 4-8 小时
 
-**Large Models (7-13B parameters)**
-- **Recommended:** `a10g-large` or `a100-large`
-- **Example:** Llama-3-8B, Mixtral-8x7B (with LoRA)
-- **Batch size:** 1 (full fine-tuning) or 2-4 (LoRA)
-- **Training time:** 6-12 hours for 10K examples
-- **Note:** Always use LoRA/PEFT
+**大型模型(7-13B 参数)**
+- **推荐:** `a10g-large` 或 `a100-large`
+- **示例:** Llama-3-8B、Mixtral-8x7B(使用 LoRA)
+- **批大小:** 1(全量微调)或 2-4(LoRA)
+- **训练时间:** 10K 示例需要 6-12 小时
+- **注意:** 始终使用 LoRA/PEFT
 
-**Very Large Models (13B+ parameters)**
-- **Recommended:** `a100-large` with LoRA
-- **Example:** Llama-3-13B, Llama-3-70B (LoRA only)
-- **Batch size:** 1-2 with LoRA
-- **Training time:** 8-24 hours for 10K examples
-- **Note:** Full fine-tuning not feasible, use LoRA/PEFT
+**超大型模型(13B+ 参数)**
+- **推荐:** `a100-large` 配合 LoRA
+- **示例:** Llama-3-13B、Llama-3-70B(仅限 LoRA)
+- **批大小:** 使用 LoRA 时为 1-2
+- **训练时间:** 10K 示例需要 8-24 小时
+- **注意:** 全量微调不可行,使用 LoRA/PEFT
 
-### By Budget
+### 按预算
 
-**Minimal Budget (<$5 total)**
-- Use `t4-small`
-- Train on subset of data (100-500 examples)
-- Limit to 1-2 epochs
-- Use small model (<1B)
+**最低预算(<$5 总计)**
+- 使用 `t4-small`
+- 在数据子集上训练(100-500 个示例)
+- 限制为 1-2 个 epoch
+- 使用小型模型(<1B)
 
-**Small Budget ($5-20)**
-- Use `t4-medium` or `a10g-small`
-- Train on 1K-5K examples
-- 2-3 epochs
-- Model up to 3B parameters
+**小预算($5-20)**
+- 使用 `t4-medium` 或 `a10g-small`
+- 在 1K-5K 个示例上训练
+- 2-3 个 epoch
+- 模型最大 3B 参数
 
-**Medium Budget ($20-50)**
-- Use `a10g-small` or `a10g-large`
-- Train on 5K-20K examples
-- 3-5 epochs
-- Model up to 7B parameters
+**中等预算($20-50)**
+- 使用 `a10g-small` 或 `a10g-large`
+- 在 5K-20K 个示例上训练
+- 3-5 个 epoch
+- 模型最大 7B 参数
 
-**Large Budget ($50-200)**
-- Use `a10g-large` or `a100-large`
-- Full dataset training
-- Multiple epochs
-- Model up to 13B parameters with LoRA
+**大预算($50-200)**
+- 使用 `a10g-large` 或 `a100-large`
+- 全数据集训练
+- 多个 epoch
+- 使用 LoRA 时模型最大 13B 参数
 
-### By Training Type
+### 按训练类型
 
-**Quick Demo/Experiment**
+**快速演示/实验**
 - `t4-small`
-- 50-100 examples
-- 5-10 steps
-- ~10-15 minutes
+- 50-100 个示例
+- 5-10 步
+- ~10-15 分钟
 
-**Development/Iteration**
-- `t4-medium` or `a10g-small`
-- 1K examples
-- 1 epoch
-- ~30-60 minutes
+**开发/迭代**
+- `t4-medium` 或 `a10g-small`
+- 1K 个示例
+- 1 个 epoch
+- ~30-60 分钟
 
-**Production Training**
-- `a10g-large` or `a100-large`
-- Full dataset
-- 3-5 epochs
-- 4-12 hours
+**生产训练**
+- `a10g-large` 或 `a100-large`
+- 完整数据集
+- 3-5 个 epoch
+- 4-12 小时
 
-**Research/Experimentation**
+**研究/实验**
 - `a100-large`
-- Multiple runs
-- Various hyperparameters
-- Budget for 20-50 hours
+- 多次运行
+- 各种超参数
+- 预算 20-50 小时
 
-## Memory Considerations
+## 内存考虑
 
-### Estimating Memory Requirements
+### 估算内存需求
 
-**Full fine-tuning:**
+**全量微调:**
 ```
-Memory (GB) ≈ (Model params in billions) × 20
-```
-
-**LoRA fine-tuning:**
-```
-Memory (GB) ≈ (Model params in billions) × 4
+内存(GB) ≈ (模型参数量,单位:十亿) × 20
 ```
 
-**Examples:**
-- Qwen2.5-0.5B full: ~10GB ✅ fits t4-small
-- Qwen2.5-1.5B full: ~30GB ❌ exceeds most GPUs
-- Qwen2.5-1.5B LoRA: ~6GB ✅ fits t4-small
-- Qwen2.5-7B full: ~140GB ❌ not feasible
-- Qwen2.5-7B LoRA: ~28GB ✅ fits a10g-large
+**LoRA 微调:**
+```
+内存(GB) ≈ (模型参数量,单位:十亿) × 4
+```
 
-### Memory Optimization
+**示例:**
+- Qwen2.5-0.5B 全量: ~10GB ✅ 适合 t4-small
+- Qwen2.5-1.5B 全量: ~30GB ❌ 超过大多数 GPU
+- Qwen2.5-1.5B LoRA: ~6GB ✅ 适合 t4-small
+- Qwen2.5-7B 全量: ~140GB ❌ 不可行
+- Qwen2.5-7B LoRA: ~28GB ✅ 适合 a10g-large
 
-If hitting memory limits:
+### 内存优化
 
-1. **Use LoRA/PEFT**
+如果遇到内存限制:
+
+1. **使用 LoRA/PEFT**
    ```python
-   peft_config=LoraConfig(r=16, lora_alpha=32)
+   peft_config=LoraConfig(r=16, lora_alpha=32)  # 配置 LoRA 参数
    ```
 
-2. **Reduce batch size**
+2. **减小批大小**
    ```python
-   per_device_train_batch_size=1
+   per_device_train_batch_size=1  # 每个设备的训练批大小
    ```
 
-3. **Increase gradient accumulation**
+3. **增加梯度累积**
    ```python
-   gradient_accumulation_steps=8  # Effective batch size = 1×8
+   gradient_accumulation_steps=8  # 有效批大小 = 1×8
    ```
 
-4. **Enable gradient checkpointing**
+4. **启用梯度检查点**
    ```python
-   gradient_checkpointing=True
+   gradient_checkpointing=True  # 使用梯度检查点节省内存
    ```
 
-5. **Use mixed precision**
+5. **使用混合精度**
    ```python
-   bf16=True  # or fp16=True
+   bf16=True  # 或 fp16=True,使用混合精度训练
    ```
 
-6. **Upgrade to larger GPU**
+6. **升级到更大的 GPU**
    - t4 → a10g → a100
 
-## Cost Estimation
+## 成本估算
 
-### Formula
+### 公式
 
 ```
-Total Cost = (Hours of training) × (Cost per hour)
+总成本 = (训练小时数) × (每小时成本)
 ```
 
-### Example Calculations
+### 示例计算
 
-**Quick demo:**
-- Hardware: t4-small ($0.75/hour)
-- Time: 15 minutes (0.25 hours)
-- Cost: $0.19
+**快速演示:**
+- 硬件: t4-small ($0.75/小时)
+- 时间: 15 分钟(0.25 小时)
+- 成本: $0.19
 
-**Development training:**
-- Hardware: a10g-small ($3.50/hour)
-- Time: 2 hours
-- Cost: $7.00
+**开发训练:**
+- 硬件: a10g-small ($3.50/小时)
+- 时间: 2 小时
+- 成本: $7.00
 
-**Production training:**
-- Hardware: a10g-large ($5/hour)
-- Time: 6 hours
-- Cost: $30.00
+**生产训练:**
+- 硬件: a10g-large ($5/小时)
+- 时间: 6 小时
+- 成本: $30.00
 
-**Large model with LoRA:**
-- Hardware: a100-large ($10/hour)
-- Time: 8 hours
-- Cost: $80.00
+**使用 LoRA 的大型模型:**
+- 硬件: a100-large ($10/小时)
+- 时间: 8 小时
+- 成本: $80.00
 
-### Cost Optimization Tips
+### 成本优化技巧
 
-1. **Start small:** Test on t4-small with subset
-2. **Use LoRA:** 4-5x cheaper than full fine-tuning
-3. **Optimize hyperparameters:** Fewer epochs if possible
-4. **Set appropriate timeout:** Don't waste compute on stalled jobs
-5. **Use checkpointing:** Resume if job fails
-6. **Monitor costs:** Check running jobs regularly
+1. **从小开始:** 在 t4-small 上用子集测试
+2. **使用 LoRA:** 比全量微调便宜 4-5 倍
+3. **优化超参数:** 尽可能减少 epoch 数
+4. **设置适当的超时:** 不要在停滞的任务上浪费计算资源
+5. **使用检查点:** 任务失败时可以恢复
+6. **监控成本:** 定期检查运行中的任务
 
-## Multi-GPU Training
+## 多 GPU 训练
 
-TRL automatically handles multi-GPU training with Accelerate when using multi-GPU flavors.
+当使用多 GPU 规格时,TRL 会自动通过 Accelerate 处理多 GPU 训练。
 
-**Multi-GPU flavors:**
-- `l4x4` - 4x L4 GPUs
-- `a10g-largex2` - 2x A10G GPUs
-- `a10g-largex4` - 4x A10G GPUs
+**多 GPU 规格:**
+- `l4x4` - 4x L4 GPU
+- `a10g-largex2` - 2x A10G GPU
+- `a10g-largex4` - 4x A10G GPU
 
-**When to use:**
-- Models >13B parameters
-- Need faster training (linear speedup)
-- Large datasets (>50K examples)
+**使用场景:**
+- 模型 >13B 参数
+- 需要更快的训练(线性加速)
+- 大型数据集(>50K 示例)
 
-**Example:**
+**示例:**
 ```python
 hf_jobs("uv", {
-    "script": "train.py",
-    "flavor": "a10g-largex2",  # 2 GPUs
-    "timeout": "4h",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}
+    "script": "train.py",  # 训练脚本
+    "flavor": "a10g-largex2",  # 2 个 GPU
+    "timeout": "4h",  # 超时时间
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # 密钥配置
 })
 ```
 
-No code changes needed—TRL/Accelerate handles distribution automatically.
+无需更改代码—TRL/Accelerate 会自动处理分布式训练。
 
-## Choosing Between Options
+## 在选项之间选择
 
 ### a10g vs a100
 
-**Choose a10g when:**
-- Model <13B parameters
-- Budget conscious
-- Training time not critical
+**选择 a10g 当:**
+- 模型 <13B 参数
+- 预算有限
+- 训练时间不关键
 
-**Choose a100 when:**
-- Model 13B+ parameters
-- Need fastest training
-- Memory requirements high
-- Budget allows
+**选择 a100 当:**
+- 模型 13B+ 参数
+- 需要最快的训练
+- 内存需求高
+- 预算允许
 
-### Single vs Multi-GPU
+### 单 GPU vs 多 GPU
 
-**Choose single GPU when:**
-- Model <7B parameters
-- Budget constrained
-- Simpler debugging
+**选择单 GPU 当:**
+- 模型 <7B 参数
+- 预算受限
+- 调试更简单
 
-**Choose multi-GPU when:**
-- Model >13B parameters
-- Need faster training
-- Large batch sizes required
-- Cost-effective for large jobs
+**选择多 GPU 当:**
+- 模型 >13B 参数
+- 需要更快的训练
+- 需要大批大小
+- 对于大型任务更具成本效益
 
-## Quick Reference
+## 快速参考
 
 ```python
-# Model size → Hardware selection
+# 模型大小 → 硬件选择映射
 HARDWARE_MAP = {
-    "<1B":     "t4-small",
-    "1-3B":    "a10g-small",
-    "3-7B":    "a10g-large",
-    "7-13B":   "a10g-large (LoRA) or a100-large",
-    ">13B":    "a100-large (LoRA required)"
+    "<1B":     "t4-small",  # 微型模型
+    "1-3B":    "a10g-small",  # 小型模型
+    "3-7B":    "a10g-large",  # 中型模型
+    "7-13B":   "a10g-large (LoRA) or a100-large",  # 大型模型
+    ">13B":    "a100-large (LoRA required)"  # 超大型模型
 }
 ```

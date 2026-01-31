@@ -7,10 +7,10 @@
 # ///
 
 """
-Submit evaluation jobs using the `hf jobs uv run` CLI.
+使用 `hf jobs uv run` CLI 提交评估任务。
 
-This wrapper constructs the appropriate command to execute the local
-`inspect_eval_uv.py` script on Hugging Face Jobs with the requested hardware.
+此包装器构造适当的命令，以在具有请求的硬件的 Hugging Face Jobs 上执行本地
+`inspect_eval_uv.py` 脚本。
 """
 
 import argparse
@@ -37,16 +37,16 @@ def create_eval_job(
     limit: Optional[int] = None,
 ) -> None:
     """
-    Submit an evaluation job using the Hugging Face Jobs CLI.
+    使用 Hugging Face Jobs CLI 提交评估任务。
     """
     token = hf_token or os.getenv("HF_TOKEN") or get_token()
     if not token:
-        raise ValueError("HF_TOKEN is required. Set it in environment or pass as argument.")
+        raise ValueError("需要 HF_TOKEN。请在环境中设置或作为参数传递。")
 
     if not SCRIPT_PATH.exists():
-        raise FileNotFoundError(f"Script not found at {SCRIPT_PATH}")
+        raise FileNotFoundError(f"脚本未找到：{SCRIPT_PATH}")
 
-    print(f"Preparing evaluation job for {model_id} on task {task} (hardware: {hardware})")
+    print(f"为 {model_id} 准备评估任务，任务为 {task}（硬件：{hardware}）")
 
     cmd = [
         "hf",
@@ -68,21 +68,21 @@ def create_eval_job(
     if limit:
         cmd.extend(["--limit", str(limit)])
 
-    print("Executing:", " ".join(cmd))
+    print("执行：", " ".join(cmd))
 
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as exc:
-        print("hf jobs command failed", file=sys.stderr)
+        print("hf jobs 命令失败", file=sys.stderr)
         raise
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run inspect-ai evaluations on Hugging Face Jobs")
-    parser.add_argument("--model", required=True, help="Model ID (e.g. Qwen/Qwen3-0.6B)")
-    parser.add_argument("--task", required=True, help="Inspect task (e.g. mmlu, gsm8k)")
-    parser.add_argument("--hardware", default="cpu-basic", help="Hardware flavor (e.g. t4-small, a10g-small)")
-    parser.add_argument("--limit", type=int, default=None, help="Limit number of samples to evaluate")
+    parser = argparse.ArgumentParser(description="在 Hugging Face Jobs 上运行 inspect-ai 评估")
+    parser.add_argument("--model", required=True, help="模型 ID（例如 Qwen/Qwen3-0.6B）")
+    parser.add_argument("--task", required=True, help="Inspect 任务（例如 mmlu、gsm8k）")
+    parser.add_argument("--hardware", default="cpu-basic", help="硬件类型（例如 t4-small、a10g-small）")
+    parser.add_argument("--limit", type=int, default=None, help="限制要评估的样本数量")
 
     args = parser.parse_args()
 

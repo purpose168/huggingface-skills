@@ -1,163 +1,163 @@
 ---
 name: hugging-face-jobs
-description: This skill should be used when users want to run any workload on Hugging Face Jobs infrastructure. Covers UV scripts, Docker-based jobs, hardware selection, cost estimation, authentication with tokens, secrets management, timeout configuration, and result persistence. Designed for general-purpose compute workloads including data processing, inference, experiments, batch jobs, and any Python-based tasks. Should be invoked for tasks involving cloud compute, GPU workloads, or when users mention running jobs on Hugging Face infrastructure without local setup.
+description: 当用户想要在Hugging Face Jobs基础设施上运行任何工作负载时，应使用此技能。涵盖UV脚本、基于Docker的作业、硬件选择、成本估算、使用令牌进行身份验证、密钥管理、超时配置和结果持久化。设计用于通用计算工作负载，包括数据处理、推理、实验、批处理作业和任何基于Python的任务。当涉及云计算、GPU工作负载或用户提及在Hugging Face基础设施上运行作业而无需本地设置时，应调用此技能。
 license: Complete terms in LICENSE.txt
 ---
 
-# Running Workloads on Hugging Face Jobs
+# 在Hugging Face Jobs上运行工作负载
 
-## Overview
+## 概述
 
-Run any workload on fully managed Hugging Face infrastructure. No local setup required—jobs run on cloud CPUs, GPUs, or TPUs and can persist results to the Hugging Face Hub.
+在完全托管的Hugging Face基础设施上运行任何工作负载。无需本地设置——作业在云CPU、GPU或TPU上运行，并可将结果持久化到Hugging Face Hub。
 
-**Common use cases:**
-- **Data Processing** - Transform, filter, or analyze large datasets
-- **Batch Inference** - Run inference on thousands of samples
-- **Experiments & Benchmarks** - Reproducible ML experiments
-- **Model Training** - Fine-tune models (see `model-trainer` skill for TRL-specific training)
-- **Synthetic Data Generation** - Generate datasets using LLMs
-- **Development & Testing** - Test code without local GPU setup
-- **Scheduled Jobs** - Automate recurring tasks
+**常见用例：**
+- **数据处理** - 转换、过滤或分析大型数据集
+- **批量推理** - 对数千个样本运行推理
+- **实验和基准测试** - 可重现的ML实验
+- **模型训练** - 微调模型（有关TRL特定训练，请参阅`model-trainer`技能）
+- **合成数据生成** - 使用LLM生成数据集
+- **开发和测试** - 无需本地GPU设置即可测试代码
+- **计划作业** - 自动执行重复性任务
 
-**For model training specifically:** See the `model-trainer` skill for TRL-based training workflows.
+**对于特定的模型训练：** 请参阅`model-trainer`技能，了解基于TRL的训练工作流。
 
-## When to Use This Skill
+## 何时使用此技能
 
-Use this skill when users want to:
-- Run Python workloads on cloud infrastructure
-- Execute jobs without local GPU/TPU setup
-- Process data at scale
-- Run batch inference or experiments
-- Schedule recurring tasks
-- Use GPUs/TPUs for any workload
-- Persist results to the Hugging Face Hub
+当用户想要：
+- 在云基础设施上运行Python工作负载
+- 无需本地GPU/TPU设置即可执行作业
+- 大规模处理数据
+- 运行批量推理或实验
+- 计划重复性任务
+- 为任何工作负载使用GPU/TPU
+- 将结果持久化到Hugging Face Hub
 
-## Key Directives
+## 关键指令
 
-When assisting with jobs:
+在协助处理作业时：
 
-1. **ALWAYS use `hf_jobs()` MCP tool** - Submit jobs using `hf_jobs("uv", {...})` or `hf_jobs("run", {...})`. The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`.
+1. **始终使用`hf_jobs()` MCP工具** - 使用`hf_jobs("uv", {...})`或`hf_jobs("run", {...})`提交作业。`script`参数直接接受Python代码。除非用户明确要求，否则不要保存到本地文件。将脚本内容作为字符串传递给`hf_jobs()`。
 
-2. **Always handle authentication** - Jobs that interact with the Hub require `HF_TOKEN` via secrets. See Token Usage section below.
+2. **始终处理身份验证** - 与Hub交互的作业需要通过密钥提供`HF_TOKEN`。请参阅下面的令牌使用部分。
 
-3. **Provide job details after submission** - After submitting, provide job ID, monitoring URL, estimated time, and note that the user can request status checks later.
+3. **提交后提供作业详情** - 提交后，提供作业ID、监控URL、估计时间，并注明用户可以稍后请求状态检查。
 
-4. **Set appropriate timeouts** - Default 30min may be insufficient for long-running tasks.
+4. **设置适当的超时** - 默认30分钟可能不足以用于长时间运行的任务。
 
-## Prerequisites Checklist
+## 前提条件清单
 
-Before starting any job, verify:
+在开始任何作业之前，验证：
 
-### ✅ **Account & Authentication**
-- Hugging Face Account with [Pro](https://hf.co/pro), [Team](https://hf.co/enterprise), or [Enterprise](https://hf.co/enterprise) plan (Jobs require paid plan)
-- Authenticated login: Check with `hf_whoami()`
-- **HF_TOKEN for Hub Access** ⚠️ CRITICAL - Required for any Hub operations (push models/datasets, download private repos, etc.)
-- Token must have appropriate permissions (read for downloads, write for uploads)
+### ✅ **账户和身份验证**
+- 具有[Pro](https://hf.co/pro)、[Team](https://hf.co/enterprise)或[Enterprise](https://hf.co/enterprise)计划的Hugging Face账户（Jobs需要付费计划）
+- 已认证登录：使用`hf_whoami()`检查
+- **用于Hub访问的HF_TOKEN** ⚠️ 关键 - 任何Hub操作（推送模型/数据集、下载私有仓库等）都需要
+- 令牌必须具有适当的权限（下载需要读取权限，上传需要写入权限）
 
-### ✅ **Token Usage** (See Token Usage section for details)
+### ✅ **令牌使用**（详见令牌使用部分）
 
-**When tokens are required:**
-- Pushing models/datasets to Hub
-- Accessing private repositories
-- Using Hub APIs in scripts
-- Any authenticated Hub operations
+**需要令牌的情况：**
+- 向Hub推送模型/数据集
+- 访问私有仓库
+- 在脚本中使用Hub API
+- 任何已认证的Hub操作
 
-**How to provide tokens:**
+**提供令牌的方式：**
 ```python
 {
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # Recommended: automatic token
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # 推荐：自动令牌
 }
 ```
 
-**⚠️ CRITICAL:** The `$HF_TOKEN` placeholder is automatically replaced with your logged-in token. Never hardcode tokens in scripts.
+**⚠️ 关键：** `$HF_TOKEN`占位符会自动替换为您的登录令牌。切勿在脚本中硬编码令牌。
 
-## Token Usage Guide
+## 令牌使用指南
 
-### Understanding Tokens
+### 了解令牌
 
-**What are HF Tokens?**
-- Authentication credentials for Hugging Face Hub
-- Required for authenticated operations (push, private repos, API access)
-- Stored securely on your machine after `hf auth login`
+**什么是HF令牌？**
+- Hugging Face Hub的认证凭据
+- 已认证操作（推送、私有仓库、API访问）所需
+- 在`hf auth login`后安全存储在您的机器上
 
-**Token Types:**
-- **Read Token** - Can download models/datasets, read private repos
-- **Write Token** - Can push models/datasets, create repos, modify content
-- **Organization Token** - Can act on behalf of an organization
+**令牌类型：**
+- **读取令牌** - 可以下载模型/数据集，读取私有仓库
+- **写入令牌** - 可以推送模型/数据集，创建仓库，修改内容
+- **组织令牌** - 可以代表组织行事
 
-### When Tokens Are Required
+### 何时需要令牌
 
-**Always Required:**
-- Pushing models/datasets to Hub
-- Accessing private repositories
-- Creating new repositories
-- Modifying existing repositories
-- Using Hub APIs programmatically
+**始终需要：**
+- 向Hub推送模型/数据集
+- 访问私有仓库
+- 创建新仓库
+- 修改现有仓库
+- 以编程方式使用Hub API
 
-**Not Required:**
-- Downloading public models/datasets
-- Running jobs that don't interact with Hub
-- Reading public repository information
+**不需要：**
+- 下载公共模型/数据集
+- 运行不与Hub交互的作业
+- 读取公共仓库信息
 
-### How to Provide Tokens to Jobs
+### 如何向作业提供令牌
 
-#### Method 1: Automatic Token (Recommended)
-
-```python
-hf_jobs("uv", {
-    "script": "your_script.py",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # ✅ Automatic replacement
-})
-```
-
-**How it works:**
-- `$HF_TOKEN` is a placeholder that gets replaced with your actual token
-- Uses the token from your logged-in session (`hf auth login`)
-- Most secure and convenient method
-- Token is encrypted server-side when passed as a secret
-
-**Benefits:**
-- No token exposure in code
-- Uses your current login session
-- Automatically updated if you re-login
-- Works seamlessly with MCP tools
-
-#### Method 2: Explicit Token (Not Recommended)
+#### 方法1：自动令牌（推荐）
 
 ```python
 hf_jobs("uv", {
     "script": "your_script.py",
-    "secrets": {"HF_TOKEN": "hf_abc123..."}  # ⚠️ Hardcoded token
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # ✅ 自动替换
 })
 ```
 
-**When to use:**
-- Only if automatic token doesn't work
-- Testing with a specific token
-- Organization tokens (use with caution)
+**工作原理：**
+- `$HF_TOKEN`是一个占位符，会被替换为您的实际令牌
+- 使用您登录会话中的令牌（`hf auth login`）
+- 最安全和方便的方法
+- 令牌作为密钥传递时在服务器端加密
 
-**Security concerns:**
-- Token visible in code/logs
-- Must manually update if token rotates
-- Risk of token exposure
+**优势：**
+- 代码中无令牌暴露
+- 使用您当前的登录会话
+- 重新登录时自动更新
+- 与MCP工具无缝协作
 
-#### Method 3: Environment Variable (Less Secure)
+#### 方法2：显式令牌（不推荐）
 
 ```python
 hf_jobs("uv", {
     "script": "your_script.py",
-    "env": {"HF_TOKEN": "hf_abc123..."}  # ⚠️ Less secure than secrets
+    "secrets": {"HF_TOKEN": "hf_abc123..."}  # ⚠️ 硬编码令牌
 })
 ```
 
-**Difference from secrets:**
-- `env` variables are visible in job logs
-- `secrets` are encrypted server-side
-- Always prefer `secrets` for tokens
+**何时使用：**
+- 仅当自动令牌不起作用时
+- 使用特定令牌进行测试
+- 组织令牌（谨慎使用）
 
-### Using Tokens in Scripts
+**安全问题：**
+- 令牌在代码/日志中可见
+- 令牌轮换时必须手动更新
+- 存在令牌暴露风险
 
-**In your Python script, tokens are available as environment variables:**
+#### 方法3：环境变量（安全性较低）
+
+```python
+hf_jobs("uv", {
+    "script": "your_script.py",
+    "env": {"HF_TOKEN": "hf_abc123..."}  # ⚠️ 比secrets安全性低
+})
+```
+
+**与secrets的区别：**
+- `env`变量在作业日志中可见
+- `secrets`在服务器端加密
+- 始终优先使用`secrets`存储令牌
+
+### 在脚本中使用令牌
+
+**在Python脚本中，令牌可作为环境变量使用：**
 
 ```python
 # /// script
@@ -167,73 +167,73 @@ hf_jobs("uv", {
 import os
 from huggingface_hub import HfApi
 
-# Token is automatically available if passed via secrets
+# 如果通过secrets传递，令牌会自动可用
 token = os.environ.get("HF_TOKEN")
 
-# Use with Hub API
+# 与Hub API一起使用
 api = HfApi(token=token)
 
-# Or let huggingface_hub auto-detect
-api = HfApi()  # Automatically uses HF_TOKEN env var
+# 或让huggingface_hub自动检测
+api = HfApi()  # 自动使用HF_TOKEN环境变量
 ```
 
-**Best practices:**
-- Don't hardcode tokens in scripts
-- Use `os.environ.get("HF_TOKEN")` to access
-- Let `huggingface_hub` auto-detect when possible
-- Verify token exists before Hub operations
+**最佳实践：**
+- 不要在脚本中硬编码令牌
+- 使用`os.environ.get("HF_TOKEN")`访问
+- 尽可能让`huggingface_hub`自动检测
+- Hub操作前验证令牌存在
 
-### Token Verification
+### 令牌验证
 
-**Check if you're logged in:**
+**检查您是否已登录：**
 ```python
 from huggingface_hub import whoami
-user_info = whoami()  # Returns your username if authenticated
+user_info = whoami()  # 如果已认证，返回您的用户名
 ```
 
-**Verify token in job:**
+**在作业中验证令牌：**
 ```python
 import os
 assert "HF_TOKEN" in os.environ, "HF_TOKEN not found!"
 token = os.environ["HF_TOKEN"]
-print(f"Token starts with: {token[:7]}...")  # Should start with "hf_"
+print(f"Token starts with: {token[:7]}...")  # 应该以"hf_"开头
 ```
 
-### Common Token Issues
+### 常见令牌问题
 
-**Error: 401 Unauthorized**
-- **Cause:** Token missing or invalid
-- **Fix:** Add `secrets={"HF_TOKEN": "$HF_TOKEN"}` to job config
-- **Verify:** Check `hf_whoami()` works locally
+**错误：401 Unauthorized**
+- **原因：** 令牌缺失或无效
+- **修复：** 在作业配置中添加`secrets={"HF_TOKEN": "$HF_TOKEN"}`
+- **验证：** 检查`hf_whoami()`在本地工作
 
-**Error: 403 Forbidden**
-- **Cause:** Token lacks required permissions
-- **Fix:** Ensure token has write permissions for push operations
-- **Check:** Token type at https://huggingface.co/settings/tokens
+**错误：403 Forbidden**
+- **原因：** 令牌缺少所需权限
+- **修复：** 确保令牌对推送操作具有写入权限
+- **检查：** 在https://huggingface.co/settings/tokens查看令牌类型
 
-**Error: Token not found in environment**
-- **Cause:** `secrets` not passed or wrong key name
-- **Fix:** Use `secrets={"HF_TOKEN": "$HF_TOKEN"}` (not `env`)
-- **Verify:** Script checks `os.environ.get("HF_TOKEN")`
+**错误：环境中未找到令牌**
+- **原因：** 未传递`secrets`或键名错误
+- **修复：** 使用`secrets={"HF_TOKEN": "$HF_TOKEN"}`（不是`env`）
+- **验证：** 脚本检查`os.environ.get("HF_TOKEN")`
 
-**Error: Repository access denied**
-- **Cause:** Token doesn't have access to private repo
-- **Fix:** Use token from account with access
-- **Check:** Verify repo visibility and your permissions
+**错误：仓库访问被拒绝**
+- **原因：** 令牌无权访问私有仓库
+- **修复：** 使用有权访问的账户的令牌
+- **检查：** 验证仓库可见性和您的权限
 
-### Token Security Best Practices
+### 令牌安全最佳实践
 
-1. **Never commit tokens** - Use `$HF_TOKEN` placeholder or environment variables
-2. **Use secrets, not env** - Secrets are encrypted server-side
-3. **Rotate tokens regularly** - Generate new tokens periodically
-4. **Use minimal permissions** - Create tokens with only needed permissions
-5. **Don't share tokens** - Each user should use their own token
-6. **Monitor token usage** - Check token activity in Hub settings
+1. **切勿提交令牌** - 使用`$HF_TOKEN`占位符或环境变量
+2. **使用secrets，而不是env** - secrets在服务器端加密
+3. **定期轮换令牌** - 定期生成新令牌
+4. **使用最小权限** - 创建仅具有所需权限的令牌
+5. **不要共享令牌** - 每个用户应使用自己的令牌
+6. **监控令牌使用** - 在Hub设置中检查令牌活动
 
-### Complete Token Example
+### 完整令牌示例
 
 ```python
-# Example: Push results to Hub
+# 示例：将结果推送到Hub
 hf_jobs("uv", {
     "script": """
 # /// script
@@ -244,13 +244,13 @@ import os
 from huggingface_hub import HfApi
 from datasets import Dataset
 
-# Verify token is available
+# 验证令牌可用
 assert "HF_TOKEN" in os.environ, "HF_TOKEN required!"
 
-# Use token for Hub operations
+# 使用令牌进行Hub操作
 api = HfApi(token=os.environ["HF_TOKEN"])
 
-# Create and push dataset
+# 创建并推送数据集
 data = {"text": ["Hello", "World"]}
 dataset = Dataset.from_dict(data)
 dataset.push_to_hub("username/my-dataset", token=os.environ["HF_TOKEN"])
@@ -259,17 +259,17 @@ print("✅ Dataset pushed successfully!")
 """,
     "flavor": "cpu-basic",
     "timeout": "30m",
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # ✅ Token provided securely
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # ✅ 安全提供令牌
 })
 ```
 
-## Quick Start: Two Approaches
+## 快速开始：两种方法
 
-### Approach 1: UV Scripts (Recommended)
+### 方法1：UV脚本（推荐）
 
-UV scripts use PEP 723 inline dependencies for clean, self-contained workloads.
+UV脚本使用PEP 723内联依赖项，实现干净、自包含的工作负载。
 
-**MCP Tool:**
+**MCP工具：**
 ```python
 hf_jobs("uv", {
     "script": """
@@ -280,7 +280,7 @@ hf_jobs("uv", {
 from transformers import pipeline
 import torch
 
-# Your workload here
+# 您的工作负载
 classifier = pipeline("sentiment-analysis")
 result = classifier("I love Hugging Face!")
 print(result)
@@ -290,116 +290,116 @@ print(result)
 })
 ```
 
-**CLI Equivalent:**
+**CLI等效：**
 ```bash
 hf jobs uv run my_script.py --flavor cpu-basic --timeout 30m
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import run_uv_job
 run_uv_job("my_script.py", flavor="cpu-basic", timeout="30m")
 ```
 
-**Benefits:** Direct MCP tool usage, clean code, dependencies declared inline, no file saving required
+**优势：** 直接MCP工具使用，代码干净，依赖项内联声明，无需保存文件
 
-**When to use:** Default choice for all workloads, custom logic, any scenario requiring `hf_jobs()`
+**何时使用：** 所有工作负载的默认选择，自定义逻辑，任何需要`hf_jobs()`的场景
 
-#### Custom Docker Images for UV Scripts
+#### UV脚本的自定义Docker镜像
 
-By default, UV scripts use `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`. For ML workloads with complex dependencies, use pre-built images:
+默认情况下，UV脚本使用`ghcr.io/astral-sh/uv:python3.12-bookworm-slim`。对于具有复杂依赖项的ML工作负载，使用预构建镜像：
 
 ```python
 hf_jobs("uv", {
     "script": "inference.py",
-    "image": "vllm/vllm-openai:latest",  # Pre-built image with vLLM
+    "image": "vllm/vllm-openai:latest",  # 带vLLM的预构建镜像
     "flavor": "a10g-large"
 })
 ```
 
-**CLI:**
+**CLI：**
 ```bash
 hf jobs uv run --image vllm/vllm-openai:latest --flavor a10g-large inference.py
 ```
 
-**Benefits:** Faster startup, pre-installed dependencies, optimized for specific frameworks
+**优势：** 启动更快，预安装依赖项，针对特定框架优化
 
-#### Python Version
+#### Python版本
 
-By default, UV scripts use Python 3.12. Specify a different version:
+默认情况下，UV脚本使用Python 3.12。指定不同版本：
 
 ```python
 hf_jobs("uv", {
     "script": "my_script.py",
-    "python": "3.11",  # Use Python 3.11
+    "python": "3.11",  # 使用Python 3.11
     "flavor": "cpu-basic"
 })
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import run_uv_job
 run_uv_job("my_script.py", python="3.11")
 ```
 
-#### Working with Scripts
+#### 使用脚本
 
-⚠️ **Important:** There are *two* "script path" stories depending on how you run Jobs:
+⚠️ **重要：** 根据您运行Jobs的方式，有两种"脚本路径"情况：
 
-- **Using the `hf_jobs()` MCP tool (recommended in this repo)**: the `script` value must be **inline code** (a string) or a **URL**. A local filesystem path (like `"./scripts/foo.py"`) won't exist inside the remote container.
-- **Using the `hf jobs uv run` CLI**: local file paths **do work** (the CLI uploads your script).
+- **使用`hf_jobs()` MCP工具（本仓库推荐）**：`script`值必须是**内联代码**（字符串）或**URL**。本地文件系统路径（如`"./scripts/foo.py"`）在远程容器中不存在。
+- **使用`hf jobs uv run` CLI**：本地文件路径**有效**（CLI上传您的脚本）。
 
-**Common mistake with `hf_jobs()` MCP tool:**
+**使用`hf_jobs()` MCP工具的常见错误：**
 
 ```python
-# ❌ Will fail (remote container can't see your local path)
+# ❌ 将失败（远程容器无法看到您的本地路径）
 hf_jobs("uv", {"script": "./scripts/foo.py"})
 ```
 
-**Correct patterns with `hf_jobs()` MCP tool:**
+**使用`hf_jobs()` MCP工具的正确模式：**
 
 ```python
-# ✅ Inline: read the local script file and pass its *contents*
+# ✅ 内联：读取本地脚本文件并传递其*内容*
 from pathlib import Path
 script = Path("hf-jobs/scripts/foo.py").read_text()
 hf_jobs("uv", {"script": script})
 
-# ✅ URL: host the script somewhere reachable
+# ✅ URL：托管脚本在可访问的地方
 hf_jobs("uv", {"script": "https://huggingface.co/datasets/uv-scripts/.../raw/main/foo.py"})
 
-# ✅ URL from GitHub
+# ✅ 来自GitHub的URL
 hf_jobs("uv", {"script": "https://raw.githubusercontent.com/huggingface/trl/main/trl/scripts/sft.py"})
 ```
 
-**CLI equivalent (local paths supported):**
+**CLI等效（支持本地路径）：**
 
 ```bash
 hf jobs uv run ./scripts/foo.py -- --your --args
 ```
 
-#### Adding Dependencies at Runtime
+#### 在运行时添加依赖项
 
-Add extra dependencies beyond what's in the PEP 723 header:
+添加PEP 723头部中未包含的额外依赖项：
 
 ```python
 hf_jobs("uv", {
     "script": "inference.py",
-    "dependencies": ["transformers", "torch>=2.0"],  # Extra deps
+    "dependencies": ["transformers", "torch>=2.0"],  # 额外依赖
     "flavor": "a10g-small"
 })
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import run_uv_job
 run_uv_job("inference.py", dependencies=["transformers", "torch>=2.0"])
 ```
 
-### Approach 2: Docker-Based Jobs
+### 方法2：基于Docker的作业
 
-Run jobs with custom Docker images and commands.
+使用自定义Docker镜像和命令运行作业。
 
-**MCP Tool:**
+**MCP工具：**
 ```python
 hf_jobs("run", {
     "image": "python:3.12",
@@ -409,21 +409,21 @@ hf_jobs("run", {
 })
 ```
 
-**CLI Equivalent:**
+**CLI等效：**
 ```bash
 hf jobs run python:3.12 python -c "print('Hello from HF Jobs!')"
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import run_job
 run_job(image="python:3.12", command=["python", "-c", "print('Hello!')"], flavor="cpu-basic")
 ```
 
-**Benefits:** Full Docker control, use pre-built images, run any command
-**When to use:** Need specific Docker images, non-Python workloads, complex environments
+**优势：** 完全Docker控制，使用预构建镜像，运行任何命令
+**何时使用：** 需要特定Docker镜像，非Python工作负载，复杂环境
 
-**Example with GPU:**
+**GPU示例：**
 ```python
 hf_jobs("run", {
     "image": "pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel",
@@ -433,81 +433,81 @@ hf_jobs("run", {
 })
 ```
 
-**Using Hugging Face Spaces as Images:**
+**使用Hugging Face Spaces作为镜像：**
 
-You can use Docker images from HF Spaces:
+您可以使用来自HF Spaces的Docker镜像：
 ```python
 hf_jobs("run", {
-    "image": "hf.co/spaces/lhoestq/duckdb",  # Space as Docker image
+    "image": "hf.co/spaces/lhoestq/duckdb",  # Space作为Docker镜像
     "command": ["duckdb", "-c", "SELECT 'Hello from DuckDB!'"],
     "flavor": "cpu-basic"
 })
 ```
 
-**CLI:**
+**CLI：**
 ```bash
 hf jobs run hf.co/spaces/lhoestq/duckdb duckdb -c "SELECT 'Hello!'"
 ```
 
-### Finding More UV Scripts on Hub
+### 在Hub上查找更多UV脚本
 
-The `uv-scripts` organization provides ready-to-use UV scripts stored as datasets on Hugging Face Hub:
+`uv-scripts`组织提供存储在Hugging Face Hub上作为数据集的即用型UV脚本：
 
 ```python
-# Discover available UV script collections
+# 发现可用的UV脚本集合
 dataset_search({"author": "uv-scripts", "sort": "downloads", "limit": 20})
 
-# Explore a specific collection
+# 浏览特定集合
 hub_repo_details(["uv-scripts/classification"], repo_type="dataset", include_readme=True)
 ```
 
-**Popular collections:** OCR, classification, synthetic-data, vLLM, dataset-creation
+**流行集合：** OCR、分类、合成数据、vLLM、数据集创建
 
-## Hardware Selection
+## 硬件选择
 
-> **Reference:** [HF Jobs Hardware Docs](https://huggingface.co/docs/hub/en/spaces-config-reference) (updated 07/2025)
+> **参考：** [HF Jobs硬件文档](https://huggingface.co/docs/hub/en/spaces-config-reference)（2025年7月更新）
 
-| Workload Type | Recommended Hardware | Use Case |
+| 工作负载类型 | 推荐硬件 | 用例 |
 |---------------|---------------------|----------|
-| Data processing, testing | `cpu-basic`, `cpu-upgrade` | Lightweight tasks |
-| Small models, demos | `t4-small` | <1B models, quick tests |
-| Medium models | `t4-medium`, `l4x1` | 1-7B models |
-| Large models, production | `a10g-small`, `a10g-large` | 7-13B models |
-| Very large models | `a100-large` | 13B+ models |
-| Batch inference | `a10g-large`, `a100-large` | High-throughput |
-| Multi-GPU workloads | `l4x4`, `a10g-largex2`, `a10g-largex4` | Parallel/large models |
-| TPU workloads | `v5e-1x1`, `v5e-2x2`, `v5e-2x4` | JAX/Flax, TPU-optimized |
+| 数据处理、测试 | `cpu-basic`, `cpu-upgrade` | 轻量级任务 |
+| 小型模型、演示 | `t4-small` | <1B模型，快速测试 |
+| 中型模型 | `t4-medium`, `l4x1` | 1-7B模型 |
+| 大型模型、生产 | `a10g-small`, `a10g-large` | 7-13B模型 |
+| 非常大的模型 | `a100-large` | 13B+模型 |
+| 批量推理 | `a10g-large`, `a100-large` | 高吞吐量 |
+| 多GPU工作负载 | `l4x4`, `a10g-largex2`, `a10g-largex4` | 并行/大型模型 |
+| TPU工作负载 | `v5e-1x1`, `v5e-2x2`, `v5e-2x4` | JAX/Flax，TPU优化 |
 
-**All Available Flavors:**
+**所有可用类型：**
 - **CPU:** `cpu-basic`, `cpu-upgrade`
 - **GPU:** `t4-small`, `t4-medium`, `l4x1`, `l4x4`, `a10g-small`, `a10g-large`, `a10g-largex2`, `a10g-largex4`, `a100-large`
 - **TPU:** `v5e-1x1`, `v5e-2x2`, `v5e-2x4`
 
-**Guidelines:**
-- Start with smaller hardware for testing
-- Scale up based on actual needs
-- Use multi-GPU for parallel workloads or large models
-- Use TPUs for JAX/Flax workloads
-- See `references/hardware_guide.md` for detailed specifications
+**指南：**
+- 从小型硬件开始测试
+- 根据实际需求扩展
+- 对并行工作负载或大型模型使用多GPU
+- 对JAX/Flax工作负载使用TPU
+- 有关详细规格，请参阅`references/hardware_guide.md`
 
-## Critical: Saving Results
+## 关键：保存结果
 
-**⚠️ EPHEMERAL ENVIRONMENT—MUST PERSIST RESULTS**
+**⚠️ 临时环境—必须持久化结果**
 
-The Jobs environment is temporary. All files are deleted when the job ends. If results aren't persisted, **ALL WORK IS LOST**.
+Jobs环境是临时的。作业结束时所有文件都会被删除。如果结果没有持久化，**所有工作都会丢失**。
 
-### Persistence Options
+### 持久化选项
 
-**1. Push to Hugging Face Hub (Recommended)**
+**1. 推送到Hugging Face Hub（推荐）**
 
 ```python
-# Push models
+# 推送模型
 model.push_to_hub("username/model-name", token=os.environ["HF_TOKEN"])
 
-# Push datasets
+# 推送数据集
 dataset.push_to_hub("username/dataset-name", token=os.environ["HF_TOKEN"])
 
-# Push artifacts
+# 推送制品
 api.upload_file(
     path_or_fileobj="results.json",
     path_in_repo="results.json",
@@ -516,222 +516,222 @@ api.upload_file(
 )
 ```
 
-**2. Use External Storage**
+**2. 使用外部存储**
 
 ```python
-# Upload to S3, GCS, etc.
+# 上传到S3、GCS等
 import boto3
 s3 = boto3.client('s3')
 s3.upload_file('results.json', 'my-bucket', 'results.json')
 ```
 
-**3. Send Results via API**
+**3. 通过API发送结果**
 
 ```python
-# POST results to your API
+# POST结果到您的API
 import requests
 requests.post("https://your-api.com/results", json=results)
 ```
 
-### Required Configuration for Hub Push
+### Hub推送的必要配置
 
-**In job submission:**
+**在作业提交中：**
 ```python
 {
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # Enables authentication
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # 启用身份验证
 }
 ```
 
-**In script:**
+**在脚本中：**
 ```python
 import os
 from huggingface_hub import HfApi
 
-# Token automatically available from secrets
+# 令牌从secrets自动可用
 api = HfApi(token=os.environ.get("HF_TOKEN"))
 
-# Push your results
+# 推送您的结果
 api.upload_file(...)
 ```
 
-### Verification Checklist
+### 验证清单
 
-Before submitting:
-- [ ] Results persistence method chosen
-- [ ] `secrets={"HF_TOKEN": "$HF_TOKEN"}` if using Hub
-- [ ] Script handles missing token gracefully
-- [ ] Test persistence path works
+提交前：
+- [ ] 选择结果持久化方法
+- [ ] 使用Hub时添加`secrets={"HF_TOKEN": "$HF_TOKEN"}`
+- [ ] 脚本优雅处理令牌缺失
+- [ ] 测试持久化路径是否工作
 
-**See:** `references/hub_saving.md` for detailed Hub persistence guide
+**参见：** `references/hub_saving.md`获取详细的Hub持久化指南
 
-## Timeout Management
+## 超时管理
 
-**⚠️ DEFAULT: 30 MINUTES**
+**⚠️ 默认：30分钟**
 
-Jobs automatically stop after the timeout. For long-running tasks like training, always set a custom timeout.
+作业在超时时自动停止。对于训练等长时间运行的任务，始终设置自定义超时。
 
-### Setting Timeouts
+### 设置超时
 
-**MCP Tool:**
+**MCP工具：**
 ```python
 {
-    "timeout": "2h"   # 2 hours
+    "timeout": "2h"   # 2小时
 }
 ```
 
-**Supported formats:**
-- Integer/float: seconds (e.g., `300` = 5 minutes)
-- String with suffix: `"5m"` (minutes), `"2h"` (hours), `"1d"` (days)
-- Examples: `"90m"`, `"2h"`, `"1.5h"`, `300`, `"1d"`
+**支持的格式：**
+- 整数/浮点数：秒（例如，`300` = 5分钟）
+- 带后缀的字符串：`"5m"`（分钟），`"2h"`（小时），`"1d"`（天）
+- 示例：`"90m"`，`"2h"`，`"1.5h"`，`300`，`"1d"`
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import run_job, run_uv_job
 
 run_job(image="python:3.12", command=[...], timeout="2h")
-run_uv_job("script.py", timeout=7200)  # 2 hours in seconds
+run_uv_job("script.py", timeout=7200)  # 2小时（秒）
 ```
 
-### Timeout Guidelines
+### 超时指南
 
-| Scenario | Recommended | Notes |
+| 场景 | 推荐 | 说明 |
 |----------|-------------|-------|
-| Quick test | 10-30 min | Verify setup |
-| Data processing | 1-2 hours | Depends on data size |
-| Batch inference | 2-4 hours | Large batches |
-| Experiments | 4-8 hours | Multiple runs |
-| Long-running | 8-24 hours | Production workloads |
+| 快速测试 | 10-30分钟 | 验证设置 |
+| 数据处理 | 1-2小时 | 取决于数据大小 |
+| 批量推理 | 2-4小时 | 大批量 |
+| 实验 | 4-8小时 | 多次运行 |
+| 长时间运行 | 8-24小时 | 生产工作负载 |
 
-**Always add 20-30% buffer** for setup, network delays, and cleanup.
+**始终添加20-30%的缓冲**用于设置、网络延迟和清理。
 
-**On timeout:** Job killed immediately, all unsaved progress lost
+**超时后果：** 作业立即终止，所有未保存的进度丢失
 
-## Cost Estimation
+## 成本估算
 
-**General guidelines:**
+**一般指南：**
 
 ```
-Total Cost = (Hours of runtime) × (Cost per hour)
+总成本 = (运行时间（小时）) × (每小时成本)
 ```
 
-**Example calculations:**
+**示例计算：**
 
-**Quick test:**
-- Hardware: cpu-basic ($0.10/hour)
-- Time: 15 minutes (0.25 hours)
-- Cost: $0.03
+**快速测试：**
+- 硬件：cpu-basic（$0.10/小时）
+- 时间：15分钟（0.25小时）
+- 成本：$0.03
 
-**Data processing:**
-- Hardware: l4x1 ($2.50/hour)
-- Time: 2 hours
-- Cost: $5.00
+**数据处理：**
+- 硬件：l4x1（$2.50/小时）
+- 时间：2小时
+- 成本：$5.00
 
-**Batch inference:**
-- Hardware: a10g-large ($5/hour)
-- Time: 4 hours
-- Cost: $20.00
+**批量推理：**
+- 硬件：a10g-large（$5/小时）
+- 时间：4小时
+- 成本：$20.00
 
-**Cost optimization tips:**
-1. Start small - Test on cpu-basic or t4-small
-2. Monitor runtime - Set appropriate timeouts
-3. Use checkpoints - Resume if job fails
-4. Optimize code - Reduce unnecessary compute
-5. Choose right hardware - Don't over-provision
+**成本优化提示：**
+1. 从小开始 - 在cpu-basic或t4-small上测试
+2. 监控运行时间 - 设置适当的超时
+3. 使用检查点 - 作业失败时恢复
+4. 优化代码 - 减少不必要的计算
+5. 选择合适的硬件 - 不过度配置
 
-## Monitoring and Tracking
+## 监控和跟踪
 
-### Check Job Status
+### 检查作业状态
 
-**MCP Tool:**
+**MCP工具：**
 ```python
-# List all jobs
+# 列出所有作业
 hf_jobs("ps")
 
-# Inspect specific job
+# 检查特定作业
 hf_jobs("inspect", {"job_id": "your-job-id"})
 
-# View logs
+# 查看日志
 hf_jobs("logs", {"job_id": "your-job-id"})
 
-# Cancel a job
+# 取消作业
 hf_jobs("cancel", {"job_id": "your-job-id"})
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import list_jobs, inspect_job, fetch_job_logs, cancel_job
 
-# List your jobs
+# 列出您的作业
 jobs = list_jobs()
 
-# List running jobs only
+# 仅列出运行中的作业
 running = [j for j in list_jobs() if j.status.stage == "RUNNING"]
 
-# Inspect specific job
+# 检查特定作业
 job_info = inspect_job(job_id="your-job-id")
 
-# View logs
+# 查看日志
 for log in fetch_job_logs(job_id="your-job-id"):
     print(log)
 
-# Cancel a job
+# 取消作业
 cancel_job(job_id="your-job-id")
 ```
 
-**CLI:**
+**CLI：**
 ```bash
-hf jobs ps                    # List jobs
-hf jobs logs <job-id>         # View logs
-hf jobs cancel <job-id>       # Cancel job
+hf jobs ps                    # 列出作业
+hf jobs logs <job-id>         # 查看日志
+hf jobs cancel <job-id>       # 取消作业
 ```
 
-**Remember:** Wait for user to request status checks. Avoid polling repeatedly.
+**记住：** 等待用户请求状态检查。避免重复轮询。
 
-### Job URLs
+### 作业URL
 
-After submission, jobs have monitoring URLs:
+提交后，作业有监控URL：
 ```
 https://huggingface.co/jobs/username/job-id
 ```
 
-View logs, status, and details in the browser.
+在浏览器中查看日志、状态和详细信息。
 
-### Wait for Multiple Jobs
+### 等待多个作业
 
 ```python
 import time
 from huggingface_hub import inspect_job, run_job
 
-# Run multiple jobs
+# 运行多个作业
 jobs = [run_job(image=img, command=cmd) for img, cmd in workloads]
 
-# Wait for all to complete
+# 等待所有完成
 for job in jobs:
     while inspect_job(job_id=job.id).status.stage not in ("COMPLETED", "ERROR"):
         time.sleep(10)
 ```
 
-## Scheduled Jobs
+## 计划作业
 
-Run jobs on a schedule using CRON expressions or predefined schedules.
+使用CRON表达式或预定义计划运行作业。
 
-**MCP Tool:**
+**MCP工具：**
 ```python
-# Schedule a UV script that runs every hour
+# 计划每小时运行一次的UV脚本
 hf_jobs("scheduled uv", {
     "script": "your_script.py",
     "schedule": "@hourly",
     "flavor": "cpu-basic"
 })
 
-# Schedule with CRON syntax
+# 使用CRON语法计划
 hf_jobs("scheduled uv", {
     "script": "your_script.py",
-    "schedule": "0 9 * * 1",  # 9 AM every Monday
+    "schedule": "0 9 * * 1",  # 每周一上午9点
     "flavor": "cpu-basic"
 })
 
-# Schedule a Docker-based job
+# 计划基于Docker的作业
 hf_jobs("scheduled run", {
     "image": "python:3.12",
     "command": ["python", "-c", "print('Scheduled!')"],
@@ -740,47 +740,47 @@ hf_jobs("scheduled run", {
 })
 ```
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import create_scheduled_job, create_scheduled_uv_job
 
-# Schedule a Docker job
+# 计划Docker作业
 create_scheduled_job(
     image="python:3.12",
     command=["python", "-c", "print('Running on schedule!')"],
     schedule="@hourly"
 )
 
-# Schedule a UV script
+# 计划UV脚本
 create_scheduled_uv_job("my_script.py", schedule="@daily", flavor="cpu-basic")
 
-# Schedule with GPU
+# 使用GPU计划
 create_scheduled_uv_job(
     "ml_inference.py",
-    schedule="0 */6 * * *",  # Every 6 hours
+    schedule="0 */6 * * *",  # 每6小时
     flavor="a10g-small"
 )
 ```
 
-**Available schedules:**
-- `@annually`, `@yearly` - Once per year
-- `@monthly` - Once per month
-- `@weekly` - Once per week
-- `@daily` - Once per day
-- `@hourly` - Once per hour
-- CRON expression - Custom schedule (e.g., `"*/5 * * * *"` for every 5 minutes)
+**可用计划：**
+- `@annually`, `@yearly` - 每年一次
+- `@monthly` - 每月一次
+- `@weekly` - 每周一次
+- `@daily` - 每天一次
+- `@hourly` - 每小时一次
+- CRON表达式 - 自定义计划（例如，`"*/5 * * * *"`表示每5分钟）
 
-**Manage scheduled jobs:**
+**管理计划作业：**
 ```python
-# MCP Tool
-hf_jobs("scheduled ps")                              # List scheduled jobs
-hf_jobs("scheduled inspect", {"job_id": "..."})     # Inspect details
-hf_jobs("scheduled suspend", {"job_id": "..."})     # Pause
-hf_jobs("scheduled resume", {"job_id": "..."})      # Resume
-hf_jobs("scheduled delete", {"job_id": "..."})      # Delete
+# MCP工具
+hf_jobs("scheduled ps")                              # 列出计划作业
+hf_jobs("scheduled inspect", {"job_id": "..."})     # 检查详情
+hf_jobs("scheduled suspend", {"job_id": "..."})     # 暂停
+hf_jobs("scheduled resume", {"job_id": "..."})      # 恢复
+hf_jobs("scheduled delete", {"job_id": "..."})      # 删除
 ```
 
-**Python API for management:**
+**Python API管理：**
 ```python
 from huggingface_hub import (
     list_scheduled_jobs,
@@ -790,31 +790,31 @@ from huggingface_hub import (
     delete_scheduled_job
 )
 
-# List all scheduled jobs
+# 列出所有计划作业
 scheduled = list_scheduled_jobs()
 
-# Inspect a scheduled job
+# 检查计划作业
 info = inspect_scheduled_job(scheduled_job_id)
 
-# Suspend (pause) a scheduled job
+# 暂停计划作业
 suspend_scheduled_job(scheduled_job_id)
 
-# Resume a scheduled job
+# 恢复计划作业
 resume_scheduled_job(scheduled_job_id)
 
-# Delete a scheduled job
+# 删除计划作业
 delete_scheduled_job(scheduled_job_id)
 ```
 
-## Webhooks: Trigger Jobs on Events
+## Webhook：在事件上触发作业
 
-Trigger jobs automatically when changes happen in Hugging Face repositories.
+当Hugging Face仓库中发生更改时自动触发作业。
 
-**Python API:**
+**Python API：**
 ```python
 from huggingface_hub import create_webhook
 
-# Create webhook that triggers a job when a repo changes
+# 创建webhook，当仓库更改时触发作业
 webhook = create_webhook(
     job_id=job.id,
     watched=[
@@ -826,18 +826,18 @@ webhook = create_webhook(
 )
 ```
 
-**How it works:**
-1. Webhook listens for changes in watched repositories
-2. When triggered, the job runs with `WEBHOOK_PAYLOAD` environment variable
-3. Your script can parse the payload to understand what changed
+**工作原理：**
+1. Webhook监听被监视仓库中的更改
+2. 触发时，作业运行，带有`WEBHOOK_PAYLOAD`环境变量
+3. 您的脚本可以解析负载以了解发生了什么变化
 
-**Use cases:**
-- Auto-process new datasets when uploaded
-- Trigger inference when models are updated
-- Run tests when code changes
-- Generate reports on repository activity
+**用例：**
+- 上传新数据集时自动处理
+- 模型更新时触发推理
+- 代码更改时运行测试
+- 生成关于仓库活动的报告
 
-**Access webhook payload in script:**
+**在脚本中访问webhook负载：**
 ```python
 import os
 import json
@@ -846,17 +846,17 @@ payload = json.loads(os.environ.get("WEBHOOK_PAYLOAD", "{}"))
 print(f"Event type: {payload.get('event', {}).get('action')}")
 ```
 
-See [Webhooks Documentation](https://huggingface.co/docs/huggingface_hub/guides/webhooks) for more details.
+更多详情请参阅[Webhooks文档](https://huggingface.co/docs/huggingface_hub/guides/webhooks)。
 
-## Common Workload Patterns
+## 常见工作负载模式
 
-This repository ships ready-to-run UV scripts in `hf-jobs/scripts/`. Prefer using them instead of inventing new templates.
+本仓库在`hf-jobs/scripts/`中提供即用型UV脚本。优先使用它们，而不是发明新模板。
 
-### Pattern 1: Dataset → Model Responses (vLLM) — `scripts/generate-responses.py`
+### 模式1：数据集 → 模型响应（vLLM）— `scripts/generate-responses.py`
 
-**What it does:** loads a Hub dataset (chat `messages` or a `prompt` column), applies a model chat template, generates responses with vLLM, and **pushes** the output dataset + dataset card back to the Hub.
+**功能：** 加载Hub数据集（聊天`messages`或`prompt`列），应用模型聊天模板，使用vLLM生成响应，并**推送**输出数据集+数据集卡片回Hub。
 
-**Requires:** GPU + **write** token (it pushes a dataset).
+**要求：** GPU + **写入**令牌（它推送数据集）。
 
 ```python
 from pathlib import Path
@@ -879,11 +879,11 @@ hf_jobs("uv", {
 })
 ```
 
-### Pattern 2: CoT Self-Instruct Synthetic Data — `scripts/cot-self-instruct.py`
+### 模式2：CoT自指令合成数据 — `scripts/cot-self-instruct.py`
 
-**What it does:** generates synthetic prompts/answers via CoT Self-Instruct, optionally filters outputs (answer-consistency / RIP), then **pushes** the generated dataset + dataset card to the Hub.
+**功能：** 通过CoT自指令生成合成提示/答案，可选过滤输出（答案一致性/RIP），然后**推送**生成的数据集+数据集卡片到Hub。
 
-**Requires:** GPU + **write** token (it pushes a dataset).
+**要求：** GPU + **写入**令牌（它推送数据集）。
 
 ```python
 from pathlib import Path
@@ -904,11 +904,11 @@ hf_jobs("uv", {
 })
 ```
 
-### Pattern 3: Streaming Dataset Stats (Polars + HF Hub) — `scripts/finepdfs-stats.py`
+### 模式3：流式数据集统计（Polars + HF Hub）— `scripts/finepdfs-stats.py`
 
-**What it does:** scans parquet directly from Hub (no 300GB download), computes temporal stats, and (optionally) uploads results to a Hub dataset repo.
+**功能：** 直接从Hub扫描parquet（无需300GB下载），计算时间统计，并（可选）将结果上传到Hub数据集仓库。
 
-**Requires:** CPU is often enough; token needed **only** if you pass `--output-repo` (upload).
+**要求：** 通常CPU足够；仅当传递`--output-repo`（上传）时需要令牌。
 
 ```python
 from pathlib import Path
@@ -928,109 +928,108 @@ hf_jobs("uv", {
 })
 ```
 
-## Common Failure Modes
+## 常见失败模式
 
-### Out of Memory (OOM)
+### 内存不足（OOM）
 
-**Fix:**
-1. Reduce batch size or data chunk size
-2. Process data in smaller batches
-3. Upgrade hardware: cpu → t4 → a10g → a100
+**修复：**
+1. 减小批量大小或数据块大小
+2. 以较小批次处理数据
+3. 升级硬件：cpu → t4 → a10g → a100
 
-### Job Timeout
+### 作业超时
 
-**Fix:**
-1. Check logs for actual runtime
-2. Increase timeout with buffer: `"timeout": "3h"`
-3. Optimize code for faster execution
-4. Process data in chunks
+**修复：**
+1. 检查日志中的实际运行时间
+2. 使用缓冲增加超时：`"timeout": "3h"`
+3. 优化代码以加快执行速度
+4. 分块处理数据
 
-### Hub Push Failures
+### Hub推送失败
 
-**Fix:**
-1. Add to job: `secrets={"HF_TOKEN": "$HF_TOKEN"}`
-2. Verify token in script: `assert "HF_TOKEN" in os.environ`
-3. Check token permissions
-4. Verify repo exists or can be created
+**修复：**
+1. 添加到作业：`secrets={"HF_TOKEN": "$HF_TOKEN"}`
+2. 在脚本中验证令牌：`assert "HF_TOKEN" in os.environ`
+3. 检查令牌权限
+4. 验证仓库存在或可以创建
 
-### Missing Dependencies
+### 缺少依赖项
 
-**Fix:**
-Add to PEP 723 header:
+**修复：**
+添加到PEP 723头部：
 ```python
 # /// script
 # dependencies = ["package1", "package2>=1.0.0"]
 # ///
 ```
 
-### Authentication Errors
+### 认证错误
 
-**Fix:**
-1. Check `hf_whoami()` works locally
-2. Verify `secrets={"HF_TOKEN": "$HF_TOKEN"}` in job config
-3. Re-login: `hf auth login`
-4. Check token has required permissions
+**修复：**
+1. 检查`hf_whoami()`在本地工作
+2. 验证作业配置中的`secrets={"HF_TOKEN": "$HF_TOKEN"}`
+3. 重新登录：`hf auth login`
+4. 检查令牌是否具有所需权限
 
-## Troubleshooting
+## 故障排除
 
-**Common issues:**
-- Job times out → Increase timeout, optimize code
-- Results not saved → Check persistence method, verify HF_TOKEN
-- Out of Memory → Reduce batch size, upgrade hardware
-- Import errors → Add dependencies to PEP 723 header
-- Authentication errors → Check token, verify secrets parameter
+**常见问题：**
+- 作业超时 → 增加超时，优化代码
+- 结果未保存 → 检查持久化方法，验证HF_TOKEN
+- 内存不足 → 减小批量大小，升级硬件
+- 导入错误 → 向PEP 723头部添加依赖项
+- 认证错误 → 检查令牌，验证secrets参数
 
-**See:** `references/troubleshooting.md` for complete troubleshooting guide
+**参见：** `references/troubleshooting.md`获取完整的故障排除指南
 
-## Resources
+## 资源
 
-### References (In This Skill)
-- `references/token_usage.md` - Complete token usage guide
-- `references/hardware_guide.md` - Hardware specs and selection
-- `references/hub_saving.md` - Hub persistence guide
-- `references/troubleshooting.md` - Common issues and solutions
+### 参考（本技能中）
+- `references/token_usage.md` - 完整令牌使用指南
+- `references/hardware_guide.md` - 硬件规格和选择
+- `references/hub_saving.md` - Hub持久化指南
+- `references/troubleshooting.md` - 常见问题和解决方案
 
-### Scripts (In This Skill)
-- `scripts/generate-responses.py` - vLLM batch generation: dataset → responses → push to Hub
-- `scripts/cot-self-instruct.py` - CoT Self-Instruct synthetic data generation + filtering → push to Hub
-- `scripts/finepdfs-stats.py` - Polars streaming stats over `finepdfs-edu` parquet on Hub (optional push)
+### 脚本（本技能中）
+- `scripts/generate-responses.py` - vLLM批量生成：数据集 → 响应 → 推送到Hub
+- `scripts/cot-self-instruct.py` - CoT自指令合成数据生成 + 过滤 → 推送到Hub
+- `scripts/finepdfs-stats.py` - Polars流式统计Hub上的`finepdfs-edu` parquet（可选推送）
 
-### External Links
+### 外部链接
 
-**Official Documentation:**
-- [HF Jobs Guide](https://huggingface.co/docs/huggingface_hub/guides/jobs) - Main documentation
-- [HF Jobs CLI Reference](https://huggingface.co/docs/huggingface_hub/guides/cli#hf-jobs) - Command line interface
-- [HF Jobs API Reference](https://huggingface.co/docs/huggingface_hub/package_reference/hf_api) - Python API details
-- [Hardware Flavors Reference](https://huggingface.co/docs/hub/en/spaces-config-reference) - Available hardware
+**官方文档：**
+- [HF Jobs指南](https://huggingface.co/docs/huggingface_hub/guides/jobs) - 主要文档
+- [HF Jobs CLI参考](https://huggingface.co/docs/huggingface_hub/guides/cli#hf-jobs) - 命令行界面
+- [HF Jobs API参考](https://huggingface.co/docs/huggingface_hub/package_reference/hf_api) - Python API详情
+- [硬件类型参考](https://huggingface.co/docs/hub/en/spaces-config-reference) - 可用硬件
 
-**Related Tools:**
-- [UV Scripts Guide](https://docs.astral.sh/uv/guides/scripts/) - PEP 723 inline dependencies
-- [UV Scripts Organization](https://huggingface.co/uv-scripts) - Community UV script collection
-- [HF Hub Authentication](https://huggingface.co/docs/huggingface_hub/quick-start#authentication) - Token setup
-- [Webhooks Documentation](https://huggingface.co/docs/huggingface_hub/guides/webhooks) - Event triggers
+**相关工具：**
+- [UV脚本指南](https://docs.astral.sh/uv/guides/scripts/) - PEP 723内联依赖项
+- [UV脚本组织](https://huggingface.co/uv-scripts) - 社区UV脚本集合
+- [HF Hub认证](https://huggingface.co/docs/huggingface_hub/quick-start#authentication) - 令牌设置
+- [Webhooks文档](https://huggingface.co/docs/huggingface_hub/guides/webhooks) - 事件触发器
 
-## Key Takeaways
+## 关键要点
 
-1. **Submit scripts inline** - The `script` parameter accepts Python code directly; no file saving required unless user requests
-2. **Jobs are asynchronous** - Don't wait/poll; let user check when ready
-3. **Always set timeout** - Default 30 min may be insufficient; set appropriate timeout
-4. **Always persist results** - Environment is ephemeral; without persistence, all work is lost
-5. **Use tokens securely** - Always use `secrets={"HF_TOKEN": "$HF_TOKEN"}` for Hub operations
-6. **Choose appropriate hardware** - Start small, scale up based on needs (see hardware guide)
-7. **Use UV scripts** - Default to `hf_jobs("uv", {...})` with inline scripts for Python workloads
-8. **Handle authentication** - Verify tokens are available before Hub operations
-9. **Monitor jobs** - Provide job URLs and status check commands
-10. **Optimize costs** - Choose right hardware, set appropriate timeouts
+1. **内联提交脚本** - `script`参数直接接受Python代码；除非用户请求，否则无需保存文件
+2. **作业是异步的** - 不要等待/轮询；让用户在准备好时检查
+3. **始终设置超时** - 默认30分钟可能不够；设置适当的超时
+4. **始终持久化结果** - 环境是临时的；没有持久化，所有工作都会丢失
+5. **安全使用令牌** - 对于Hub操作，始终使用`secrets={"HF_TOKEN": "$HF_TOKEN"}`
+6. **选择适当的硬件** - 从小开始，根据需要扩展（参见硬件指南）
+7. **使用UV脚本** - 对于Python工作负载，默认使用`hf_jobs("uv", {...})`和内联脚本
+8. **处理身份验证** - Hub操作前验证令牌可用
+9. **监控作业** - 提供作业URL和状态检查命令
+10. **优化成本** - 选择合适的硬件，设置适当的超时
 
-## Quick Reference: MCP Tool vs CLI vs Python API
+## 快速参考：MCP工具 vs CLI vs Python API
 
-| Operation | MCP Tool | CLI | Python API |
+| 操作 | MCP工具 | CLI | Python API |
 |-----------|----------|-----|------------|
-| Run UV script | `hf_jobs("uv", {...})` | `hf jobs uv run script.py` | `run_uv_job("script.py")` |
-| Run Docker job | `hf_jobs("run", {...})` | `hf jobs run image cmd` | `run_job(image, command)` |
-| List jobs | `hf_jobs("ps")` | `hf jobs ps` | `list_jobs()` |
-| View logs | `hf_jobs("logs", {...})` | `hf jobs logs <id>` | `fetch_job_logs(job_id)` |
-| Cancel job | `hf_jobs("cancel", {...})` | `hf jobs cancel <id>` | `cancel_job(job_id)` |
-| Schedule UV | `hf_jobs("scheduled uv", {...})` | - | `create_scheduled_uv_job()` |
-| Schedule Docker | `hf_jobs("scheduled run", {...})` | - | `create_scheduled_job()` |
-
+| 运行UV脚本 | `hf_jobs("uv", {...})` | `hf jobs uv run script.py` | `run_uv_job("script.py")` |
+| 运行Docker作业 | `hf_jobs("run", {...})` | `hf jobs run image cmd` | `run_job(image, command)` |
+| 列出作业 | `hf_jobs("ps")` | `hf jobs ps` | `list_jobs()` |
+| 查看日志 | `hf_jobs("logs", {...})` | `hf jobs logs <id>` | `fetch_job_logs(job_id)` |
+| 取消作业 | `hf_jobs("cancel", {...})` | `hf jobs cancel <id>` | `cancel_job(job_id)` |
+| 计划UV | `hf_jobs("scheduled uv", {...})` | - | `create_scheduled_uv_job()` |
+| 计划Docker | `hf_jobs("scheduled run", {...})` | - | `create_scheduled_job()` |

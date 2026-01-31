@@ -1,150 +1,149 @@
 ---
 name: hugging-face-model-trainer
-description: This skill should be used when users want to train or fine-tune language models using TRL (Transformer Reinforcement Learning) on Hugging Face Jobs infrastructure. Covers SFT, DPO, GRPO and reward modeling training methods, plus GGUF conversion for local deployment. Includes guidance on the TRL Jobs package, UV scripts with PEP 723 format, dataset preparation and validation, hardware selection, cost estimation, Trackio monitoring, Hub authentication, and model persistence. Should be invoked for tasks involving cloud GPU training, GGUF conversion, or when users mention training on Hugging Face Jobs without local GPU setup.
+description: 当用户想要在Hugging Face Jobs基础设施上使用TRL（Transformer Reinforcement Learning）训练或微调语言模型时，应使用此技能。涵盖SFT、DPO、GRPO和奖励建模训练方法，以及用于本地部署的GGUF转换。包括关于TRL Jobs包、带有PEP 723格式的UV脚本、数据集准备和验证、硬件选择、成本估算、Trackio监控、Hub身份验证和模型持久化的指导。当涉及云GPU训练、GGUF转换或用户提及在Hugging Face Jobs上训练而无需本地GPU设置时，应调用此技能。
 license: Complete terms in LICENSE.txt
 ---
 
-# TRL Training on Hugging Face Jobs
+# 在Hugging Face Jobs上进行TRL训练
 
-## Overview
+## 概述
 
-Train language models using TRL (Transformer Reinforcement Learning) on fully managed Hugging Face infrastructure. No local GPU setup required—models train on cloud GPUs and results are automatically saved to the Hugging Face Hub.
+在完全托管的Hugging Face基础设施上使用TRL（Transformer Reinforcement Learning）训练语言模型。无需本地GPU设置——模型在云GPU上训练，结果自动保存到Hugging Face Hub。
 
-**TRL provides multiple training methods:**
-- **SFT** (Supervised Fine-Tuning) - Standard instruction tuning
-- **DPO** (Direct Preference Optimization) - Alignment from preference data
-- **GRPO** (Group Relative Policy Optimization) - Online RL training
-- **Reward Modeling** - Train reward models for RLHF
+**TRL提供多种训练方法：**
+- **SFT**（监督微调）- 标准指令调优
+- **DPO**（直接偏好优化）- 基于偏好数据的对齐
+- **GRPO**（组相对策略优化）- 在线RL训练
+- **奖励建模** - 为RLHF训练奖励模型
 
-**For detailed TRL method documentation:**
+**有关TRL方法的详细文档：**
 ```python
 hf_doc_search("your query", product="trl")
 hf_doc_fetch("https://huggingface.co/docs/trl/sft_trainer")  # SFT
 hf_doc_fetch("https://huggingface.co/docs/trl/dpo_trainer")  # DPO
-# etc.
+# 等等
 ```
 
-**See also:** `references/training_methods.md` for method overviews and selection guidance
+**另见：** `references/training_methods.md`获取方法概述和选择指南
 
-## When to Use This Skill
+## 何时使用此技能
 
-Use this skill when users want to:
-- Fine-tune language models on cloud GPUs without local infrastructure
-- Train with TRL methods (SFT, DPO, GRPO, etc.)
-- Run training jobs on Hugging Face Jobs infrastructure
-- Convert trained models to GGUF for local deployment (Ollama, LM Studio, llama.cpp)
-- Ensure trained models are permanently saved to the Hub
-- Use modern workflows with optimized defaults
+当用户想要：
+- 在云GPU上微调语言模型，无需本地基础设施
+- 使用TRL方法训练（SFT、DPO、GRPO等）
+- 在Hugging Face Jobs基础设施上运行训练作业
+- 将训练好的模型转换为GGUF用于本地部署（Ollama、LM Studio、llama.cpp）
+- 确保训练好的模型永久保存到Hub
+- 使用具有优化默认值的现代工作流
 
-## Key Directives
+## 关键指令
 
-When assisting with training jobs:
+在协助训练作业时：
 
-1. **ALWAYS use `hf_jobs()` MCP tool** - Submit jobs using `hf_jobs("uv", {...})`, NOT bash `trl-jobs` commands. The `script` parameter accepts Python code directly. Do NOT save to local files unless the user explicitly requests it. Pass the script content as a string to `hf_jobs()`. If user asks to "train a model", "fine-tune", or similar requests, you MUST create the training script AND submit the job immediately using `hf_jobs()`.
+1. **始终使用`hf_jobs()` MCP工具** - 使用`hf_jobs("uv", {...})`提交作业，而不是bash `trl-jobs`命令。`script`参数直接接受Python代码。除非用户明确要求，否则不要保存到本地文件。将脚本内容作为字符串传递给`hf_jobs()`。如果用户要求"训练模型"、"微调"或类似请求，您必须创建训练脚本并立即使用`hf_jobs()`提交作业。
 
-2. **Always include Trackio** - Every training script should include Trackio for real-time monitoring. Use example scripts in `scripts/` as templates.
+2. **始终包含Trackio** - 每个训练脚本应包含Trackio用于实时监控。使用`scripts/`中的示例脚本作为模板。
 
-3. **Provide job details after submission** - After submitting, provide job ID, monitoring URL, estimated time, and note that the user can request status checks later.
+3. **提交后提供作业详情** - 提交后，提供作业ID、监控URL、估计时间，并注明用户可以稍后请求状态检查。
 
-4. **Use example scripts as templates** - Reference `scripts/train_sft_example.py`, `scripts/train_dpo_example.py`, etc. as starting points.
+4. **使用示例脚本作为模板** - 参考`scripts/train_sft_example.py`、`scripts/train_dpo_example.py`等作为起点。
 
-## Local Script Dependencies
+## 本地脚本依赖项
 
-To run scripts locally (like `estimate_cost.py`), install dependencies:
+要在本地运行脚本（如`estimate_cost.py`），安装依赖项：
 ```bash
 pip install -r requirements.txt
 ```
 
-## Prerequisites Checklist
+## 前提条件清单
 
-Before starting any training job, verify:
+在开始任何训练作业之前，验证：
 
-### ✅ **Account & Authentication**
-- Hugging Face Account with [Pro](https://hf.co/pro), [Team](https://hf.co/enterprise), or [Enterprise](https://hf.co/enterprise) plan (Jobs require paid plan)
-- Authenticated login: Check with `hf_whoami()`
-- **HF_TOKEN for Hub Push** ⚠️ CRITICAL - Training environment is ephemeral, must push to Hub or ALL training results are lost
-- Token must have write permissions  
-- **MUST pass `secrets={"HF_TOKEN": "$HF_TOKEN"}` in job config** to make token available (the `$HF_TOKEN` syntax
-  references your actual token value)
+### ✅ **账户和身份验证**
+- 具有[Pro](https://hf.co/pro)、[Team](https://hf.co/enterprise)或[Enterprise](https://hf.co/enterprise)计划的Hugging Face账户（Jobs需要付费计划）
+- 已认证登录：使用`hf_whoami()`检查
+- **用于Hub推送的HF_TOKEN** ⚠️ 关键 - 训练环境是临时的，必须推送到Hub，否则所有训练结果都会丢失
+- 令牌必须具有写入权限
+- **必须在作业配置中传递`secrets={"HF_TOKEN": "$HF_TOKEN"}`**以使令牌可用（`$HF_TOKEN`语法引用您的实际令牌值）
 
-### ✅ **Dataset Requirements**
-- Dataset must exist on Hub or be loadable via `datasets.load_dataset()`
-- Format must match training method (SFT: "messages"/text/prompt-completion; DPO: chosen/rejected; GRPO: prompt-only)
-- **ALWAYS validate unknown datasets** before GPU training to prevent format failures (see Dataset Validation section below)
-- Size appropriate for hardware (Demo: 50-100 examples on t4-small; Production: 1K-10K+ on a10g-large/a100-large)
+### ✅ **数据集要求**
+- 数据集必须存在于Hub上或可通过`datasets.load_dataset()`加载
+- 格式必须匹配训练方法（SFT："messages"/文本/提示-完成；DPO：选择/拒绝；GRPO：仅提示）
+- **在GPU训练前始终验证未知数据集**，以防止格式失败（见下文数据集验证部分）
+- 大小适合硬件（演示：t4-small上50-100个示例；生产：a10g-large/a100-large上1K-10K+）
 
-### ⚠️ **Critical Settings**
-- **Timeout must exceed expected training time** - Default 30min is TOO SHORT for most training. Minimum recommended: 1-2 hours. Job fails and loses all progress if timeout is exceeded.
-- **Hub push must be enabled** - Config: `push_to_hub=True`, `hub_model_id="username/model-name"`; Job: `secrets={"HF_TOKEN": "$HF_TOKEN"}`
+### ⚠️ **关键设置**
+- **超时必须超过预期训练时间** - 默认30分钟对于大多数训练来说太短。最低推荐：1-2小时。如果超时，作业失败并丢失所有进度。
+- **必须启用Hub推送** - 配置：`push_to_hub=True`，`hub_model_id="username/model-name"`；作业：`secrets={"HF_TOKEN": "$HF_TOKEN"}`
 
-## Asynchronous Job Guidelines
+## 异步作业指南
 
-**⚠️ IMPORTANT: Training jobs run asynchronously and can take hours**
+**⚠️ 重要：训练作业异步运行，可能需要数小时**
 
-### Action Required
+### 必要操作
 
-**When user requests training:**
-1. **Create the training script** with Trackio included (use `scripts/train_sft_example.py` as template)
-2. **Submit immediately** using `hf_jobs()` MCP tool with script content inline - don't save to file unless user requests
-3. **Report submission** with job ID, monitoring URL, and estimated time
-4. **Wait for user** to request status checks - don't poll automatically
+**当用户请求训练时：**
+1. **创建训练脚本**，包含Trackio（使用`scripts/train_sft_example.py`作为模板）
+2. **立即提交**使用`hf_jobs()` MCP工具，脚本内容内联 - 除非用户请求，否则不要保存到文件
+3. **报告提交**，提供作业ID、监控URL和估计时间
+4. **等待用户**请求状态检查 - 不要自动轮询
 
-### Ground Rules
-- **Jobs run in background** - Submission returns immediately; training continues independently
-- **Initial logs delayed** - Can take 30-60 seconds for logs to appear
-- **User checks status** - Wait for user to request status updates
-- **Avoid polling** - Check logs only on user request; provide monitoring links instead
+### 基本规则
+- **作业在后台运行** - 提交立即返回；训练独立继续
+- **初始日志延迟** - 日志可能需要30-60秒才会出现
+- **用户检查状态** - 等待用户请求状态更新
+- **避免轮询** - 仅在用户请求时检查日志；提供监控链接
 
-### After Submission
+### 提交后
 
-**Provide to user:**
-- ✅ Job ID and monitoring URL
-- ✅ Expected completion time
-- ✅ Trackio dashboard URL
-- ✅ Note that user can request status checks later
+**向用户提供：**
+- ✅ 作业ID和监控URL
+- ✅ 预计完成时间
+- ✅ Trackio仪表板URL
+- ✅ 注意用户可以稍后请求状态检查
 
-**Example Response:**
+**示例响应：**
 ```
-✅ Job submitted successfully!
+✅ 作业提交成功！
 
-Job ID: abc123xyz
-Monitor: https://huggingface.co/jobs/username/abc123xyz
+作业ID：abc123xyz
+监控：https://huggingface.co/jobs/username/abc123xyz
 
-Expected time: ~2 hours
-Estimated cost: ~$10
+预计时间：~2小时
+预计成本：~$10
 
-The job is running in the background. Ask me to check status/logs when ready!
+作业在后台运行。准备好时请告诉我检查状态！
 ```
 
-## Quick Start: Three Approaches
+## 快速开始：三种方法
 
-**💡 Tip for Demos:** For quick demos on smaller GPUs (t4-small), omit `eval_dataset` and `eval_strategy` to save ~40% memory. You'll still see training loss and learning progress.
+**💡 演示提示：** 对于在较小GPU（t4-small）上的快速演示，省略`eval_dataset`和`eval_strategy`以节省~40%内存。您仍然会看到训练损失和学习进度。
 
-### Sequence Length Configuration
+### 序列长度配置
 
-**TRL config classes use `max_length` (not `max_seq_length`)** to control tokenized sequence length:
+**TRL配置类使用`max_length`（而非`max_seq_length`）控制标记化序列长度：**
 
 ```python
-# ✅ CORRECT - If you need to set sequence length
-SFTConfig(max_length=512)   # Truncate sequences to 512 tokens
-DPOConfig(max_length=2048)  # Longer context (2048 tokens)
+# ✅ 正确 - 如果需要设置序列长度
+SFTConfig(max_length=512)   # 将序列截断为512个标记
+DPOConfig(max_length=2048)  # 更长上下文（2048个标记）
 
-# ❌ WRONG - This parameter doesn't exist
+# ❌ 错误 - 此参数不存在
 SFTConfig(max_seq_length=512)  # TypeError!
 ```
 
-**Default behavior:** `max_length=1024` (truncates from right). This works well for most training.
+**默认行为：** `max_length=1024`（从右侧截断）。这对大多数训练效果很好。
 
-**When to override:**
-- **Longer context**: Set higher (e.g., `max_length=2048`)
-- **Memory constraints**: Set lower (e.g., `max_length=512`)
-- **Vision models**: Set `max_length=None` (prevents cutting image tokens)
+**何时覆盖：**
+- **更长上下文**：设置更高（例如，`max_length=2048`）
+- **内存限制**：设置更低（例如，`max_length=512`）
+- **视觉模型**：设置`max_length=None`（防止剪切图像标记）
 
-**Usually you don't need to set this parameter at all** - the examples below use the sensible default.
+**通常您根本不需要设置此参数** - 下面的示例使用合理的默认值。
 
-### Approach 1: UV Scripts (Recommended—Default Choice)
+### 方法1：UV脚本（推荐—默认选择）
 
-UV scripts use PEP 723 inline dependencies for clean, self-contained training. **This is the primary approach for Claude Code.**
+UV脚本使用PEP 723内联依赖项进行干净、自包含的训练。**这是Claude Code的主要方法。**
 
 ```python
 hf_jobs("uv", {
@@ -160,7 +159,7 @@ import trackio
 
 dataset = load_dataset("trl-lib/Capybara", split="train")
 
-# Create train/eval split for monitoring
+# 创建训练/评估分割用于监控
 dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
 
 trainer = SFTTrainer(
@@ -176,8 +175,8 @@ trainer = SFTTrainer(
         eval_strategy="steps",
         eval_steps=50,
         report_to="trackio",
-        project="meaningful_prject_name", # project name for the training name (trackio)
-        run_name="meaningful_run_name",   # descriptive name for the specific training run (trackio)
+        project="meaningful_prject_name", # 训练名称的项目名称（trackio）
+        run_name="meaningful_run_name",   # 特定训练运行的描述性名称（trackio）
     )
 )
 
@@ -190,52 +189,52 @@ trainer.push_to_hub()
 })
 ```
 
-**Benefits:** Direct MCP tool usage, clean code, dependencies declared inline (PEP 723), no file saving required, full control
-**When to use:** Default choice for all training tasks in Claude Code, custom training logic, any scenario requiring `hf_jobs()`
+**优势：** 直接MCP工具使用，代码干净，依赖项内联声明（PEP 723），无需保存文件，完全控制
+**何时使用：** Claude Code中所有训练任务的默认选择，自定义训练逻辑，任何需要`hf_jobs()`的场景
 
-#### Working with Scripts
+#### 使用脚本
 
-⚠️ **Important:** The `script` parameter accepts either inline code (as shown above) OR a URL. **Local file paths do NOT work.**
+⚠️ **重要：** `script`参数接受内联代码（如上所示）或URL。**本地文件路径不工作。**
 
-**Why local paths don't work:**
-Jobs run in isolated Docker containers without access to your local filesystem. Scripts must be:
-- Inline code (recommended for custom training)
-- Publicly accessible URLs
-- Private repo URLs (with HF_TOKEN)
+**本地路径不工作的原因：**
+作业在隔离的Docker容器中运行，无法访问您的本地文件系统。脚本必须是：
+- 内联代码（推荐用于自定义训练）
+- 可公开访问的URL
+- 私有仓库URL（带HF_TOKEN）
 
-**Common mistakes:**
+**常见错误：**
 ```python
-# ❌ These will all fail
+# ❌ 这些都会失败
 hf_jobs("uv", {"script": "train.py"})
 hf_jobs("uv", {"script": "./scripts/train.py"})
 hf_jobs("uv", {"script": "/path/to/train.py"})
 ```
 
-**Correct approaches:**
+**正确方法：**
 ```python
-# ✅ Inline code (recommended)
+# ✅ 内联代码（推荐）
 hf_jobs("uv", {"script": "# /// script\n# dependencies = [...]\n# ///\n\n<your code>"})
 
-# ✅ From Hugging Face Hub
+# ✅ 来自Hugging Face Hub
 hf_jobs("uv", {"script": "https://huggingface.co/user/repo/resolve/main/train.py"})
 
-# ✅ From GitHub
+# ✅ 来自GitHub
 hf_jobs("uv", {"script": "https://raw.githubusercontent.com/user/repo/main/train.py"})
 
-# ✅ From Gist
+# ✅ 来自Gist
 hf_jobs("uv", {"script": "https://gist.githubusercontent.com/user/id/raw/train.py"})
 ```
 
-**To use local scripts:** Upload to HF Hub first:
+**使用本地脚本：** 首先上传到HF Hub：
 ```bash
 huggingface-cli repo create my-training-scripts --type model
 huggingface-cli upload my-training-scripts ./train.py train.py
-# Use: https://huggingface.co/USERNAME/my-training-scripts/resolve/main/train.py
+# 使用：https://huggingface.co/USERNAME/my-training-scripts/resolve/main/train.py
 ```
 
-### Approach 2: TRL Maintained Scripts (Official Examples)
+### 方法2：TRL维护的脚本（官方示例）
 
-TRL provides battle-tested scripts for all methods. Can be run from URLs:
+TRL提供所有方法的经过实战检验的脚本。可以从URL运行：
 
 ```python
 hf_jobs("uv", {
@@ -253,51 +252,51 @@ hf_jobs("uv", {
 })
 ```
 
-**Benefits:** No code to write, maintained by TRL team, production-tested
-**When to use:** Standard TRL training, quick experiments, don't need custom code
-**Available:** Scripts are available from https://github.com/huggingface/trl/tree/main/examples/scripts
+**优势：** 无需编写代码，由TRL团队维护，经过生产测试
+**何时使用：** 标准TRL训练，快速实验，不需要自定义代码
+**可用：** 脚本可从https://github.com/huggingface/trl/tree/main/examples/scripts获取
 
-### Finding More UV Scripts on Hub
+### 在Hub上查找更多UV脚本
 
-The `uv-scripts` organization provides ready-to-use UV scripts stored as datasets on Hugging Face Hub:
+`uv-scripts`组织提供存储在Hugging Face Hub上作为数据集的即用型UV脚本：
 
 ```python
-# Discover available UV script collections
+# 发现可用的UV脚本集合
 dataset_search({"author": "uv-scripts", "sort": "downloads", "limit": 20})
 
-# Explore a specific collection
+# 浏览特定集合
 hub_repo_details(["uv-scripts/classification"], repo_type="dataset", include_readme=True)
 ```
 
-**Popular collections:** ocr, classification, synthetic-data, vllm, dataset-creation
+**流行集合：** ocr、classification、synthetic-data、vllm、dataset-creation
 
-### Approach 3: HF Jobs CLI (Direct Terminal Commands)
+### 方法3：HF Jobs CLI（直接终端命令）
 
-When the `hf_jobs()` MCP tool is unavailable, use the `hf jobs` CLI directly.
+当`hf_jobs()` MCP工具不可用时，直接使用`hf jobs` CLI。
 
-**⚠️ CRITICAL: CLI Syntax Rules**
+**⚠️ 关键：CLI语法规则**
 
 ```bash
-# ✅ CORRECT syntax - flags BEFORE script URL
+# ✅ 正确语法 - 标志在脚本URL之前
 hf jobs uv run --flavor a10g-large --timeout 2h --secrets HF_TOKEN "https://example.com/train.py"
 
-# ❌ WRONG - "run uv" instead of "uv run"
+# ❌ 错误 - "run uv"而不是"uv run"
 hf jobs run uv "https://example.com/train.py" --flavor a10g-large
 
-# ❌ WRONG - flags AFTER script URL (will be ignored!)
+# ❌ 错误 - 标志在脚本URL之后（将被忽略！）
 hf jobs uv run "https://example.com/train.py" --flavor a10g-large
 
-# ❌ WRONG - "--secret" instead of "--secrets" (plural)
+# ❌ 错误 - "--secret"而不是"--secrets"（复数）
 hf jobs uv run --secret HF_TOKEN "https://example.com/train.py"
 ```
 
-**Key syntax rules:**
-1. Command order is `hf jobs uv run` (NOT `hf jobs run uv`)
-2. All flags (`--flavor`, `--timeout`, `--secrets`) must come BEFORE the script URL
-3. Use `--secrets` (plural), not `--secret`
-4. Script URL must be the last positional argument
+**关键语法规则：**
+1. 命令顺序是`hf jobs uv run`（不是`hf jobs run uv`）
+2. 所有标志（`--flavor`、`--timeout`、`--secrets`）必须在脚本URL之前
+3. 使用`--secrets`（复数），不是`--secret`
+4. 脚本URL必须是最后一个位置参数
 
-**Complete CLI example:**
+**完整CLI示例：**
 ```bash
 hf jobs uv run \
   --flavor a10g-large \
@@ -306,115 +305,115 @@ hf jobs uv run \
   "https://huggingface.co/user/repo/resolve/main/train.py"
 ```
 
-**Check job status via CLI:**
+**通过CLI检查作业状态：**
 ```bash
-hf jobs ps                        # List all jobs
-hf jobs logs <job-id>             # View logs
-hf jobs inspect <job-id>          # Job details
-hf jobs cancel <job-id>           # Cancel a job
+hf jobs ps                        # 列出所有作业
+hf jobs logs <job-id>             # 查看日志
+hf jobs inspect <job-id>          # 作业详情
+hf jobs cancel <job-id>           # 取消作业
 ```
 
-### Approach 4: TRL Jobs Package (Simplified Training)
+### 方法4：TRL Jobs包（简化训练）
 
-The `trl-jobs` package provides optimized defaults and one-liner training.
+`trl-jobs`包提供优化的默认值和一行式训练。
 
 ```bash
-# Install
+# 安装
 pip install trl-jobs
 
-# Train with SFT (simplest possible)
+# 使用SFT训练（最简单）
 trl-jobs sft \
   --model_name Qwen/Qwen2.5-0.5B \
   --dataset_name trl-lib/Capybara
 ```
 
-**Benefits:** Pre-configured settings, automatic Trackio integration, automatic Hub push, one-line commands
-**When to use:** User working in terminal directly (not Claude Code context), quick local experimentation
-**Repository:** https://github.com/huggingface/trl-jobs
+**优势：** 预配置设置，自动Trackio集成，自动Hub推送，一行命令
+**何时使用：** 用户直接在终端工作（非Claude Code上下文），快速本地实验
+**仓库：** https://github.com/huggingface/trl-jobs
 
-⚠️ **In Claude Code context, prefer using `hf_jobs()` MCP tool (Approach 1) when available.**
+⚠️ **在Claude Code上下文中，当可用时，优先使用`hf_jobs()` MCP工具（方法1）。**
 
-## Hardware Selection
+## 硬件选择
 
-| Model Size | Recommended Hardware | Cost (approx/hr) | Use Case |
+| 模型大小 | 推荐硬件 | 成本（约/小时） | 用例 |
 |------------|---------------------|------------------|----------|
-| <1B params | `t4-small` | ~$0.75 | Demos, quick tests only without eval steps |
-| 1-3B params | `t4-medium`, `l4x1` | ~$1.50-2.50 | Development |
-| 3-7B params | `a10g-small`, `a10g-large` | ~$3.50-5.00 | Production training |
-| 7-13B params | `a10g-large`, `a100-large` | ~$5-10 | Large models (use LoRA) |
-| 13B+ params | `a100-large`, `a10g-largex2` | ~$10-20 | Very large (use LoRA) |
+| <1B参数 | `t4-small` | ~$0.75 | 演示，快速测试（无评估步骤） |
+| 1-3B参数 | `t4-medium`, `l4x1` | ~$1.50-2.50 | 开发 |
+| 3-7B参数 | `a10g-small`, `a10g-large` | ~$3.50-5.00 | 生产训练 |
+| 7-13B参数 | `a10g-large`, `a100-large` | ~$5-10 | 大型模型（使用LoRA） |
+| 13B+参数 | `a100-large`, `a10g-largex2` | ~$10-20 | 非常大（使用LoRA） |
 
-**GPU Flavors:** cpu-basic/upgrade/performance/xl, t4-small/medium, l4x1/x4, a10g-small/large/largex2/largex4, a100-large, h100/h100x8
+**GPU类型：** cpu-basic/upgrade/performance/xl, t4-small/medium, l4x1/x4, a10g-small/large/largex2/largex4, a100-large, h100/h100x8
 
-**Guidelines:**
-- Use **LoRA/PEFT** for models >7B to reduce memory
-- Multi-GPU automatically handled by TRL/Accelerate
-- Start with smaller hardware for testing
+**指南：**
+- 对于>7B模型，使用**LoRA/PEFT**减少内存
+- TRL/Accelerate自动处理多GPU
+- 从小型硬件开始测试
 
-**See:** `references/hardware_guide.md` for detailed specifications
+**参见：** `references/hardware_guide.md`获取详细规格
 
-## Critical: Saving Results to Hub
+## 关键：将结果保存到Hub
 
-**⚠️ EPHEMERAL ENVIRONMENT—MUST PUSH TO HUB**
+**⚠️ 临时环境—必须推送到Hub**
 
-The Jobs environment is temporary. All files are deleted when the job ends. If the model isn't pushed to Hub, **ALL TRAINING IS LOST**.
+Jobs环境是临时的。作业结束时所有文件都会被删除。如果模型没有推送到Hub，**所有训练都将丢失**。
 
-### Required Configuration
+### 必要配置
 
-**In training script/config:**
+**在训练脚本/配置中：**
 ```python
 SFTConfig(
     push_to_hub=True,
-    hub_model_id="username/model-name",  # MUST specify
-    hub_strategy="every_save",  # Optional: push checkpoints
+    hub_model_id="username/model-name",  # 必须指定
+    hub_strategy="every_save",  # 可选：推送检查点
 )
 ```
 
-**In job submission:**
+**在作业提交中：**
 ```python
 {
-    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # Enables authentication
+    "secrets": {"HF_TOKEN": "$HF_TOKEN"}  # 启用身份验证
 }
 ```
 
-### Verification Checklist
+### 验证清单
 
-Before submitting:
-- [ ] `push_to_hub=True` set in config
-- [ ] `hub_model_id` includes username/repo-name
-- [ ] `secrets` parameter includes HF_TOKEN
-- [ ] User has write access to target repo
+提交前：
+- [ ] 在配置中设置`push_to_hub=True`
+- [ ] `hub_model_id`包含用户名/仓库名
+- [ ] `secrets`参数包含HF_TOKEN
+- [ ] 用户对目标仓库有写入权限
 
-**See:** `references/hub_saving.md` for detailed troubleshooting
+**参见：** `references/hub_saving.md`获取详细故障排除
 
-## Timeout Management
+## 超时管理
 
-**⚠️ DEFAULT: 30 MINUTES—TOO SHORT FOR TRAINING**
+**⚠️ 默认：30分钟—对训练来说太短**
 
-### Setting Timeouts
+### 设置超时
 
 ```python
 {
-    "timeout": "2h"   # 2 hours (formats: "90m", "2h", "1.5h", or seconds as integer)
+    "timeout": "2h"   # 2小时（格式："90m"，"2h"，"1.5h"，或整数秒）
 }
 ```
 
-### Timeout Guidelines
+### 超时指南
 
-| Scenario | Recommended | Notes |
+| 场景 | 推荐 | 说明 |
 |----------|-------------|-------|
-| Quick demo (50-100 examples) | 10-30 min | Verify setup |
-| Development training | 1-2 hours | Small datasets |
-| Production (3-7B model) | 4-6 hours | Full datasets |
-| Large model with LoRA | 3-6 hours | Depends on dataset |
+| 快速演示（50-100个示例） | 10-30分钟 | 验证设置 |
+| 开发训练 | 1-2小时 | 小型数据集 |
+| 生产（3-7B模型） | 4-6小时 | 完整数据集 |
+| 带LoRA的大型模型 | 3-6小时 | 取决于数据集 |
 
-**Always add 20-30% buffer** for model/dataset loading, checkpoint saving, Hub push operations, and network delays.
+**始终添加20-30%的缓冲**用于模型/数据集加载、检查点保存、Hub推送操作和网络延迟。
 
-**On timeout:** Job killed immediately, all unsaved progress lost, must restart from beginning
+**超时后果：** 作业立即终止，所有未保存的进度丢失，必须从头开始重新启动
 
-## Cost Estimation
+## 成本估算
 
-**Offer to estimate cost when planning jobs with known parameters.** Use `scripts/estimate_cost.py`:
+**当使用已知参数规划作业时，提供成本估算。** 使用`scripts/estimate_cost.py`：
 
 ```bash
 uv run scripts/estimate_cost.py \
@@ -425,84 +424,83 @@ uv run scripts/estimate_cost.py \
   --epochs 3
 ```
 
-Output includes estimated time, cost, recommended timeout (with buffer), and optimization suggestions.
+输出包括估计时间、成本、推荐超时（带缓冲）和优化建议。
 
-**When to offer:** User planning a job, asks about cost/time, choosing hardware, job will run >1 hour or cost >$5
+**何时提供：** 用户计划作业，询问成本/时间，选择硬件，作业将运行>1小时或成本>$5
 
-## Example Training Scripts
+## 示例训练脚本
 
-**Production-ready templates with all best practices:**
+**具有所有最佳实践的生产就绪模板：**
 
-Load these scripts for correctly:
+正确加载这些脚本：
 
-- **`scripts/train_sft_example.py`** - Complete SFT training with Trackio, LoRA, checkpoints
-- **`scripts/train_dpo_example.py`** - DPO training for preference learning
-- **`scripts/train_grpo_example.py`** - GRPO training for online RL
+- **`scripts/train_sft_example.py`** - 完整的SFT训练，包含Trackio、LoRA、检查点
+- **`scripts/train_dpo_example.py`** - 用于偏好学习的DPO训练
+- **`scripts/train_grpo_example.py`** - 用于在线RL的GRPO训练
 
-These scripts demonstrate proper Hub saving, Trackio integration, checkpoint management, and optimized parameters. Pass their content inline to `hf_jobs()` or use as templates for custom scripts.
+这些脚本展示了正确的Hub保存、Trackio集成、检查点管理和优化参数。将其内容内联传递给`hf_jobs()`或用作自定义脚本的模板。
 
-## Monitoring and Tracking
+## 监控和跟踪
 
-**Trackio** provides real-time metrics visualization. See `references/trackio_guide.md` for complete setup guide.
+**Trackio**提供实时指标可视化。参见`references/trackio_guide.md`获取完整设置指南。
 
-**Key points:**
-- Add `trackio` to dependencies
-- Configure trainer with `report_to="trackio" and run_name="meaningful_name"`
+**关键点：**
+- 将`trackio`添加到依赖项
+- 使用`report_to="trackio"`和`run_name="meaningful_name"`配置训练器
 
-### Trackio Configuration Defaults
+### Trackio配置默认值
 
-**Use sensible defaults unless user specifies otherwise.** When generating training scripts with Trackio:
+**除非用户指定，否则使用合理的默认值。** 当生成带有Trackio的训练脚本时：
 
-**Default Configuration:**
-- **Space ID**: `{username}/trackio` (use "trackio" as default space name)
-- **Run naming**: Unless otherwise specified, name the run in a way the user will recognize (e.g., descriptive of the task, model, or purpose)
-- **Config**: Keep minimal - only include hyperparameters and model/dataset info
-- **Project Name**: Use a Project Name to associate runs with a particular Project 
+**默认配置：**
+- **空间ID**：`{username}/trackio`（使用"trackio"作为默认空间名称）
+- **运行命名**：除非另有指定，否则以用户可识别的方式命名运行（例如，描述任务、模型或目的）
+- **配置**：保持最小 - 仅包含超参数和模型/数据集信息
+- **项目名称**：使用项目名称将运行与特定项目关联
 
-**User overrides:** If user requests specific trackio configuration (custom space, run naming, grouping, or additional config), apply their preferences instead of defaults.
+**用户覆盖：** 如果用户请求特定的trackio配置（自定义空间、运行命名、分组或附加配置），应用他们的偏好而不是默认值。
 
+这对于管理具有相同配置的多个作业或保持训练脚本可移植性很有用。
 
-This is useful for managing multiple jobs with the same configuration or keeping training scripts portable.
+参见`references/trackio_guide.md`获取完整文档，包括实验的运行分组。
 
-See `references/trackio_guide.md` for complete documentation including grouping runs for experiments.
-
-### Check Job Status
+### 检查作业状态
 
 ```python
-# List all jobs
+# 列出所有作业
 hf_jobs("ps")
 
-# Inspect specific job
+# 检查特定作业
 hf_jobs("inspect", {"job_id": "your-job-id"})
 
-# View logs
+# 查看日志
 hf_jobs("logs", {"job_id": "your-job-id"})
 ```
 
-**Remember:** Wait for user to request status checks. Avoid polling repeatedly.
+**记住：** 等待用户请求状态检查。避免重复轮询。
 
-## Dataset Validation
+## 数据集验证
 
-**Validate dataset format BEFORE launching GPU training to prevent the #1 cause of training failures: format mismatches.**
+**在启动GPU训练前验证数据集格式，以防止训练失败的主要原因：格式不匹配。**
 
-### Why Validate
+### 为什么验证
 
-- 50%+ of training failures are due to dataset format issues
-- DPO especially strict: requires exact column names (`prompt`, `chosen`, `rejected`)
-- Failed GPU jobs waste $1-10 and 30-60 minutes
-- Validation on CPU costs ~$0.01 and takes <1 minute
+- 50%+的训练失败是由于数据集格式问题
+- DPO特别严格：需要确切的列名（`prompt`、`chosen`、`rejected`）
+- 失败的GPU作业浪费$1-10和30-60分钟
+- 在CPU上验证成本~$0.01，耗时<1分钟
 
-### When to Validate
+### 何时验证
 
-**ALWAYS validate for:**
-- Unknown or custom datasets
-- DPO training (CRITICAL - 90% of datasets need mapping)
-- Any dataset not explicitly TRL-compatible
+**始终验证：**
+- 未知或自定义数据集
+- DPO训练（关键 - 90%的数据集需要映射）
+- 任何未明确标记为TRL兼容的数据集
 
-**Skip validation for known TRL datasets:**
-- `trl-lib/ultrachat_200k`, `trl-lib/Capybara`, `HuggingFaceH4/ultrachat_200k`, etc.
+**跳过已知TRL数据集的验证：**
+- `trl-lib/ultrachat_200k`、`trl-lib/Capybara`、`HuggingFaceH4/ultrachat_200k`等
 
-### Usage
+### 使用方法
 
 ```python
 hf_jobs("uv", {
@@ -511,33 +509,33 @@ hf_jobs("uv", {
 })
 ```
 
-The script is fast, and will usually complete synchronously.
+脚本速度快，通常会同步完成。
 
-### Reading Results
+### 读取结果
 
-The output shows compatibility for each training method:
+输出显示每种训练方法的兼容性：
 
-- **`✓ READY`** - Dataset is compatible, use directly
-- **`✗ NEEDS MAPPING`** - Compatible but needs preprocessing (mapping code provided)
-- **`✗ INCOMPATIBLE`** - Cannot be used for this method
+- **`✓ READY`** - 数据集兼容，直接使用
+- **`✗ NEEDS MAPPING`** - 兼容但需要预处理（提供映射代码）
+- **`✗ INCOMPATIBLE`** - 不能用于此方法
 
-When mapping is needed, the output includes a **"MAPPING CODE"** section with copy-paste ready Python code.
+当需要映射时，输出包括**"MAPPING CODE"**部分，包含可直接复制粘贴的Python代码。
 
-### Example Workflow
+### 示例工作流
 
 ```python
-# 1. Inspect dataset (costs ~$0.01, <1 min on CPU)
+# 1. 检查数据集（成本~$0.01，CPU上<1分钟）
 hf_jobs("uv", {
     "script": "https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py",
     "script_args": ["--dataset", "argilla/distilabel-math-preference-dpo", "--split", "train"]
 })
 
-# 2. Check output markers:
-#    ✓ READY → proceed with training
-#    ✗ NEEDS MAPPING → apply mapping code below
-#    ✗ INCOMPATIBLE → choose different method/dataset
+# 2. 检查输出标记：
+#    ✓ READY → 继续训练
+#    ✗ NEEDS MAPPING → 应用下面的映射代码
+#    ✗ INCOMPATIBLE → 选择不同方法/数据集
 
-# 3. If mapping needed, apply before training:
+# 3. 如果需要映射，在训练前应用：
 def format_for_dpo(example):
     return {
         'prompt': example['instruction'],
@@ -546,39 +544,39 @@ def format_for_dpo(example):
     }
 dataset = dataset.map(format_for_dpo, remove_columns=dataset.column_names)
 
-# 4. Launch training job with confidence
+# 4. 自信启动训练作业
 ```
 
-### Common Scenario: DPO Format Mismatch
+### 常见场景：DPO格式不匹配
 
-Most DPO datasets use non-standard column names. Example:
+大多数DPO数据集使用非标准列名。示例：
 
 ```
-Dataset has: instruction, chosen_response, rejected_response
-DPO expects: prompt, chosen, rejected
+数据集有：instruction, chosen_response, rejected_response
+DPO期望：prompt, chosen, rejected
 ```
 
-The validator detects this and provides exact mapping code to fix it.
+验证器检测到这一点并提供确切的映射代码来修复它。
 
-## Converting Models to GGUF
+## 将模型转换为GGUF
 
-After training, convert models to **GGUF format** for use with llama.cpp, Ollama, LM Studio, and other local inference tools.
+训练后，将模型转换为**GGUF格式**，用于llama.cpp、Ollama、LM Studio和其他本地推理工具。
 
-**What is GGUF:**
-- Optimized for CPU/GPU inference with llama.cpp
-- Supports quantization (4-bit, 5-bit, 8-bit) to reduce model size
-- Compatible with Ollama, LM Studio, Jan, GPT4All, llama.cpp
-- Typically 2-8GB for 7B models (vs 14GB unquantized)
+**什么是GGUF：**
+- 为llama.cpp的CPU/GPU推理优化
+- 支持量化（4位、5位、8位）以减少模型大小
+- 兼容Ollama、LM Studio、Jan、GPT4All、llama.cpp
+- 7B模型通常为2-8GB（相比未量化的14GB）
 
-**When to convert:**
-- Running models locally with Ollama or LM Studio
-- Reducing model size with quantization
-- Deploying to edge devices
-- Sharing models for local-first use
+**何时转换：**
+- 使用Ollama或LM Studio在本地运行模型
+- 通过量化减小模型大小
+- 部署到边缘设备
+- 共享模型用于本地优先使用
 
-**See:** `references/gguf_conversion.md` for complete conversion guide, including production-ready conversion script, quantization options, hardware requirements, usage examples, and troubleshooting.
+**参见：** `references/gguf_conversion.md`获取完整转换指南，包括生产就绪的转换脚本、量化选项、硬件要求、使用示例和故障排除。
 
-**Quick conversion:**
+**快速转换：**
 ```python
 hf_jobs("uv", {
     "script": "<see references/gguf_conversion.md for complete script>",
@@ -593,114 +591,114 @@ hf_jobs("uv", {
 })
 ```
 
-## Common Training Patterns
+## 常见训练模式
 
-See `references/training_patterns.md` for detailed examples including:
-- Quick demo (5-10 minutes)
-- Production with checkpoints
-- Multi-GPU training
-- DPO training (preference learning)
-- GRPO training (online RL)
+参见`references/training_patterns.md`获取详细示例，包括：
+- 快速演示（5-10分钟）
+- 带检查点的生产
+- 多GPU训练
+- DPO训练（偏好学习）
+- GRPO训练（在线RL）
 
-## Common Failure Modes
+## 常见失败模式
 
-### Out of Memory (OOM)
+### 内存不足（OOM）
 
-**Fix (try in order):**
-1. Reduce batch size: `per_device_train_batch_size=1`, increase `gradient_accumulation_steps=8`. Effective batch size is `per_device_train_batch_size` x `gradient_accumulation_steps`. For best performance keep effective batch size close to 128. 
-2. Enable: `gradient_checkpointing=True`
-3. Upgrade hardware: t4-small → l4x1, a10g-small → a10g-large etc. 
+**修复（按顺序尝试）：**
+1. 减少批量大小：`per_device_train_batch_size=1`，增加`gradient_accumulation_steps=8`。有效批量大小为`per_device_train_batch_size` x `gradient_accumulation_steps`。为获得最佳性能，保持有效批量大小接近128。
+2. 启用：`gradient_checkpointing=True`
+3. 升级硬件：t4-small → l4x1, a10g-small → a10g-large等
 
-### Dataset Misformatted
+### 数据集格式错误
 
-**Fix:**
-1. Validate first with dataset inspector:
+**修复：**
+1. 首先使用数据集检查器验证：
    ```bash
    uv run https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py \
      --dataset name --split train
    ```
-2. Check output for compatibility markers (✓ READY, ✗ NEEDS MAPPING, ✗ INCOMPATIBLE)
-3. Apply mapping code from inspector output if needed
+2. 检查输出兼容性标记（✓ READY, ✗ NEEDS MAPPING, ✗ INCOMPATIBLE）
+3. 如果需要，应用检查器输出中的映射代码
 
-### Job Timeout
+### 作业超时
 
-**Fix:**
-1. Check logs for actual runtime: `hf_jobs("logs", {"job_id": "..."})`
-2. Increase timeout with buffer: `"timeout": "3h"` (add 30% to estimated time)
-3. Or reduce training: lower `num_train_epochs`, use smaller dataset, enable `max_steps`
-4. Save checkpoints: `save_strategy="steps"`, `save_steps=500`, `hub_strategy="every_save"`
+**修复：**
+1. 检查日志中的实际运行时间：`hf_jobs("logs", {"job_id": "..."})`
+2. 增加超时并添加缓冲：`"timeout": "3h"`（在估计时间上增加30%）
+3. 或减少训练：降低`num_train_epochs`，使用较小的数据集，启用`max_steps`
+4. 保存检查点：`save_strategy="steps"`，`save_steps=500`，`hub_strategy="every_save"`
 
-**Note:** Default 30min is insufficient for real training. Minimum 1-2 hours.
+**注意：** 默认30分钟对实际训练不足。推荐最低1-2小时。
 
-### Hub Push Failures
+### Hub推送失败
 
-**Fix:**
-1. Add to job: `secrets={"HF_TOKEN": "$HF_TOKEN"}`
-2. Add to config: `push_to_hub=True`, `hub_model_id="username/model-name"`
-3. Verify auth: `mcp__huggingface__hf_whoami()`
-4. Check token has write permissions and repo exists (or set `hub_private_repo=True`)
+**修复：**
+1. 添加到作业：`secrets={"HF_TOKEN": "$HF_TOKEN"}`
+2. 添加到配置：`push_to_hub=True`，`hub_model_id="username/model-name"`
+3. 验证认证：`mcp__huggingface__hf_whoami()`
+4. 检查令牌是否具有写入权限且仓库存在（或设置`hub_private_repo=True`）
 
-### Missing Dependencies
+### 缺少依赖项
 
-**Fix:**
-Add to PEP 723 header:
+**修复：**
+添加到PEP 723头部：
 ```python
 # /// script
 # dependencies = ["trl>=0.12.0", "peft>=0.7.0", "trackio", "missing-package"]
 # ///
 ```
 
-## Troubleshooting
+## 故障排除
 
-**Common issues:**
-- Job times out → Increase timeout, reduce epochs/dataset, use smaller model/LoRA
-- Model not saved to Hub → Check push_to_hub=True, hub_model_id, secrets=HF_TOKEN
-- Out of Memory (OOM) → Reduce batch size, increase gradient accumulation, enable LoRA, use larger GPU
-- Dataset format error → Validate with dataset inspector (see Dataset Validation section)
-- Import/module errors → Add PEP 723 header with dependencies, verify format
-- Authentication errors → Check `mcp__huggingface__hf_whoami()`, token permissions, secrets parameter
+**常见问题：**
+- 作业超时 → 增加超时，减少轮次/数据集，使用较小模型/LoRA
+- 模型未保存到Hub → 检查push_to_hub=True，hub_model_id，secrets=HF_TOKEN
+- 内存不足（OOM） → 减少批量大小，增加梯度累积，启用LoRA，使用更大的GPU
+- 数据集格式错误 → 使用数据集检查器验证（见数据集验证部分）
+- 导入/模块错误 → 添加带依赖项的PEP 723头部，验证格式
+- 认证错误 → 检查`mcp__huggingface__hf_whoami()`，令牌权限，secrets参数
 
-**See:** `references/troubleshooting.md` for complete troubleshooting guide
+**参见：** `references/troubleshooting.md`获取完整故障排除指南
 
-## Resources
+## 资源
 
-### References (In This Skill)
-- `references/training_methods.md` - Overview of SFT, DPO, GRPO, KTO, PPO, Reward Modeling
-- `references/training_patterns.md` - Common training patterns and examples
-- `references/gguf_conversion.md` - Complete GGUF conversion guide
-- `references/trackio_guide.md` - Trackio monitoring setup
-- `references/hardware_guide.md` - Hardware specs and selection
-- `references/hub_saving.md` - Hub authentication troubleshooting
-- `references/troubleshooting.md` - Common issues and solutions
+### 参考（本技能中）
+- `references/training_methods.md` - SFT、DPO、GRPO、KTO、PPO、奖励建模概述
+- `references/training_patterns.md` - 常见训练模式和示例
+- `references/gguf_conversion.md` - 完整的GGUF转换指南
+- `references/trackio_guide.md` - Trackio监控设置
+- `references/hardware_guide.md` - 硬件规格和选择
+- `references/hub_saving.md` - Hub认证故障排除
+- `references/troubleshooting.md` - 常见问题和解决方案
 
-### Scripts (In This Skill)
-- `scripts/train_sft_example.py` - Production SFT template
-- `scripts/train_dpo_example.py` - Production DPO template
-- `scripts/train_grpo_example.py` - Production GRPO template
-- `scripts/estimate_cost.py` - Estimate time and cost (offer when appropriate)
-- `scripts/convert_to_gguf.py` - Complete GGUF conversion script
+### 脚本（本技能中）
+- `scripts/train_sft_example.py` - 生产SFT模板
+- `scripts/train_dpo_example.py` - 生产DPO模板
+- `scripts/train_grpo_example.py` - 生产GRPO模板
+- `scripts/estimate_cost.py` - 估计时间和成本（适当时提供）
+- `scripts/convert_to_gguf.py` - 完整的GGUF转换脚本
 
-### External Scripts
-- [Dataset Inspector](https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py) - Validate dataset format before training (use via `uv run` or `hf_jobs`)
+### 外部脚本
+- [Dataset Inspector](https://huggingface.co/datasets/mcp-tools/skills/raw/main/dataset_inspector.py) - 训练前验证数据集格式（通过`uv run`或`hf_jobs`使用）
 
-### External Links
-- [TRL Documentation](https://huggingface.co/docs/trl)
-- [TRL Jobs Training Guide](https://huggingface.co/docs/trl/en/jobs_training)
-- [TRL Jobs Package](https://github.com/huggingface/trl-jobs)
-- [HF Jobs Documentation](https://huggingface.co/docs/huggingface_hub/guides/jobs)
-- [TRL Example Scripts](https://github.com/huggingface/trl/tree/main/examples/scripts)
-- [UV Scripts Guide](https://docs.astral.sh/uv/guides/scripts/)
-- [UV Scripts Organization](https://huggingface.co/uv-scripts)
+### 外部链接
+- [TRL文档](https://huggingface.co/docs/trl)
+- [TRL Jobs训练指南](https://huggingface.co/docs/trl/en/jobs_training)
+- [TRL Jobs包](https://github.com/huggingface/trl-jobs)
+- [HF Jobs文档](https://huggingface.co/docs/huggingface_hub/guides/jobs)
+- [TRL示例脚本](https://github.com/huggingface/trl/tree/main/examples/scripts)
+- [UV脚本指南](https://docs.astral.sh/uv/guides/scripts/)
+- [UV脚本组织](https://huggingface.co/uv-scripts)
 
-## Key Takeaways
+## 关键要点
 
-1. **Submit scripts inline** - The `script` parameter accepts Python code directly; no file saving required unless user requests
-2. **Jobs are asynchronous** - Don't wait/poll; let user check when ready
-3. **Always set timeout** - Default 30 min is insufficient; minimum 1-2 hours recommended
-4. **Always enable Hub push** - Environment is ephemeral; without push, all results lost
-5. **Include Trackio** - Use example scripts as templates for real-time monitoring
-6. **Offer cost estimation** - When parameters are known, use `scripts/estimate_cost.py`
-7. **Use UV scripts (Approach 1)** - Default to `hf_jobs("uv", {...})` with inline scripts; TRL maintained scripts for standard training; avoid bash `trl-jobs` commands in Claude Code
-8. **Use hf_doc_fetch/hf_doc_search** for latest TRL documentation
-9. **Validate dataset format** before training with dataset inspector (see Dataset Validation section)
-10. **Choose appropriate hardware** for model size; use LoRA for models >7B
+1. **内联提交脚本** - `script`参数直接接受Python代码；除非用户请求，否则无需保存文件
+2. **作业是异步的** - 不要等待/轮询；让用户在准备好时检查
+3. **始终设置超时** - 默认30分钟不足；推荐最低1-2小时
+4. **始终启用Hub推送** - 环境是临时的；不推送则所有结果丢失
+5. **包含Trackio** - 使用示例脚本作为实时监控的模板
+6. **提供成本估算** - 当参数已知时，使用`scripts/estimate_cost.py`
+7. **使用UV脚本（方法1）** - 默认使用`hf_jobs("uv", {...})`和内联脚本；标准训练使用TRL维护的脚本；避免在Claude Code中使用bash `trl-jobs`命令
+8. **使用hf_doc_fetch/hf_doc_search**获取最新的TRL文档
+9. **训练前验证数据集格式** - 使用数据集检查器（见数据集验证部分）
+10. **为模型大小选择适当的硬件**；对>7B模型使用LoRA

@@ -1,37 +1,37 @@
-# Week 2: Publish a Hub Dataset
+# 第2周：发布Hub数据集
 
-Create and share high-quality datasets on the Hub. Good data is the foundation of good models—help the community by contributing datasets others can train on.
+在Hub上创建并分享高质量数据集。好的数据是好模型的基础——通过贡献其他人可以训练的数据集来帮助社区。
 
-## Why This Matters
+## 为什么这很重要
 
-The best open source models are built on openly available datasets. By publishing well-documented, properly structured datasets, you're directly enabling the next generation of model development. Quality matters more than quantity.
+最好的开源模型建立在公开可用的数据集之上。通过发布文档完善、结构合理的数据集，你直接为下一代模型开发提供了支持。质量比数量更重要。
 
-## The Skill
+## 技能
 
-Use `hf-datasets/` for this quest. Key capabilities:
+使用`hf-datasets/`完成此任务。关键功能：
 
-- Initialize dataset repos with proper structure
-- Multi-format support: chat, classification, QA, completion, tabular
-- Template-based validation for data quality
-- Streaming uploads without downloading entire datasets
+- 以适当的结构初始化数据集仓库
+- 多格式支持：聊天、分类、问答、补全、表格
+- 基于模板的数据质量验证
+- 流式上传，无需下载整个数据集
 
 ```bash
-# Quick setup with a template
+# 使用模板快速设置
 python hf-datasets/scripts/dataset_manager.py quick_setup \
   --repo_id "your-username/dataset-name" --template chat
 ```
 
-## XP Tiers
+## XP等级
 
-### 🐢 Starter — 50 XP
+### 🐢 入门 — 50 XP
 
-**Upload a small, clean dataset with a complete dataset card.**
+**上传一个小型、干净的数据集，包含完整的数据集卡片。**
 
-1. Create a dataset with ≤1,000 rows
-2. Write a dataset card covering: license, splits, and data provenance
-3. Upload to the Hub under the hackathon organization (or your own account)
+1. 创建一个≤1,000行的数据集
+2. 编写数据集卡片，包括：许可证、分割和数据来源
+3. 上传到黑客马拉松组织下的Hub（或你自己的账户）
 
-**What counts:** Clean data, clear documentation, proper licensing.
+**计算标准：** 干净的数据、清晰的文档、适当的许可。
 
 ```bash
 python hf-datasets/scripts/dataset_manager.py init \
@@ -43,32 +43,32 @@ python hf-datasets/scripts/dataset_manager.py add_rows \
   --rows_json "$(cat your_data.json)"
 ```
 
-### 🐕 Standard — 100 XP
+### 🐕 标准 — 100 XP
 
-**Publish a conversational dataset with a complete dataset card.**
+**发布一个会话数据集，包含完整的数据集卡片。**
 
-1. Create a dataset with ≤1,000 rows
-2. Write a dataset card covering: license and splits.
-3. Upload to the Hub under the hackathon organization.
+1. 创建一个≤1,000行的数据集
+2. 编写数据集卡片，包括：许可证和分割。
+3. 上传到黑客马拉松组织下的Hub。
 
-**What counts:** Clean data, clear documentation, proper licensing.
+**计算标准：** 干净的数据、清晰的文档、适当的许可。
 
-### 🦁 Advanced — 200 XP
+### 🦁 高级 — 200 XP
 
-**Translate a dataset into multiple languages and publish it on the Hub.**
+**将数据集翻译成多种语言并在Hub上发布。**
 
-1. Find a dataset on the Hub
-2. Translate the dataset into multiple languages
-3. Publish the translated datasets on the Hub under the hackathon organization
+1. 在Hub上找到一个数据集
+2. 将数据集翻译成多种语言
+3. 在黑客马拉松组织下的Hub上发布翻译后的数据集
 
-**What counts:** Translated datasets and merged PRs.
+**计算标准：** 翻译后的数据集和已合并的PR。
 
-## Resources
+## 资源
 
-- [SKILL.md](../../hf-datasets/SKILL.md) — Full skill documentation
-- [Templates](../../hf-datasets/templates/) — JSON templates for each format
-- [Examples](../../hf-datasets/examples/) — Sample data and system prompts
+- [SKILL.md](../../hf-datasets/SKILL.md) — 完整技能文档
+- [Templates](../../hf-datasets/templates/) — 每种格式的JSON模板
+- [Examples](../../hf-datasets/examples/) — 样本数据和系统提示
 
 ---
 
-**Next Quest:** [Supervised Fine-Tuning](04_sft-finetune-hub.md)
+**下一个任务：** [监督微调](04_sft-finetune-hub.md)

@@ -9,20 +9,20 @@
 # ///
 
 """
-Add Artificial Analysis evaluations to a Hugging Face model card.
+将 Artificial Analysis 评估结果添加到 Hugging Face 模型卡片。
 
-NOTE: This is a standalone reference script. For integrated functionality
-with additional features (README extraction, validation, etc.), use:
-    ../scripts/evaluation_manager.py import-aa [options]
+注意：这是一个独立的参考脚本。对于集成功能
+（README 提取、验证等），请使用：
+    ../scripts/evaluation_manager.py import-aa [选项]
 
-STANDALONE USAGE:
-AA_API_KEY="<your-api-key>" HF_TOKEN="<your-huggingface-token>" \
+独立使用：
+AA_API_KEY="<您的-api-密钥>" HF_TOKEN="<您的-huggingface-令牌>" \
 python artificial_analysis_to_hub.py \
 --creator-slug <artificial-analysis-creator-slug> \
 --model-name <artificial-analysis-model-name> \
 --repo-id <huggingface-repo-id>
 
-INTEGRATED USAGE (Recommended):
+集成使用（推荐）：
 python ../scripts/evaluation_manager.py import-aa \
 --creator-slug <creator-slug> \
 --model-name <model-name> \
@@ -45,9 +45,9 @@ URL = "https://artificialanalysis.ai/api/v2/data/llms/models"
 HEADERS = {"x-api-key": API_KEY}
 
 if not API_KEY:
-    raise ValueError("AA_API_KEY is not set")
+    raise ValueError("AA_API_KEY 未设置")
 if not HF_TOKEN:
-    raise ValueError("HF_TOKEN is not set")
+    raise ValueError("HF_TOKEN 未设置")
 
 
 def get_model_evaluations_data(creator_slug, model_name):
@@ -59,7 +59,7 @@ def get_model_evaluations_data(creator_slug, model_name):
             and model["slug"] == model_name
         ):
             return model
-    raise ValueError(f"Model {model_name} not found")
+    raise ValueError(f"未找到模型 {model_name}")
 
 
 def aa_evaluations_to_model_index(
@@ -69,7 +69,7 @@ def aa_evaluations_to_model_index(
     task_type="evaluation",
 ):
     if not model:
-        raise ValueError("Model data is required")
+        raise ValueError("需要模型数据")
 
     model_name = model.get("name", model.get("slug", "unknown-model"))
     evaluations = model.get("evaluations", {})
@@ -121,11 +121,11 @@ def main():
     card.data["model-index"] = model_index
 
     commit_message = (
-        f"Add Artificial Analysis evaluations for {args.model_name}"
+        f"为 {args.model_name} 添加 Artificial Analysis 评估结果"
     )
     commit_description = (
-        f"This commit adds the Artificial Analysis evaluations for the {args.model_name} model to this repository. "
-        "To see the scores, visit the [Artificial Analysis](https://artificialanalysis.ai) website."
+        f"此提交将 {args.model_name} 模型的 Artificial Analysis 评估结果添加到此仓库。 "
+        "要查看分数，请访问 [Artificial Analysis](https://artificialanalysis.ai) 网站。"
     )
 
     card.push_to_hub(

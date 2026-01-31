@@ -811,89 +811,89 @@ hf endpoints deploy my-endpoint \
 | `--token` | Authentication token |
 
 ### hf endpoints catalog ls
-List catalog models.
+列出目录模型。
 
 ```bash
 hf endpoints catalog ls
 ```
 
 ### hf endpoints catalog deploy
-Deploy an endpoint from the catalog.
+从目录部署端点。
 
 ```bash
 hf endpoints catalog deploy --repo openai/gpt-oss-120b --name my-endpoint
 ```
 
-**Options:**
-| Option | Description |
+**选项：**
+| 选项 | 描述 |
 |--------|-------------|
-| `--repo` | Catalog model repo |
-| `--name` | Endpoint name (optional) |
-| `--namespace` | Namespace for the endpoint |
-| `--token` | Authentication token |
+| `--repo` | 目录模型仓库 |
+| `--name` | 端点名称（可选） |
+| `--namespace` | 端点的命名空间 |
+| `--token` | 认证令牌 |
 
 ### hf endpoints describe
-Get endpoint details.
+获取端点详细信息。
 
 ```bash
 hf endpoints describe my-endpoint
 ```
 
-**Options:**
-| Option | Description |
+**选项：**
+| 选项 | 描述 |
 |--------|-------------|
-| `--namespace` | Endpoint namespace |
-| `--token` | Authentication token |
+| `--namespace` | 端点命名空间 |
+| `--token` | 认证令牌 |
 
 ### hf endpoints update
-Update endpoint settings.
+更新端点设置。
 
 ```bash
 hf endpoints update my-endpoint --min-replica 1 --max-replica 2
 hf endpoints update my-endpoint --repo openai/gpt-oss-120b --revision refs/pr/12
 ```
 
-**Options:**
-| Option | Description |
+**选项：**
+| 选项 | 描述 |
 |--------|-------------|
-| `--repo` | Model repo |
-| `--revision` | Model revision |
-| `--framework` | Serving framework |
-| `--accelerator` | Accelerator type |
-| `--instance-size` | Instance size |
-| `--instance-type` | Instance type |
-| `--task` | Task |
-| `--min-replica` | Minimum replicas |
-| `--max-replica` | Maximum replicas |
-| `--scale-to-zero-timeout` | Minutes before scaling to zero |
-| `--scaling-metric` | Scaling metric |
-| `--scaling-threshold` | Scaling threshold |
-| `--namespace` | Endpoint namespace |
-| `--token` | Authentication token |
+| `--repo` | 模型仓库 |
+| `--revision` | 模型版本 |
+| `--framework` | 服务框架 |
+| `--accelerator` | 加速器类型 |
+| `--instance-size` | 实例大小 |
+| `--instance-type` | 实例类型 |
+| `--task` | 任务 |
+| `--min-replica` | 最小副本数 |
+| `--max-replica` | 最大副本数 |
+| `--scale-to-zero-timeout` | 缩至零前的分钟数 |
+| `--scaling-metric` | 缩放指标 |
+| `--scaling-threshold` | 缩放阈值 |
+| `--namespace` | 端点命名空间 |
+| `--token` | 认证令牌 |
 
 ### hf endpoints delete
-Delete an endpoint permanently.
+永久删除端点。
 
 ```bash
 hf endpoints delete my-endpoint --yes
 ```
 
-**Options:**
-| Option | Description |
+**选项：**
+| 选项 | 描述 |
 |--------|-------------|
-| `--yes` | Skip confirmation prompt |
-| `--namespace` | Endpoint namespace |
-| `--token` | Authentication token |
+| `--yes` | 跳过确认提示 |
+| `--namespace` | 端点命名空间 |
+| `--token` | 认证令牌 |
 
 ### hf endpoints pause
-Pause an endpoint.
+暂停端点。
 
 ```bash
 hf endpoints pause my-endpoint
 ```
 
 ### hf endpoints resume
-Resume an endpoint.
+恢复端点。
 
 ```bash
 hf endpoints resume my-endpoint
@@ -901,7 +901,7 @@ hf endpoints resume my-endpoint --fail-if-already-running
 ```
 
 ### hf endpoints scale-to-zero
-Scale an endpoint to zero.
+将端点缩至零。
 
 ```bash
 hf endpoints scale-to-zero my-endpoint
@@ -909,24 +909,24 @@ hf endpoints scale-to-zero my-endpoint
 
 ---
 
-## Environment
+## 环境
 
 ### hf env
-Print environment information (useful for bug reports).
+打印环境信息（对错误报告有用）。
 
 ```bash
 hf env
 ```
 
-**Output includes:**
-- huggingface_hub version
-- Platform and Python version
-- Token status
-- Cache paths
-- Relevant environment variables
+**输出包括：**
+- huggingface_hub 版本
+- 平台和 Python 版本
+- 令牌状态
+- 缓存路径
+- 相关环境变量
 
 ### hf version
-Print CLI version.
+打印 CLI 版本。
 
 ```bash
 hf version
@@ -934,21 +934,21 @@ hf version
 
 ---
 
-## Environment Variables
+## 环境变量
 
-| Variable | Description | Default |
+| 变量 | 描述 | 默认值 |
 |----------|-------------|---------|
-| `HF_TOKEN` | Authentication token | - |
-| `HF_HUB_CACHE` | Cache directory | `~/.cache/huggingface/hub` |
-| `HF_HUB_DOWNLOAD_TIMEOUT` | Download timeout (seconds) | 10 |
-| `HF_HUB_OFFLINE` | Offline mode | False |
-| `HF_HUB_DISABLE_PROGRESS_BARS` | Disable progress bars | False |
+| `HF_TOKEN` | 认证令牌 | - |
+| `HF_HUB_CACHE` | 缓存目录 | `~/.cache/huggingface/hub` |
+| `HF_HUB_DOWNLOAD_TIMEOUT` | 下载超时（秒） | 10 |
+| `HF_HUB_OFFLINE` | 离线模式 | False |
+| `HF_HUB_DISABLE_PROGRESS_BARS` | 禁用进度条 | False |
 
 ---
 
-## Global Options
+## 全局选项
 
-All commands support:
-- `--help` - Show command help and options
-- `--token` - Override authentication token
-- `--repo-type` - Specify repository type (`model`, `dataset`, `space`)
+所有命令支持：
+- `--help` - 显示命令帮助和选项
+- `--token` - 覆盖认证令牌
+- `--repo-type` - 指定仓库类型（`model`、`dataset`、`space`）

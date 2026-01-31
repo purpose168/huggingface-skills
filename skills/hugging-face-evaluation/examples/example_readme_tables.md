@@ -1,11 +1,11 @@
-# Example Evaluation Table Formats
+# 评估表格格式示例
 
-This file shows various formats of evaluation tables that can be extracted from model README files.
+本文档展示了可以从模型README文件中提取的各种评估表格格式。
 
-## Format 1: Benchmarks as Rows (Most Common)
+## 格式1：基准测试作为行（最常见）
 
 ```markdown
-| Benchmark | Score |
+| 基准测试 | 分数 |
 |-----------|-------|
 | MMLU      | 85.2  |
 | HumanEval | 72.5  |
@@ -13,17 +13,17 @@ This file shows various formats of evaluation tables that can be extracted from 
 | HellaSwag | 88.9  |
 ```
 
-## Format 2: Multiple Metric Columns
+## 格式2：多指标列
 
 ```markdown
-| Benchmark | Accuracy | F1 Score |
+| 基准测试 | 准确率 | F1 分数 |
 |-----------|----------|----------|
 | MMLU      | 85.2     | 0.84     |
 | GSM8K     | 91.3     | 0.91     |
 | DROP      | 78.5     | 0.77     |
 ```
 
-## Format 3: Benchmarks as Columns
+## 格式3：基准测试作为列
 
 ```markdown
 | MMLU | HumanEval | GSM8K | HellaSwag |
@@ -31,10 +31,10 @@ This file shows various formats of evaluation tables that can be extracted from 
 | 85.2 | 72.5      | 91.3  | 88.9      |
 ```
 
-## Format 4: Percentage Values
+## 格式4：百分比值
 
 ```markdown
-| Benchmark     | Score    |
+| 基准测试     | 分数    |
 |---------------|----------|
 | MMLU          | 85.2%    |
 | HumanEval     | 72.5%    |
@@ -42,71 +42,71 @@ This file shows various formats of evaluation tables that can be extracted from 
 | TruthfulQA    | 68.7%    |
 ```
 
-## Format 5: Mixed Format with Categories
+## 格式5：带类别的混合格式
 
 ```markdown
-### Reasoning
+### 推理
 
-| Benchmark | Score |
+| 基准测试 | 分数 |
 |-----------|-------|
 | MMLU      | 85.2  |
 | BBH       | 82.4  |
 | GPQA      | 71.3  |
 
-### Coding
+### 编码
 
-| Benchmark | Score |
+| 基准测试 | 分数 |
 |-----------|-------|
 | HumanEval | 72.5  |
 | MBPP      | 78.9  |
 
-### Math
+### 数学
 
-| Benchmark | Score |
+| 基准测试 | 分数 |
 |-----------|-------|
 | GSM8K     | 91.3  |
 | MATH      | 65.8  |
 ```
 
-## Format 6: With Additional Columns
+## 格式6：带附加列
 
 ```markdown
-| Benchmark | Score | Rank | Notes              |
+| 基准测试 | 分数 | 排名 | 备注              |
 |-----------|-------|------|--------------------|
 | MMLU      | 85.2  | #5   | 5-shot             |
 | HumanEval | 72.5  | #8   | pass@1             |
 | GSM8K     | 91.3  | #3   | 8-shot, maj@1      |
 ```
 
-## How the Extractor Works
+## 提取器工作原理
 
-The script will:
-1. Find all markdown tables in the README
-2. Identify which tables contain evaluation results
-3. Parse the table structure (rows vs columns)
-4. Extract numeric values as scores
-5. Convert to model-index YAML format
+脚本将：
+1. 找到README中的所有markdown表格
+2. 识别哪些表格包含评估结果
+3. 解析表格结构（行与列）
+4. 提取数值作为分数
+5. 转换为model-index YAML格式
 
-## Tips for README Authors
+## README作者提示
 
-To ensure your evaluation tables are properly extracted:
+为确保您的评估表格被正确提取：
 
-1. **Use clear headers**: Include "Benchmark", "Score", or similar terms
-2. **Keep it simple**: Stick to benchmark name + score columns
-3. **Use standard formats**: Follow markdown table syntax
-4. **Include numeric values**: Ensure scores are parseable numbers
-5. **Be consistent**: Use the same format across multiple tables
+1. **使用清晰的标题**：包含"基准测试"、"分数"或类似术语
+2. **保持简单**：坚持使用基准测试名称+分数列
+3. **使用标准格式**：遵循markdown表格语法
+4. **包含数值**：确保分数是可解析的数字
+5. **保持一致**：在多个表格中使用相同的格式
 
-## Example Complete README Section
+## 完整README部分示例
 
 ```markdown
-# Model Card for MyModel-7B
+# MyModel-7B 模型卡片
 
-## Evaluation Results
+## 评估结果
 
-Our model was evaluated on several standard benchmarks:
+我们的模型在多个标准基准测试上进行了评估：
 
-| Benchmark     | Score |
+| 基准测试     | 分数 |
 |---------------|-------|
 | MMLU          | 85.2  |
 | HumanEval     | 72.5  |
@@ -115,20 +115,20 @@ Our model was evaluated on several standard benchmarks:
 | ARC-Challenge | 81.7  |
 | TruthfulQA    | 68.7  |
 
-### Detailed Results
+### 详细结果
 
-For more detailed results and methodology, see our [paper](link).
+有关更详细的结果和方法，请参阅我们的[论文](link)。
 ```
 
-## Running the Extractor
+## 运行提取器
 
 ```bash
-# Extract from this example
+# 从本示例中提取
 python scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/your-model" \
   --dry-run
 
-# Apply to your model card
+# 应用到您的模型卡片
 python scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/your-model" \
   --task-type "text-generation"

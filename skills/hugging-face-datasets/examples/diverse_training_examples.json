@@ -3,27 +3,27 @@
     "messages": [
       {
         "role": "user",
-        "content": "Hi there! I'm working on a Python project and getting stuck with some async programming concepts. Can you help explain how to use async/await properly?"
+        "content": "你好！我正在处理一个Python项目，对异步编程概念有些困惑。你能帮助我解释如何正确使用async/await吗？"
       },
       {
         "role": "assistant",
-        "content": "I'd be happy to help you understand async/await in Python! These are powerful tools for writing concurrent code. Let me show you some practical examples and explain the key concepts.\n\n**Basic async/await syntax:**\n```python\nimport asyncio\n\nasync def fetch_data():\n    # Simulate an async operation\n    await asyncio.sleep(1)\n    return \"Data fetched!\"\n\nasync def main():\n    result = await fetch_data()\n    print(result)\n\n# Run the async function\nasyncio.run(main())\n```\n\n**Key concepts:**\n- `async def` defines an asynchronous function (coroutine)\n- `await` pauses execution until the awaited operation completes\n- `asyncio.run()` runs the main async function\n\n**When to use async/await:**\n- I/O operations (file reads, network requests, database queries)\n- Operations that involve waiting\n- When you want to handle multiple tasks concurrently\n\nWould you like me to show you a more complex example with multiple concurrent operations, or do you have a specific use case you're working on?"
+        "content": "我很乐意帮助你理解Python中的async/await！这些是编写并发代码的强大工具。让我给你展示一些实用示例并解释关键概念。\n\n**基本的async/await语法：**\n```python\nimport asyncio\n\nasync def fetch_data():\n    # 模拟异步操作\n    await asyncio.sleep(1)\n    return '数据获取成功！'\n\nasync def main():\n    result = await fetch_data()\n    print(result)\n\n# 运行异步函数\nasyncio.run(main())\n```\n\n**关键概念：**\n- `async def` 定义异步函数（协程）\n- `await` 暂停执行直到等待的操作完成\n- `asyncio.run()` 运行主异步函数\n\n**何时使用async/await：**\n- I/O操作（文件读取、网络请求、数据库查询）\n- 涉及等待的操作\n- 当你想并发处理多个任务时\n\n你想让我展示一个包含多个并发操作的更复杂示例，还是你有特定的使用场景需要了解？"
       }
     ],
-    "scenario": "Educational chat about Python async programming concepts",
+    "scenario": "关于Python异步编程概念的教育性聊天",
     "complexity": "simple",
     "tools_used": [],
-    "learning_objectives": ["conversational teaching", "code explanation", "technical mentoring", "educational chat patterns"]
+    "learning_objectives": ["对话式教学", "代码解释", "技术指导", "教育性聊天模式"]
   },
   {
     "messages": [
       {
         "role": "user",
-        "content": "I need to create a new feature branch for my project, make some changes, and then create a pull request. Can you walk me through the Git workflow?"
+        "content": "我需要为我的项目创建一个新的特性分支，做一些更改，然后创建一个拉取请求。你能指导我完成Git工作流程吗？"
       },
       {
         "role": "assistant",
-        "content": "I'll help you with the complete Git workflow for creating a feature branch and pull request. Let me first check your current Git status and then guide you through each step.",
+        "content": "我将帮助你完成创建特性分支和拉取请求的完整Git工作流程。让我先检查你的当前Git状态，然后逐步指导你完成每个步骤。",
         "tool_calls": [
           {
             "type": "function",
@@ -41,7 +41,7 @@
       },
       {
         "role": "assistant",
-        "content": "Perfect! Your working tree is clean and you're on the main branch. Now let's create your feature branch and walk through the workflow.",
+        "content": "完美！你的工作树是干净的，并且你在main分支上。现在让我们创建你的特性分支并完成工作流程。",
         "tool_calls": [
           {
             "type": "function",
@@ -62,23 +62,23 @@
       },
       {
         "role": "assistant",
-        "content": "Great! I've created and switched to your new feature branch. Here's the complete workflow:\n\n**✅ Step 1: Created feature branch** (Done)\n```bash\ngit checkout -b feature/user-authentication\n```\n\n**Next steps for you:**\n\n**Step 2: Make your changes**\n- Edit your files as needed\n- Add your new feature code\n\n**Step 3: Stage and commit changes**\n```bash\ngit add .\ngit commit -m \"Add user authentication feature\"\n```\n\n**Step 4: Push branch to remote**\n```bash\ngit push -u origin feature/user-authentication\n```\n\n**Step 5: Create Pull Request**\n- Go to your repository on GitHub/GitLab\n- Click \"Create Pull Request\" or \"Merge Request\"\n- Fill in description and request review\n\nWould you like me to help you with any of these steps once you've made your changes?"
+        "content": "太好了！我已经创建并切换到你的新特性分支。以下是完整的工作流程：\n\n**✅ 步骤1：创建特性分支**（已完成）\n```bash\ngit checkout -b feature/user-authentication\n```\n\n**你的下一步：**\n\n**步骤2：进行更改**\n- 根据需要编辑文件\n- 添加新的特性代码\n\n**步骤3：暂存并提交更改**\n```bash\ngit add .\ngit commit -m 'Add user authentication feature'\n```\n\n**步骤4：推送到远程分支**\n```bash\ngit push -u origin feature/user-authentication\n```\n\n**步骤5：创建拉取请求**\n- 前往GitHub/GitLab上的你的仓库\n- 点击'Create Pull Request'或'Merge Request'\n- 填写描述并请求审核\n\n一旦你进行了更改，你需要我帮助你完成这些步骤中的任何一个吗？"
       }
     ],
-    "scenario": "Git workflow guidance for feature development",
+    "scenario": "特性开发的Git工作流程指导",
     "complexity": "intermediate",
     "tools_used": ["git_status", "git_branch"],
-    "learning_objectives": ["Git workflow patterns", "branch management", "collaborative development", "step-by-step guidance"]
+    "learning_objectives": ["Git工作流程模式", "分支管理", "协作开发", "分步指导"]
   },
   {
     "messages": [
       {
         "role": "user",
-        "content": "I have a Python function that's running really slowly. Can you help me analyze the code and suggest optimizations?"
+        "content": "我有一个运行速度非常慢的Python函数。你能帮助我分析代码并建议优化方案吗？"
       },
       {
         "role": "assistant",
-        "content": "I'd be happy to help optimize your Python code! Let me analyze the function to identify potential performance bottlenecks and suggest improvements.",
+        "content": "我很乐意帮助你优化Python代码！让我分析函数以识别潜在的性能瓶颈并提出改进建议。",
         "tool_calls": [
           {
             "type": "function",
@@ -98,7 +98,7 @@
       },
       {
         "role": "assistant",
-        "content": "I found some processing functions. Let me examine the code to identify performance issues.",
+        "content": "我找到了一些处理函数。让我检查代码以识别性能问题。",
         "tool_calls": [
           {
             "type": "function",
@@ -115,44 +115,44 @@
       },
       {
         "role": "tool",
-        "content": "def process_user_data(users_list):\n    results = []\n    for user in users_list:\n        # Multiple database calls in loop - PERFORMANCE ISSUE!\n        profile = db.get_user_profile(user.id)\n        settings = db.get_user_settings(user.id)\n        preferences = db.get_user_preferences(user.id)\n        \n        # String concatenation in loop - PERFORMANCE ISSUE!\n        summary = \"\"\n        for field in user.fields:\n            summary += f\"{field.name}: {field.value}\\n\"\n        \n        results.append({\n            'user': user,\n            'profile': profile,\n            'settings': settings,\n            'preferences': preferences,\n            'summary': summary\n        })\n    return results",
+        "content": "def process_user_data(users_list):\n    results = []\n    for user in users_list:\n        # Multiple database calls in loop - PERFORMANCE ISSUE!\n        profile = db.get_user_profile(user.id)\n        settings = db.get_user_settings(user.id)\n        preferences = db.get_user_preferences(user.id)\n        \n        # String concatenation in loop - PERFORMANCE ISSUE!\n        summary = \"\"\n        for field in user.fields:\n            summary += f\"{field.name}: {field.value}\n\"\n        \n        results.append({\n            'user': user,\n            'profile': profile,\n            'settings': settings,\n            'preferences': preferences,\n            'summary': summary\n        })\n    return results",
         "tool_call_id": "call_402"
       },
       {
         "role": "assistant",
-        "content": "I've identified several performance issues in your `process_user_data` function. Here's my analysis and optimization suggestions:\n\n**🔍 Performance Issues Found:**\n\n1. **N+1 Database Query Problem** (Lines 48-50)\n   - Making 3 separate DB calls per user in a loop\n   - This scales linearly with user count (very slow!)\n\n2. **String Concatenation in Loop** (Lines 52-55)\n   - Using `+=` for string building is inefficient\n   - Creates new string objects each iteration\n\n**⚡ Optimization Recommendations:**\n\n```python\ndef process_user_data_optimized(users_list):\n    # Fix 1: Batch database queries\n    user_ids = [user.id for user in users_list]\n    profiles = db.get_user_profiles_batch(user_ids)  # Single query\n    settings = db.get_user_settings_batch(user_ids)  # Single query  \n    preferences = db.get_user_preferences_batch(user_ids)  # Single query\n    \n    results = []\n    for user in users_list:\n        # Fix 2: Use join() for string concatenation\n        summary = \"\\n\".join(f\"{field.name}: {field.value}\" \n                           for field in user.fields)\n        \n        results.append({\n            'user': user,\n            'profile': profiles.get(user.id),\n            'settings': settings.get(user.id), \n            'preferences': preferences.get(user.id),\n            'summary': summary\n        })\n    return results\n```\n\n**Expected Performance Gain:** 10-100x faster depending on user count!\n\nWould you like me to help implement the batch database queries or analyze any other functions?"
+        "content": "我已经在你的`process_user_data`函数中识别出几个性能问题。以下是我的分析和优化建议：\n\n**🔍 发现的性能问题：**\n\n1. **N+1数据库查询问题**（第48-50行）\n   - 在循环中为每个用户进行3次单独的数据库调用\n   - 这会随着用户数量线性扩展（非常慢！）\n\n2. **循环中的字符串连接**（第52-55行）\n   - 使用`+=`进行字符串构建效率低下\n   - 每次迭代都会创建新的字符串对象\n\n**⚡ 优化建议：**\n\n```python\ndef process_user_data_optimized(users_list):\n    # 优化1：批量数据库查询\n    user_ids = [user.id for user in users_list]\n    profiles = db.get_user_profiles_batch(user_ids)  # 单次查询\n    settings = db.get_user_settings_batch(user_ids)  # 单次查询  \n    preferences = db.get_user_preferences_batch(user_ids)  # 单次查询\n    \n    results = []\n    for user in users_list:\n        # 优化2：使用join()进行字符串连接\n        summary = "\n".join(f"{field.name}: {field.value}" \\n                           for field in user.fields)\n        \n        results.append({\n            'user': user,\n            'profile': profiles.get(user.id),\n            'settings': settings.get(user.id),             'preferences': preferences.get(user.id),\n            'summary': summary\n        })\n    return results\n```\n\n**预期性能提升：** 根据用户数量，速度提升10-100倍！\n\n你需要我帮助实现批量数据库查询或分析其他函数吗？"
       }
     ],
-    "scenario": "Code performance analysis and optimization guidance",
+    "scenario": "代码性能分析和优化指导",
     "complexity": "advanced",
     "tools_used": ["find_functions", "read_file"],
-    "learning_objectives": ["performance optimization", "code analysis", "database optimization patterns", "Python best practices"]
+    "learning_objectives": ["性能优化", "代码分析", "数据库优化模式", "Python最佳实践"]
   },
   {
     "messages": [
       {
         "role": "user",
-        "content": "I need to write a professional email to a client explaining a project delay. Can you help me draft something that's apologetic but confident?"
+        "content": "我需要给客户写一封专业的邮件，解释项目延期的情况。你能帮我起草一封既道歉又自信的邮件吗？"
       },
       {
         "role": "assistant",
-        "content": "I'll help you draft a professional email that strikes the right balance between taking responsibility and maintaining client confidence. Here's a template that addresses the delay while focusing on solutions:\n\n**Subject:** Project Update - Revised Timeline for [Project Name]\n\n**Email Draft:**\n\nDear [Client Name],\n\nI hope this email finds you well. I'm writing to provide you with an important update regarding the [Project Name] timeline.\n\nAfter a thorough review of our current progress, I need to inform you that we will require an additional [X weeks/days] to complete the project to our mutual quality standards. This adjustment is primarily due to [brief, honest reason - e.g., \"unexpected technical complexities in the integration phase\" or \"additional testing requirements to ensure optimal performance\"].\n\nI want to be completely transparent about this delay and take full responsibility. However, I'm confident that this additional time will allow us to deliver a solution that exceeds your expectations and provides long-term value.\n\n**Here's our revised timeline:**\n- [Key milestone 1]: [New date]\n- [Key milestone 2]: [New date] \n- Final delivery: [New date]\n\nTo ensure we stay on track, I've implemented [specific action - e.g., \"daily progress reviews\" or \"additional resources to the development team\"].\n\nI understand this may impact your planning, and I'm available to discuss how we can minimize any inconvenience. Would you be available for a brief call this week to address any concerns?\n\nThank you for your patience and continued trust in our partnership.\n\nBest regards,\n[Your name]\n\n**Key elements this email includes:**\n- Direct, honest communication\n- Takes responsibility without excessive apologizing\n- Provides specific reasons and solutions\n- Shows proactive management\n- Offers further discussion\n\nWould you like me to adjust the tone or focus on any particular aspects?"
+        "content": "我将帮助你起草一封专业的邮件，在承担责任的同时保持客户信心。以下是一个模板，既处理了延期问题又专注于解决方案：\n\n**主题：项目更新 - [项目名称]的修订时间表**\n\n**邮件草稿：**\n\n尊敬的[客户名称]：\n\n希望这封邮件找到您一切安好。我写这封信是为了提供关于[项目名称]时间表的重要更新。\n\n经过对当前进展的彻底审查，我需要通知您，我们需要额外的[X周/天]来完成项目，以达到我们共同的质量标准。这一调整主要是由于[简要、诚实的原因 - 例如，\"集成阶段的意外技术复杂性\"或\"确保最佳性能的额外测试要求\"。\n\n我希望对这一延期完全透明，并承担全部责任。然而，我相信这额外的时间将使我们能够交付一个超出您期望并提供长期价值的解决方案。\n\n**以下是我们修订后的时间表：**\n- [关键里程碑1]：[新日期]\n- [关键里程碑2]：[新日期] - 最终交付：[新日期]\n\n为确保我们按计划进行，我已实施了[具体行动 - 例如，\"每日进度审查\"或\"为开发团队增加资源\"。\n\n我理解这可能会影响您的规划，我随时可以讨论我们如何最小化任何不便。您本周是否有空进行简短通话来解决任何疑虑？\n\n感谢您的耐心和对我们合作伙伴关系的持续信任。\n\n此致，\n[您的名字]\n\n**这封邮件包含的关键元素：**\n- 直接、诚实的沟通\n- 承担责任而不过度道歉\n- 提供具体原因和解决方案\n- 展示主动管理\n- 提供进一步讨论的机会\n\n你希望我调整语气或专注于任何特定方面吗？"
       }
     ],
-    "scenario": "Professional communication assistance and content generation",
+    "scenario": "专业沟通协助和内容生成",
     "complexity": "simple",
     "tools_used": [],
-    "learning_objectives": ["professional writing", "client communication", "content generation", "business correspondence patterns"]
+    "learning_objectives": ["专业写作", "客户沟通", "内容生成", "商务信函模式"]
   },
   {
     "messages": [
       {
         "role": "user",
-        "content": "I'm trying to understand this legacy codebase I inherited. There are so many files and I don't know where to start. Can you help me map out the structure?"
+        "content": "我正在尝试理解我继承的这个遗留代码库。文件太多，我不知道从哪里开始。你能帮我绘制出结构吗？"
       },
       {
         "role": "assistant",
-        "content": "I completely understand - navigating a new codebase can be overwhelming! Let me help you systematically explore and understand the structure. I'll start by getting an overview and then drill down into the important parts.",
+        "content": "我完全理解 - 导航一个新的代码库可能会让人不知所措！让我帮助你系统地探索和理解结构。我将从获取概览开始，然后深入了解重要部分。",
         "tool_calls": [
           {
             "type": "function",
@@ -172,7 +172,7 @@
       },
       {
         "role": "assistant",
-        "content": "Great! This looks like a Node.js project with a well-organized structure. Let me examine the key areas to give you a roadmap.",
+        "content": "太好了！这看起来是一个组织结构良好的Node.js项目。让我检查关键区域，为你提供一个路线图。",
         "tool_calls": [
           {
             "type": "function",
@@ -192,7 +192,7 @@
       },
       {
         "role": "assistant",
-        "content": "Now let me explore the source directory to understand the application structure.",
+        "content": "现在让我探索源代码目录以了解应用程序结构。",
         "tool_calls": [
           {
             "type": "function",
@@ -212,28 +212,28 @@
       },
       {
         "role": "assistant",
-        "content": "Perfect! Now I have a clear picture. Here's your **Codebase Navigation Guide**:\n\n## 📋 Project Overview\n**Type:** Customer Management API with billing (Node.js/Express)\n**Main Entry:** `src/app.js`\n**Database:** MongoDB (Mongoose)\n**Payment:** Stripe integration\n\n## 🗺️ Architecture Map\n\n**Start Here:**\n1. 📖 `README.md` - Project documentation\n2. ⚙️ `src/app.js` - Application entry point\n3. 🛣️ `src/routes/` - API endpoints definition\n\n**Core Application Logic:**\n- `src/controllers/` - Request handling logic\n- `src/models/` - Database schemas (MongoDB)\n- `src/services/` - Business logic layer\n- `src/middleware/` - Authentication, validation, etc.\n\n**Supporting Code:**\n- `src/utils/` - Helper functions\n- `config/` - Configuration files\n- `test/` - Unit/integration tests\n\n## 🎯 Recommended Exploration Order:\n\n**Phase 1 - Foundation (Start here!):**\n1. Read `README.md` for setup instructions\n2. Check `src/app.js` to see how everything connects\n3. Browse `src/routes/` to understand available APIs\n\n**Phase 2 - Business Logic:**\n4. Explore `src/controllers/` for main functionality\n5. Review `src/models/` for data structure\n6. Study `src/services/` for business rules\n\n**Phase 3 - Details:**\n7. Check `src/middleware/` for security/validation\n8. Look at `config/` for environment setup\n9. Review `test/` to understand expected behavior\n\nWould you like me to dive deeper into any specific area, like showing you the main routes or examining the data models?"
+        "content": "完美！现在我有了清晰的图景。以下是你的**代码库导航指南**：\n\n## 📋 项目概述\n**类型：** 客户管理API，带账单功能（Node.js/Express）\n**主入口：** `src/app.js`\n**数据库：** MongoDB（Mongoose）\n**支付：** Stripe集成\n\n## 🗺️ 架构地图\n\n**从这里开始：**\n1. 📖 `README.md` - 项目文档\n2. ⚙️ `src/app.js` - 应用程序入口点\n3. 🛣️ `src/routes/` - API端点定义\n\n**核心应用逻辑：**\n- `src/controllers/` - 请求处理逻辑\n- `src/models/` - 数据库模式（MongoDB）\n- `src/services/` - 业务逻辑层\n- `src/middleware/` - 认证、验证等\n\n**支持代码：**\n- `src/utils/` - 辅助函数\n- `config/` - 配置文件\n- `test/` - 单元/集成测试\n\n## 🎯 推荐探索顺序：\n\n**阶段1 - 基础（从这里开始！）：**\n1. 阅读 `README.md` 获取设置说明\n2. 查看 `src/app.js` 了解所有内容如何连接\n3. 浏览 `src/routes/` 了解可用的API\n\n**阶段2 - 业务逻辑：**\n4. 探索 `src/controllers/` 获取主要功能\n5. 查看 `src/models/` 了解数据结构\n6. 研究 `src/services/` 了解业务规则\n\n**阶段3 - 详细信息：**\n7. 检查 `src/middleware/` 了解安全/验证\n8. 查看 `config/` 了解环境设置\n9. 查看 `test/` 了解预期行为\n\n你希望我深入研究任何特定领域，比如向你展示主要路由或检查数据模型吗？"
       }
     ],
-    "scenario": "Codebase exploration and architecture understanding",
+    "scenario": "代码库探索和架构理解",
     "complexity": "intermediate",
     "tools_used": ["list_directory", "read_file"],
-    "learning_objectives": ["codebase navigation", "architecture analysis", "systematic exploration", "legacy code understanding"]
+    "learning_objectives": ["代码库导航", "架构分析", "系统探索", "遗留代码理解"]
   },
   {
     "messages": [
       {
         "role": "user",
-        "content": "Can you help me brainstorm some creative names for my new productivity app? It's focused on time blocking and helps people focus on deep work."
+        "content": "你能帮我为我的新生产力应用程序头脑风暴一些创意名称吗？它专注于时间块管理，帮助人们专注于深度工作。"
       },
       {
         "role": "assistant",
-        "content": "I'd love to help you brainstorm creative names for your time blocking and deep work app! Let me generate some ideas across different themes and styles.\n\n## 🎯 Focus & Deep Work Theme\n- **FlowBlocks** - Combines time blocking with flow state\n- **DeepDive** - Simple, suggests deep work immersion\n- **FocusForge** - Creating focused time periods\n- **ZenBlocks** - Peaceful, mindful time management\n- **MindVault** - Protecting mental space for deep work\n\n## ⏰ Time & Productivity Theme\n- **ChronoFlow** - Time management with smooth workflow\n- **TimeWeaver** - Weaving together productive time blocks\n- **ClockCraft** - Skillfully crafting your schedule\n- **TempoLock** - Locking in productive tempos\n- **PulseBlocks** - Rhythmic time blocking\n\n## 🏗️ Building & Structure Theme\n- **TaskArchitect** - Building your productive day\n- **FocusFoundry** - Where focused time is created\n- **ProductivityBricks** - Building blocks of productivity\n- **WorkStack** - Stacking focused work sessions\n- **MindGrid** - Organized mental workspace\n\n## 🎨 Creative & Unique\n- **Concentrix** - Focus + matrix of time\n- **Quietude** - Emphasizes calm, focused environment\n- **DeepSpace** - Space for deep work (tech feel)\n- **FlowChamber** - Protected space for flow state\n- **ThinkTank** - Tank of focused thinking time\n\n## 💡 Short & Catchy\n- **Blokr** - Modern, minimal spelling\n- **Focux** - Focus + flux\n- **Zenith** - Peak productivity\n- **Prism** - Breaking time into focused segments\n- **Vault** - Simple, suggests protection/security\n\n**My top recommendations:**\n1. **FlowBlocks** - Perfect blend of your core features\n2. **DeepVault** - Strong, memorable, suggests protection of deep work\n3. **FocusForge** - Active, suggests creating something valuable\n\nDo any of these resonate with your vision? Would you like me to explore variations of your favorites or brainstorm in a different direction?"
+        "content": "我很乐意帮你为时间块管理和深度工作应用程序头脑风暴创意名称！让我生成一些不同主题和风格的想法。\n\n## 🎯 专注与深度工作主题\n- **FlowBlocks** - 结合时间块管理和心流状态\n- **DeepDive** - 简单，暗示深度工作沉浸\n- **FocusForge** - 创建专注的时间段\n- **ZenBlocks** - 平静、正念的时间管理\n- **MindVault** - 保护深度工作的精神空间\n\n## ⏰ 时间与生产力主题\n- **ChronoFlow** - 时间管理与流畅工作流\n- **TimeWeaver** - 编织富有成效的时间块\n- **ClockCraft** - 巧妙地构建你的日程\n- **TempoLock** - 锁定富有成效的节奏\n- **PulseBlocks** - 有节奏的时间块管理\n\n## 🏗️ 构建与结构主题\n- **TaskArchitect** - 构建你的富有成效的一天\n- **FocusFoundry** - 创建专注时间的地方\n- **ProductivityBricks** - 生产力的构建块\n- **WorkStack** - 堆叠专注工作会话\n- **MindGrid** - 组织化的精神工作空间\n\n## 🎨 创意与独特\n- **Concentrix** - 专注 + 时间矩阵\n- **Quietude** - 强调平静、专注的环境\n- **DeepSpace** - 深度工作空间（科技感）\n- **FlowChamber** - 心流状态的受保护空间\n- **ThinkTank** - 专注思考时间的容器\n\n## 💡 简短而引人注目\n- **Blokr** - 现代、简约拼写\n- **Focux** - 专注 + 变化\n- **Zenith** - 巅峰生产力\n- **Prism** - 将时间分解为专注的片段\n- **Vault** - 简单，暗示保护/安全\n\n**我的顶级推荐：**\n1. **FlowBlocks** - 完美融合你的核心功能\n2. **DeepVault** - 强大、令人难忘，暗示保护深度工作\n3. **FocusForge** - 主动，暗示创造有价值的东西\n\n这些名称中有任何与你的愿景共鸣的吗？你希望我探索你喜欢的名称的变体，还是在不同方向上头脑风暴？"
       }
     ],
-    "scenario": "Creative brainstorming and idea generation assistance",
+    "scenario": "创意头脑风暴和想法生成协助",
     "complexity": "simple",
     "tools_used": [],
-    "learning_objectives": ["creative thinking", "brainstorming techniques", "branding assistance", "idea generation patterns"]
+    "learning_objectives": ["创意思考", "头脑风暴技巧", "品牌协助", "想法生成模式"]
   }
 ]

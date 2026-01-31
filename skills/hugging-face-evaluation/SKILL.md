@@ -1,190 +1,188 @@
 ---
 name: hugging-face-evaluation
-description: Add and manage evaluation results in Hugging Face model cards. Supports extracting eval tables from README content, importing scores from Artificial Analysis API, and running custom model evaluations with vLLM/lighteval. Works with the model-index metadata format.
+description: 在Hugging Face模型卡片中添加和管理评估结果。支持从README内容提取评估表格、从Artificial Analysis API导入分数，以及使用vLLM/lighteval运行自定义模型评估。与model-index元数据格式配合使用。
 ---
 
-# Overview
-This skill provides tools to add structured evaluation results to Hugging Face model cards. It supports multiple methods for adding evaluation data:
-- Extracting existing evaluation tables from README content
-- Importing benchmark scores from Artificial Analysis
-- Running custom model evaluations with vLLM or accelerate backends (lighteval/inspect-ai)
+# 概述
+本技能提供工具，用于向Hugging Face模型卡片添加结构化评估结果。它支持多种添加评估数据的方法：
+- 从README内容中提取现有的评估表格
+- 从Artificial Analysis导入基准测试分数
+- 使用vLLM或accelerate后端（lighteval/inspect-ai）运行自定义模型评估
 
-## Integration with HF Ecosystem
-- **Model Cards**: Updates model-index metadata for leaderboard integration
-- **Artificial Analysis**: Direct API integration for benchmark imports
-- **Papers with Code**: Compatible with their model-index specification
-- **Jobs**: Run evaluations directly on Hugging Face Jobs with `uv` integration
-- **vLLM**: Efficient GPU inference for custom model evaluation
-- **lighteval**: HuggingFace's evaluation library with vLLM/accelerate backends
-- **inspect-ai**: UK AI Safety Institute's evaluation framework
+## 与HF生态系统的集成
+- **模型卡片**：更新model-index元数据以集成排行榜
+- **Artificial Analysis**：直接API集成，用于基准测试导入
+- **Papers with Code**：兼容其model-index规范
+- **Jobs**：在Hugging Face Jobs上直接运行评估，集成`uv`
+- **vLLM**：用于自定义模型评估的高效GPU推理
+- **lighteval**：HuggingFace的评估库，支持vLLM/accelerate后端
+- **inspect-ai**：英国AI安全研究所的评估框架
 
-# Version
+# 版本
 1.3.0
 
-# Dependencies
+# 依赖项
 
-## Core Dependencies
+## 核心依赖项
 - huggingface_hub>=0.26.0
 - markdown-it-py>=3.0.0
 - python-dotenv>=1.2.1
 - pyyaml>=6.0.3
 - requests>=2.32.5
-- re (built-in)
+- re (内置)
 
-## Inference Provider Evaluation
+## 推理提供商评估
 - inspect-ai>=0.3.0
 - inspect-evals
 - openai
 
-## vLLM Custom Model Evaluation (GPU required)
+## vLLM自定义模型评估（需要GPU）
 - lighteval[accelerate,vllm]>=0.6.0
 - vllm>=0.4.0
 - torch>=2.0.0
 - transformers>=4.40.0
 - accelerate>=0.30.0
 
-Note: vLLM dependencies are installed automatically via PEP 723 script headers when using `uv run`.
+注意：使用`uv run`时，vLLM依赖项会通过PEP 723脚本头部自动安装。
 
-# IMPORTANT: Using This Skill
+# 重要：使用本技能
 
-## ⚠️ CRITICAL: Check for Existing PRs Before Creating New Ones
+## ⚠️ 关键：在创建新PR之前检查现有PR
 
-**Before creating ANY pull request with `--create-pr`, you MUST check for existing open PRs:**
+**在使用`--create-pr`创建任何拉取请求之前，您必须检查是否存在现有的开放PR：**
 
 ```bash
 uv run scripts/evaluation_manager.py get-prs --repo-id "username/model-name"
 ```
 
-**If open PRs exist:**
-1. **DO NOT create a new PR** - this creates duplicate work for maintainers
-2. **Warn the user** that open PRs already exist
-3. **Show the user** the existing PR URLs so they can review them
-4. Only proceed if the user explicitly confirms they want to create another PR
+**如果存在开放PR：**
+1. **不要创建新PR** - 这会为维护者创造重复工作
+2. **警告用户** 已经存在开放PR
+3. **向用户展示** 现有PR的URL，以便他们查看
+4. 只有在用户明确确认他们想要创建另一个PR时才继续
 
-This prevents spamming model repositories with duplicate evaluation PRs.
+这可以防止使用重复的评估PR垃圾信息淹没模型仓库。
 
 ---
 
-> **All paths are relative to the directory containing this SKILL.md
-file.**
-> Before running any script, first `cd` to that directory or use the full
-path.
+> **所有路径都是相对于包含此SKILL.md文件的目录**
+> 在运行任何脚本之前，首先`cd`到该目录或使用完整路径。
 
 
-**Use `--help` for the latest workflow guidance.** Works with plain Python or `uv run`:
+**使用`--help`获取最新的工作流指导。** 适用于普通Python或`uv run`：
 ```bash
 uv run scripts/evaluation_manager.py --help
 uv run scripts/evaluation_manager.py inspect-tables --help
 uv run scripts/evaluation_manager.py extract-readme --help
 ```
-Key workflow (matches CLI help):
+关键工作流（与CLI帮助匹配）：
 
-1) `get-prs` → check for existing open PRs first
-2) `inspect-tables` → find table numbers/columns  
-3) `extract-readme --table N` → prints YAML by default  
-4) add `--apply` (push) or `--create-pr` to write changes
+1) `get-prs` → 首先检查现有的开放PR
+2) `inspect-tables` → 查找表格编号/列
+3) `extract-readme --table N` → 默认打印YAML
+4) 添加`--apply`（推送）或`--create-pr`写入更改
 
-# Core Capabilities
+# 核心功能
 
-## 1. Inspect and Extract Evaluation Tables from README
-- **Inspect Tables**: Use `inspect-tables` to see all tables in a README with structure, columns, and sample rows
-- **Parse Markdown Tables**: Accurate parsing using markdown-it-py (ignores code blocks and examples)
-- **Table Selection**: Use `--table N` to extract from a specific table (required when multiple tables exist)
-- **Format Detection**: Recognize common formats (benchmarks as rows, columns, or comparison tables with multiple models)
-- **Column Matching**: Automatically identify model columns/rows; prefer `--model-column-index` (index from inspect output). Use `--model-name-override` only with exact column header text.
-- **YAML Generation**: Convert selected table to model-index YAML format
-- **Task Typing**: `--task-type` sets the `task.type` field in model-index output (e.g., `text-generation`, `summarization`)
+## 1. 检查和从README提取评估表格
+- **检查表格**：使用`inspect-tables`查看README中的所有表格，包括结构、列和样本行
+- **解析Markdown表格**：使用markdown-it-py进行准确解析（忽略代码块和示例）
+- **表格选择**：使用`--table N`从特定表格中提取（当存在多个表格时需要）
+- **格式检测**：识别常见格式（作为行、列的基准测试，或包含多个模型的比较表格）
+- **列匹配**：自动识别模型列/行；优先使用`--model-column-index`（来自inspect输出的索引）。仅当无法使用索引时，才使用`--model-name-override`并提供确切的列标题文本。
+- **YAML生成**：将所选表格转换为model-index YAML格式
+- **任务类型**：`--task-type`设置model-index输出中的`task.type`字段（例如，`text-generation`，`summarization`）
 
-## 2. Import from Artificial Analysis
-- **API Integration**: Fetch benchmark scores directly from Artificial Analysis
-- **Automatic Formatting**: Convert API responses to model-index format
-- **Metadata Preservation**: Maintain source attribution and URLs
-- **PR Creation**: Automatically create pull requests with evaluation updates
+## 2. 从Artificial Analysis导入
+- **API集成**：直接从Artificial Analysis获取基准测试分数
+- **自动格式化**：将API响应转换为model-index格式
+- **元数据保留**：维护源归属和URL
+- **PR创建**：自动创建带有评估更新的拉取请求
 
-## 3. Model-Index Management
-- **YAML Generation**: Create properly formatted model-index entries
-- **Merge Support**: Add evaluations to existing model cards without overwriting
-- **Validation**: Ensure compliance with Papers with Code specification
-- **Batch Operations**: Process multiple models efficiently
+## 3. Model-Index管理
+- **YAML生成**：创建格式正确的model-index条目
+- **合并支持**：向现有模型卡片添加评估，而不覆盖
+- **验证**：确保符合Papers with Code规范
+- **批处理**：高效处理多个模型
 
-## 4. Run Evaluations on HF Jobs (Inference Providers)
-- **Inspect-AI Integration**: Run standard evaluations using the `inspect-ai` library
-- **UV Integration**: Seamlessly run Python scripts with ephemeral dependencies on HF infrastructure
-- **Zero-Config**: No Dockerfiles or Space management required
-- **Hardware Selection**: Configure CPU or GPU hardware for the evaluation job
-- **Secure Execution**: Handles API tokens safely via secrets passed through the CLI
+## 4. 在HF Jobs上运行评估（推理提供商）
+- **Inspect-AI集成**：使用`inspect-ai`库运行标准评估
+- **UV集成**：在HF基础设施上使用临时依赖无缝运行Python脚本
+- **零配置**：不需要Dockerfile或Space管理
+- **硬件选择**：为评估作业配置CPU或GPU硬件
+- **安全执行**：通过CLI传递的密钥安全处理API令牌
 
-## 5. Run Custom Model Evaluations with vLLM (NEW)
+## 5. 使用vLLM运行自定义模型评估（新增）
 
-⚠️ **Important:** This approach is only possible on devices with `uv` installed and sufficient GPU memory.
-**Benefits:** No need to use `hf_jobs()` MCP tool, can run scripts directly in terminal
-**When to use:** User working in local device directly  when GPU is available
+⚠️ **重要：** 这种方法仅适用于安装了`uv`且具有足够GPU内存的设备。
+**优势：** 无需使用`hf_jobs()` MCP工具，可以直接在终端中运行脚本
+**何时使用：** 用户直接在本地设备上工作且GPU可用时
 
-### Before running the script
+### 运行脚本前
 
-- check the script path
-- check uv is installed
-- check gpu is available with `nvidia-smi`
+- 检查脚本路径
+- 检查是否安装了uv
+- 使用`nvidia-smi`检查GPU是否可用
 
-### Running the script
+### 运行脚本
 
 ```bash
 uv run scripts/train_sft_example.py
 ```
-### Features
+### 特性
 
-- **vLLM Backend**: High-performance GPU inference (5-10x faster than standard HF methods)
-- **lighteval Framework**: HuggingFace's evaluation library with Open LLM Leaderboard tasks
-- **inspect-ai Framework**: UK AI Safety Institute's evaluation library
-- **Standalone or Jobs**: Run locally or submit to HF Jobs infrastructure
+- **vLLM后端**：高性能GPU推理（比标准HF方法快5-10倍）
+- **lighteval框架**：HuggingFace的评估库，支持Open LLM Leaderboard任务
+- **inspect-ai框架**：英国AI安全研究所的评估库
+- **独立或Jobs**：本地运行或提交到HF Jobs基础设施
 
-# Usage Instructions
+# 使用说明
 
-The skill includes Python scripts in `scripts/` to perform operations.
+本技能包含`scripts/`中的Python脚本以执行操作。
 
-### Prerequisites
-- Preferred: use `uv run` (PEP 723 header auto-installs deps)
-- Or install manually: `pip install huggingface-hub markdown-it-py python-dotenv pyyaml requests`
-- Set `HF_TOKEN` environment variable with Write-access token
-- For Artificial Analysis: Set `AA_API_KEY` environment variable
-- `.env` is loaded automatically if `python-dotenv` is installed
+### 前提条件
+- 首选：使用`uv run`（PEP 723头部自动安装依赖）
+- 或手动安装：`pip install huggingface-hub markdown-it-py python-dotenv pyyaml requests`
+- 设置`HF_TOKEN`环境变量，包含写入访问令牌
+- 对于Artificial Analysis：设置`AA_API_KEY`环境变量
+- 如果安装了`python-dotenv`，会自动加载`.env`文件
 
-### Method 1: Extract from README (CLI workflow)
+### 方法1：从README提取（CLI工作流）
 
-Recommended flow (matches `--help`):
+推荐流程（与`--help`匹配）：
 ```bash
-# 1) Inspect tables to get table numbers and column hints
+# 1) 检查表格以获取表格编号和列提示
 uv run scripts/evaluation_manager.py inspect-tables --repo-id "username/model"
 
-# 2) Extract a specific table (prints YAML by default)
+# 2) 提取特定表格（默认打印YAML）
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "username/model" \
   --table 1 \
-  [--model-column-index <column index shown by inspect-tables>] \
-  [--model-name-override "<column header/model name>"]  # use exact header text if you can't use the index
+  [--model-column-index <inspect-tables显示的列索引>] \
+  [--model-name-override "<列标题/模型名称>"]  # 如果无法使用索引，请使用确切的标题文本
 
-# 3) Apply changes (push or PR)
+# 3) 应用更改（推送或PR）
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "username/model" \
   --table 1 \
-  --apply       # push directly
-# or
+  --apply       # 直接推送
+# 或
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "username/model" \
   --table 1 \
-  --create-pr   # open a PR
+  --create-pr   # 打开PR
 ```
 
-Validation checklist:
-- YAML is printed by default; compare against the README table before applying.
-- Prefer `--model-column-index`; if using `--model-name-override`, the column header text must be exact.
-- For transposed tables (models as rows), ensure only one row is extracted.
+验证清单：
+- 默认打印YAML；应用前与README表格比较。
+- 首选`--model-column-index`；如果使用`--model-name-override`，列标题文本必须完全一致。
+- 对于转置表格（模型作为行），确保只提取一行。
 
-### Method 2: Import from Artificial Analysis
+### 方法2：从Artificial Analysis导入
 
-Fetch benchmark scores from Artificial Analysis API and add them to a model card.
+从Artificial Analysis API获取基准测试分数并将其添加到模型卡片。
 
-**Basic Usage:**
+**基本用法：**
 ```bash
 AA_API_KEY="your-api-key" uv run scripts/evaluation_manager.py import-aa \
   --creator-slug "anthropic" \
@@ -192,20 +190,20 @@ AA_API_KEY="your-api-key" uv run scripts/evaluation_manager.py import-aa \
   --repo-id "username/model-name"
 ```
 
-**With Environment File:**
+**使用环境文件：**
 ```bash
-# Create .env file
+# 创建.env文件
 echo "AA_API_KEY=your-api-key" >> .env
 echo "HF_TOKEN=your-hf-token" >> .env
 
-# Run import
+# 运行导入
 uv run scripts/evaluation_manager.py import-aa \
   --creator-slug "anthropic" \
   --model-name "claude-sonnet-4" \
   --repo-id "username/model-name"
 ```
 
-**Create Pull Request:**
+**创建拉取请求：**
 ```bash
 uv run scripts/evaluation_manager.py import-aa \
   --creator-slug "anthropic" \
@@ -214,11 +212,11 @@ uv run scripts/evaluation_manager.py import-aa \
   --create-pr
 ```
 
-### Method 3: Run Evaluation Job
+### 方法3：运行评估作业
 
-Submit an evaluation job on Hugging Face infrastructure using the `hf jobs uv run` CLI.
+使用`hf jobs uv run` CLI在Hugging Face基础设施上提交评估作业。
 
-**Direct CLI Usage:**
+**直接CLI使用：**
 ```bash
 HF_TOKEN=$HF_TOKEN \
 hf jobs uv run hf-evaluation/scripts/inspect_eval_uv.py \
@@ -228,7 +226,7 @@ hf jobs uv run hf-evaluation/scripts/inspect_eval_uv.py \
      --task "mmlu"
 ```
 
-**GPU Example (A10G):**
+**GPU示例（A10G）：**
 ```bash
 HF_TOKEN=$HF_TOKEN \
 hf jobs uv run hf-evaluation/scripts/inspect_eval_uv.py \
@@ -238,7 +236,7 @@ hf jobs uv run hf-evaluation/scripts/inspect_eval_uv.py \
      --task "gsm8k"
 ```
 
-**Python Helper (optional):**
+**Python助手（可选）：**
 ```bash
 uv run scripts/run_eval_job.py \
   --model "meta-llama/Llama-2-7b-hf" \
@@ -246,50 +244,50 @@ uv run scripts/run_eval_job.py \
   --hardware "t4-small"
 ```
 
-### Method 4: Run Custom Model Evaluation with vLLM
+### 方法4：使用vLLM运行自定义模型评估
 
-Evaluate custom HuggingFace models directly on GPU using vLLM or accelerate backends. These scripts are **separate from inference provider scripts** and run models locally on the job's hardware.
+使用vLLM或accelerate后端直接在GPU上评估自定义HuggingFace模型。这些脚本**与推理提供商脚本分开**，在作业的硬件上本地运行模型。
 
-#### When to Use vLLM Evaluation (vs Inference Providers)
+#### 何时使用vLLM评估（vs推理提供商）
 
-| Feature | vLLM Scripts | Inference Provider Scripts |
+| 特性 | vLLM脚本 | 推理提供商脚本 |
 |---------|-------------|---------------------------|
-| Model access | Any HF model | Models with API endpoints |
-| Hardware | Your GPU (or HF Jobs GPU) | Provider's infrastructure |
-| Cost | HF Jobs compute cost | API usage fees |
-| Speed | vLLM optimized | Depends on provider |
-| Offline | Yes (after download) | No |
+| 模型访问 | 任何HF模型 | 具有API端点的模型 |
+| 硬件 | 您的GPU（或HF Jobs GPU） | 提供商的基础设施 |
+| 成本 | HF Jobs计算成本 | API使用费用 |
+| 速度 | vLLM优化 | 取决于提供商 |
+| 离线 | 是（下载后） | 否 |
 
-#### Option A: lighteval with vLLM Backend
+#### 选项A：使用vLLM后端的lighteval
 
-lighteval is HuggingFace's evaluation library, supporting Open LLM Leaderboard tasks.
+lighteval是HuggingFace的评估库，支持Open LLM Leaderboard任务。
 
-**Standalone (local GPU):**
+**独立（本地GPU）：**
 ```bash
-# Run MMLU 5-shot with vLLM
+# 使用vLLM运行MMLU 5-shot
 uv run scripts/lighteval_vllm_uv.py \
   --model meta-llama/Llama-3.2-1B \
   --tasks "leaderboard|mmlu|5"
 
-# Run multiple tasks
+# 运行多个任务
 uv run scripts/lighteval_vllm_uv.py \
   --model meta-llama/Llama-3.2-1B \
   --tasks "leaderboard|mmlu|5,leaderboard|gsm8k|5"
 
-# Use accelerate backend instead of vLLM
+# 使用accelerate后端而不是vLLM
 uv run scripts/lighteval_vllm_uv.py \
   --model meta-llama/Llama-3.2-1B \
   --tasks "leaderboard|mmlu|5" \
   --backend accelerate
 
-# Chat/instruction-tuned models
+# 聊天/指令调优模型
 uv run scripts/lighteval_vllm_uv.py \
   --model meta-llama/Llama-3.2-1B-Instruct \
   --tasks "leaderboard|mmlu|5" \
   --use-chat-template
 ```
 
-**Via HF Jobs:**
+**通过HF Jobs：**
 ```bash
 hf jobs uv run scripts/lighteval_vllm_uv.py \
   --flavor a10g-small \
@@ -298,55 +296,55 @@ hf jobs uv run scripts/lighteval_vllm_uv.py \
      --tasks "leaderboard|mmlu|5"
 ```
 
-**lighteval Task Format:**
-Tasks use the format `suite|task|num_fewshot`:
-- `leaderboard|mmlu|5` - MMLU with 5-shot
-- `leaderboard|gsm8k|5` - GSM8K with 5-shot
-- `lighteval|hellaswag|0` - HellaSwag zero-shot
-- `leaderboard|arc_challenge|25` - ARC-Challenge with 25-shot
+**lighteval任务格式：**
+任务使用格式`suite|task|num_fewshot`：
+- `leaderboard|mmlu|5` - 5-shot的MMLU
+- `leaderboard|gsm8k|5` - 5-shot的GSM8K
+- `lighteval|hellaswag|0` - 零-shot的HellaSwag
+- `leaderboard|arc_challenge|25` - 25-shot的ARC-Challenge
 
-**Finding Available Tasks:**
-The complete list of available lighteval tasks can be found at:
+**查找可用任务：**
+可用lighteval任务的完整列表可在以下位置找到：
 https://github.com/huggingface/lighteval/blob/main/examples/tasks/all_tasks.txt
 
-This file contains all supported tasks in the format `suite|task|num_fewshot|0` (the trailing `0` is a version flag and can be ignored). Common suites include:
-- `leaderboard` - Open LLM Leaderboard tasks (MMLU, GSM8K, ARC, HellaSwag, etc.)
-- `lighteval` - Additional lighteval tasks
-- `bigbench` - BigBench tasks
-- `original` - Original benchmark tasks
+此文件包含所有支持的任务，格式为`suite|task|num_fewshot|0`（末尾的`0`是版本标志，可以忽略）。常见套件包括：
+- `leaderboard` - Open LLM Leaderboard任务（MMLU、GSM8K、ARC、HellaSwag等）
+- `lighteval` - 其他lighteval任务
+- `bigbench` - BigBench任务
+- `original` - 原始基准测试任务
 
-To use a task from the list, extract the `suite|task|num_fewshot` portion (without the trailing `0`) and pass it to the `--tasks` parameter. For example:
-- From file: `leaderboard|mmlu|0` → Use: `leaderboard|mmlu|0` (or change to `5` for 5-shot)
-- From file: `bigbench|abstract_narrative_understanding|0` → Use: `bigbench|abstract_narrative_understanding|0`
-- From file: `lighteval|wmt14:hi-en|0` → Use: `lighteval|wmt14:hi-en|0`
+要使用列表中的任务，提取`suite|task|num_fewshot`部分（不包含末尾的`0`）并将其传递给`--tasks`参数。例如：
+- 从文件：`leaderboard|mmlu|0` → 使用：`leaderboard|mmlu|0`（或更改为`5`表示5-shot）
+- 从文件：`bigbench|abstract_narrative_understanding|0` → 使用：`bigbench|abstract_narrative_understanding|0`
+- 从文件：`lighteval|wmt14:hi-en|0` → 使用：`lighteval|wmt14:hi-en|0`
 
-Multiple tasks can be specified as comma-separated values: `--tasks "leaderboard|mmlu|5,leaderboard|gsm8k|5"`
+可以使用逗号分隔值指定多个任务：`--tasks "leaderboard|mmlu|5,leaderboard|gsm8k|5"`
 
-#### Option B: inspect-ai with vLLM Backend
+#### 选项B：使用vLLM后端的inspect-ai
 
-inspect-ai is the UK AI Safety Institute's evaluation framework.
+inspect-ai是英国AI安全研究所的评估框架。
 
-**Standalone (local GPU):**
+**独立（本地GPU）：**
 ```bash
-# Run MMLU with vLLM
+# 使用vLLM运行MMLU
 uv run scripts/inspect_vllm_uv.py \
   --model meta-llama/Llama-3.2-1B \
   --task mmlu
 
-# Use HuggingFace Transformers backend
+# 使用HuggingFace Transformers后端
 uv run scripts/inspect_vllm_uv.py \
   --model meta-llama/Llama-3.2-1B \
   --task mmlu \
   --backend hf
 
-# Multi-GPU with tensor parallelism
+# 多GPU与张量并行
 uv run scripts/inspect_vllm_uv.py \
   --model meta-llama/Llama-3.2-70B \
   --task mmlu \
   --tensor-parallel-size 4
 ```
 
-**Via HF Jobs:**
+**通过HF Jobs：**
 ```bash
 hf jobs uv run scripts/inspect_vllm_uv.py \
   --flavor a10g-small \
@@ -355,27 +353,27 @@ hf jobs uv run scripts/inspect_vllm_uv.py \
      --task mmlu
 ```
 
-**Available inspect-ai Tasks:**
-- `mmlu` - Massive Multitask Language Understanding
-- `gsm8k` - Grade School Math
-- `hellaswag` - Common sense reasoning
-- `arc_challenge` - AI2 Reasoning Challenge
-- `truthfulqa` - TruthfulQA benchmark
+**可用的inspect-ai任务：**
+- `mmlu` - 大规模多任务语言理解
+- `gsm8k` - 小学数学
+- `hellaswag` - 常识推理
+- `arc_challenge` - AI2推理挑战
+- `truthfulqa` - TruthfulQA基准测试
 - `winogrande` - Winograd Schema Challenge
-- `humaneval` - Code generation
+- `humaneval` - 代码生成
 
-#### Option C: Python Helper Script
+#### 选项C：Python助手脚本
 
-The helper script auto-selects hardware and simplifies job submission:
+助手脚本自动选择硬件并简化作业提交：
 
 ```bash
-# Auto-detect hardware based on model size
+# 基于模型大小自动检测硬件
 uv run scripts/run_vllm_eval_job.py \
   --model meta-llama/Llama-3.2-1B \
   --task "leaderboard|mmlu|5" \
   --framework lighteval
 
-# Explicit hardware selection
+# 显式硬件选择
 uv run scripts/run_vllm_eval_job.py \
   --model meta-llama/Llama-3.2-70B \
   --task mmlu \
@@ -383,7 +381,7 @@ uv run scripts/run_vllm_eval_job.py \
   --hardware a100-large \
   --tensor-parallel-size 4
 
-# Use HF Transformers backend
+# 使用HF Transformers后端
 uv run scripts/run_vllm_eval_job.py \
   --model microsoft/phi-2 \
   --task mmlu \
@@ -391,28 +389,28 @@ uv run scripts/run_vllm_eval_job.py \
   --backend hf
 ```
 
-**Hardware Recommendations:**
-| Model Size | Recommended Hardware |
+**硬件推荐：**
+| 模型大小 | 推荐硬件 |
 |------------|---------------------|
-| < 3B params | `t4-small` |
+| < 3B参数 | `t4-small` |
 | 3B - 13B | `a10g-small` |
 | 13B - 34B | `a10g-large` |
 | 34B+ | `a100-large` |
 
-### Commands Reference
+### 命令参考
 
-**Top-level help and version:**
+**顶级帮助和版本：**
 ```bash
 uv run scripts/evaluation_manager.py --help
 uv run scripts/evaluation_manager.py --version
 ```
 
-**Inspect Tables (start here):**
+**检查表格（从这里开始）：**
 ```bash
 uv run scripts/evaluation_manager.py inspect-tables --repo-id "username/model-name"
 ```
 
-**Extract from README:**
+**从README提取：**
 ```bash
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "username/model-name" \
@@ -424,7 +422,7 @@ uv run scripts/evaluation_manager.py extract-readme \
   [--apply | --create-pr]
 ```
 
-**Import from Artificial Analysis:**
+**从Artificial Analysis导入：**
 ```bash
 AA_API_KEY=... uv run scripts/evaluation_manager.py import-aa \
   --creator-slug "creator-name" \
@@ -433,19 +431,19 @@ AA_API_KEY=... uv run scripts/evaluation_manager.py import-aa \
   [--create-pr]
 ```
 
-**View / Validate:**
+**查看/验证：**
 ```bash
 uv run scripts/evaluation_manager.py show --repo-id "username/model-name"
 uv run scripts/evaluation_manager.py validate --repo-id "username/model-name"
 ```
 
-**Check Open PRs (ALWAYS run before --create-pr):**
+**检查开放PR（在--create-pr之前始终运行）：**
 ```bash
 uv run scripts/evaluation_manager.py get-prs --repo-id "username/model-name"
 ```
-Lists all open pull requests for the model repository. Shows PR number, title, author, date, and URL.
+列出模型仓库的所有开放拉取请求。显示PR编号、标题、作者、日期和URL。
 
-**Run Evaluation Job (Inference Providers):**
+**运行评估作业（推理提供商）：**
 ```bash
 hf jobs uv run scripts/inspect_eval_uv.py \
   --flavor "cpu-basic|t4-small|..." \
@@ -454,7 +452,7 @@ hf jobs uv run scripts/inspect_eval_uv.py \
      --task "task-name"
 ```
 
-or use the Python helper:
+或使用Python助手：
 
 ```bash
 uv run scripts/run_eval_job.py \
@@ -463,32 +461,32 @@ uv run scripts/run_eval_job.py \
   --hardware "cpu-basic|t4-small|..."
 ```
 
-**Run vLLM Evaluation (Custom Models):**
+**运行vLLM评估（自定义模型）：**
 ```bash
-# lighteval with vLLM
+# 使用vLLM的lighteval
 hf jobs uv run scripts/lighteval_vllm_uv.py \
   --flavor "a10g-small" \
   --secrets HF_TOKEN=$HF_TOKEN \
   -- --model "model-id" \
      --tasks "leaderboard|mmlu|5"
 
-# inspect-ai with vLLM
+# 使用vLLM的inspect-ai
 hf jobs uv run scripts/inspect_vllm_uv.py \
   --flavor "a10g-small" \
   --secrets HF_TOKEN=$HF_TOKEN \
   -- --model "model-id" \
      --task "mmlu"
 
-# Helper script (auto hardware selection)
+# 助手脚本（自动硬件选择）
 uv run scripts/run_vllm_eval_job.py \
   --model "model-id" \
   --task "leaderboard|mmlu|5" \
   --framework lighteval
 ```
 
-### Model-Index Format
+### Model-Index格式
 
-The generated model-index follows this structure:
+生成的model-index遵循以下结构：
 
 ```yaml
 model-index:
@@ -511,83 +509,83 @@ model-index:
           url: https://source-url.com
 ```
 
-WARNING: Do not use markdown formatting in the model name. Use the exact name from the table. Only use urls in the source.url field.
+警告：不要在模型名称中使用markdown格式。使用表格中的确切名称。仅在source.url字段中使用URL。
 
-### Error Handling
-- **Table Not Found**: Script will report if no evaluation tables are detected
-- **Invalid Format**: Clear error messages for malformed tables
-- **API Errors**: Retry logic for transient Artificial Analysis API failures
-- **Token Issues**: Validation before attempting updates
-- **Merge Conflicts**: Preserves existing model-index entries when adding new ones
-- **Space Creation**: Handles naming conflicts and hardware request failures gracefully
+### 错误处理
+- **找不到表格**：如果未检测到评估表格，脚本将报告
+- **无效格式**：对于格式错误的表格，提供明确的错误消息
+- **API错误**：对瞬时Artificial Analysis API故障的重试逻辑
+- **令牌问题**：尝试更新前的验证
+- **合并冲突**：添加新条目时保留现有的model-index条目
+- **空间创建**：优雅处理命名冲突和硬件请求失败
 
-### Best Practices
+### 最佳实践
 
-1. **Check for existing PRs first**: Run `get-prs` before creating any new PR to avoid duplicates
-2. **Always start with `inspect-tables`**: See table structure and get the correct extraction command
-3. **Use `--help` for guidance**: Run `inspect-tables --help` to see the complete workflow
-4. **Preview first**: Default behavior prints YAML; review it before using `--apply` or `--create-pr`
-5. **Verify extracted values**: Compare YAML output against the README table manually
-6. **Use `--table N` for multi-table READMEs**: Required when multiple evaluation tables exist
-7. **Use `--model-name-override` for comparison tables**: Copy the exact column header from `inspect-tables` output
-8. **Create PRs for Others**: Use `--create-pr` when updating models you don't own
-9. **One model per repo**: Only add the main model's results to model-index
-10. **No markdown in YAML names**: The model name field in YAML should be plain text
+1. **首先检查现有PR**：在创建任何新PR之前运行`get-prs`，以避免重复
+2. **始终从`inspect-tables`开始**：查看表格结构并获取正确的提取命令
+3. **使用`--help`获取指导**：运行`inspect-tables --help`查看完整工作流
+4. **先预览**：默认行为打印YAML；在使用`--apply`或`--create-pr`之前查看
+5. **验证提取的值**：手动比较YAML输出与README表格
+6. **对多表格README使用`--table N`**：当存在多个评估表格时需要
+7. **对比较表格使用`--model-name-override`**：从`inspect-tables`输出复制确切的列标题
+8. **为他人创建PR**：更新您不拥有的模型时使用`--create-pr`
+9. **每个仓库一个模型**：只将主模型的结果添加到model-index
+10. **YAML名称中无markdown**：YAML中的模型名字段应为纯文本
 
-### Model Name Matching
+### 模型名称匹配
 
-When extracting evaluation tables with multiple models (either as columns or rows), the script uses **exact normalized token matching**:
+从包含多个模型（作为列或行）的评估表格中提取时，脚本使用**精确规范化令牌匹配**：
 
-- Removes markdown formatting (bold `**`, links `[]()`  )
-- Normalizes names (lowercase, replace `-` and `_` with spaces)
-- Compares token sets: `"OLMo-3-32B"` → `{"olmo", "3", "32b"}` matches `"**Olmo 3 32B**"` or `"[Olmo-3-32B](...)`
-- Only extracts if tokens match exactly (handles different word orders and separators)
-- Fails if no exact match found (rather than guessing from similar names)
+- 删除markdown格式（粗体`**`，链接`[]()` ）
+- 规范化名称（小写，将`-`和`_`替换为空格）
+- 比较令牌集：`"OLMo-3-32B"` → `{"olmo", "3", "32b"}`匹配`"**Olmo 3 32B**"`或`"[Olmo-3-32B](...)`
+- 仅当令牌完全匹配时才提取（处理不同的词序和分隔符）
+- 如果未找到精确匹配，则失败（而不是从相似名称中猜测）
 
-**For column-based tables** (benchmarks as rows, models as columns):
-- Finds the column header matching the model name
-- Extracts scores from that column only
+**对于基于列的表格**（基准测试作为行，模型作为列）：
+- 找到与模型名称匹配的列标题
+- 仅从该列提取分数
 
-**For transposed tables** (models as rows, benchmarks as columns):
-- Finds the row in the first column matching the model name
-- Extracts all benchmark scores from that row only
+**对于转置表格**（模型作为行，基准测试作为列）：
+- 找到第一列中与模型名称匹配的行
+- 仅从该行提取所有基准测试分数
 
-This ensures only the correct model's scores are extracted, never unrelated models or training checkpoints. 
+这确保只提取正确模型的分数，从不提取不相关的模型或训练检查点。
 
-### Common Patterns
+### 常见模式
 
-**Update Your Own Model:**
+**更新您自己的模型：**
 ```bash
-# Extract from README and push directly
+# 从README提取并直接推送
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "your-username/your-model" \
   --task-type "text-generation"
 ```
 
-**Update Someone Else's Model (Full Workflow):**
+**更新他人的模型（完整工作流）：**
 ```bash
-# Step 1: ALWAYS check for existing PRs first
+# 步骤1：始终首先检查现有PR
 uv run scripts/evaluation_manager.py get-prs \
   --repo-id "other-username/their-model"
 
-# Step 2: If NO open PRs exist, proceed with creating one
+# 步骤2：如果不存在开放PR，则继续创建一个
 uv run scripts/evaluation_manager.py extract-readme \
   --repo-id "other-username/their-model" \
   --create-pr
 
-# If open PRs DO exist:
-# - Warn the user about existing PRs
-# - Show them the PR URLs
-# - Do NOT create a new PR unless user explicitly confirms
+# 如果存在开放PR：
+# - 警告用户有关现有PR
+# - 向他们显示PR URL
+# - 除非用户明确确认，否则不要创建新PR
 ```
 
-**Import Fresh Benchmarks:**
+**导入新的基准测试：**
 ```bash
-# Step 1: Check for existing PRs
+# 步骤1：检查现有PR
 uv run scripts/evaluation_manager.py get-prs \
   --repo-id "anthropic/claude-sonnet-4"
 
-# Step 2: If no PRs, import from Artificial Analysis
+# 步骤2：如果没有PR，从Artificial Analysis导入
 AA_API_KEY=... uv run scripts/evaluation_manager.py import-aa \
   --creator-slug "anthropic" \
   --model-name "claude-sonnet-4" \
@@ -595,48 +593,48 @@ AA_API_KEY=... uv run scripts/evaluation_manager.py import-aa \
   --create-pr
 ```
 
-### Troubleshooting
+### 故障排除
 
-**Issue**: "No evaluation tables found in README"
-- **Solution**: Check if README contains markdown tables with numeric scores
+**问题**："在README中未找到评估表格"
+- **解决方案**：检查README是否包含带有数字分数的markdown表格
 
-**Issue**: "Could not find model 'X' in transposed table"
-- **Solution**: The script will display available models. Use `--model-name-override` with the exact name from the list
-- **Example**: `--model-name-override "**Olmo 3-32B**"`
+**问题**："在转置表格中找不到模型'X'"
+- **解决方案**：脚本将显示可用模型。使用`--model-name-override`，并从列表中使用确切的名称
+- **示例**：`--model-name-override "**Olmo 3-32B**"`
 
-**Issue**: "AA_API_KEY not set"
-- **Solution**: Set environment variable or add to .env file
+**问题**："AA_API_KEY未设置"
+- **解决方案**：设置环境变量或添加到.env文件
 
-**Issue**: "Token does not have write access"
-- **Solution**: Ensure HF_TOKEN has write permissions for the repository
+**问题**："令牌没有写入访问权限"
+- **解决方案**：确保HF_TOKEN对仓库具有写入权限
 
-**Issue**: "Model not found in Artificial Analysis"
-- **Solution**: Verify creator-slug and model-name match API values
+**问题**："在Artificial Analysis中找不到模型"
+- **解决方案**：验证creator-slug和model-name与API值匹配
 
-**Issue**: "Payment required for hardware"
-- **Solution**: Add a payment method to your Hugging Face account to use non-CPU hardware
+**问题**："硬件需要付款"
+- **解决方案**：在您的Hugging Face账户中添加付款方式，以使用非CPU硬件
 
-**Issue**: "vLLM out of memory" or CUDA OOM
-- **Solution**: Use a larger hardware flavor, reduce `--gpu-memory-utilization`, or use `--tensor-parallel-size` for multi-GPU
+**问题**："vLLM内存不足"或CUDA OOM
+- **解决方案**：使用更大的硬件类型，减少`--gpu-memory-utilization`，或对多GPU使用`--tensor-parallel-size`
 
-**Issue**: "Model architecture not supported by vLLM"
-- **Solution**: Use `--backend hf` (inspect-ai) or `--backend accelerate` (lighteval) for HuggingFace Transformers
+**问题**："模型架构不支持vLLM"
+- **解决方案**：对HuggingFace Transformers使用`--backend hf`（inspect-ai）或`--backend accelerate`（lighteval）
 
-**Issue**: "Trust remote code required"
-- **Solution**: Add `--trust-remote-code` flag for models with custom code (e.g., Phi-2, Qwen)
+**问题**："需要信任远程代码"
+- **解决方案**：为具有自定义代码的模型添加`--trust-remote-code`标志（例如，Phi-2、Qwen）
 
-**Issue**: "Chat template not found"
-- **Solution**: Only use `--use-chat-template` for instruction-tuned models that include a chat template
+**问题**："未找到聊天模板"
+- **解决方案**：仅对包含聊天模板的指令调优模型使用`--use-chat-template`
 
-### Integration Examples
+### 集成示例
 
-**Python Script Integration:**
+**Python脚本集成：**
 ```python
 import subprocess
 import os
 
 def update_model_evaluations(repo_id, readme_content):
-    """Update model card with evaluations from README."""
+    """使用README中的评估更新模型卡片。"""
     result = subprocess.run([
         "python", "scripts/evaluation_manager.py",
         "extract-readme",
@@ -645,7 +643,7 @@ def update_model_evaluations(repo_id, readme_content):
     ], capture_output=True, text=True)
 
     if result.returncode == 0:
-        print(f"Successfully updated {repo_id}")
+        print(f"成功更新 {repo_id}")
     else:
-        print(f"Error: {result.stderr}")
+        print(f"错误: {result.stderr}")
 ```

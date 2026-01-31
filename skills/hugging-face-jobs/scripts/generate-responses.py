@@ -12,20 +12,20 @@
 #
 # ///
 """
-Generate responses for prompts in a dataset using vLLM for efficient GPU inference.
+使用 vLLM 为数据集中的提示词生成响应,以实现高效的 GPU 推理。
 
-This script loads a dataset from Hugging Face Hub containing chat-formatted messages,
-applies the model's chat template, generates responses using vLLM, and saves the
-results back to the Hub with a comprehensive dataset card.
+此脚本从 Hugging Face Hub 加载包含聊天格式消息的数据集,
+应用模型的聊天模板,使用 vLLM 生成响应,并将结果
+保存回 Hub,附带完整的数据集说明卡片。
 
-Example usage:
-    # Local execution with auto GPU detection
+使用示例:
+    # 本地执行,自动检测 GPU
     uv run generate-responses.py \\
         username/input-dataset \\
         username/output-dataset \\
         --messages-column messages
 
-    # With custom model and sampling parameters
+    # 使用自定义模型和采样参数
     uv run generate-responses.py \\
         username/input-dataset \\
         username/output-dataset \\
@@ -34,7 +34,7 @@ Example usage:
         --top-p 0.95 \\
         --max-tokens 2048
 
-    # HF Jobs execution (see script output for full command)
+    # HF Jobs 执行(完整命令请参见脚本输出)
     hf jobs uv run --flavor a100x4 ...
 """
 
@@ -52,7 +52,7 @@ from tqdm.auto import tqdm
 from transformers import AutoTokenizer
 from vllm import LLM, SamplingParams
 
-# Enable HF Transfer for faster downloads
+# 启用 HF Transfer 以加快下载速度
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 logging.basicConfig(
@@ -62,11 +62,11 @@ logger = logging.getLogger(__name__)
 
 
 def check_gpu_availability() -> int:
-    """Check if CUDA is available and return the number of GPUs."""
+    """检查 CUDA 是否可用并返回 GPU 数量。"""
     if not cuda.is_available():
-        logger.error("CUDA is not available. This script requires a GPU.")
+        logger.error("CUDA 不可用。此脚本需要 GPU。")
         logger.error(
-            "Please run on a machine with NVIDIA GPU or use HF Jobs with GPU flavor."
+            "请在配备 NVIDIA GPU 的机器上运行,或使用带 GPU 规格的 HF Jobs。"
         )
         sys.exit(1)
 
@@ -74,7 +74,7 @@ def check_gpu_availability() -> int:
     for i in range(num_gpus):
         gpu_name = cuda.get_device_name(i)
         gpu_memory = cuda.get_device_properties(i).total_memory / 1024**3
-        logger.info(f"GPU {i}: {gpu_name} with {gpu_memory:.1f} GB memory")
+        logger.info(f"GPU {i}: {gpu_name},内存 {gpu_memory:.1f} GB")
 
     return num_gpus
 
@@ -91,21 +91,21 @@ def create_dataset_card(
     num_skipped: int = 0,
     max_model_len_used: Optional[int] = None,
 ) -> str:
-    """Create a comprehensive dataset card documenting the generation process."""
+    """创建完整的数据集说明卡片,记录生成过程。"""
     filtering_section = ""
     if num_skipped > 0:
         skip_percentage = (num_skipped / num_examples) * 100
         processed = num_examples - num_skipped
         filtering_section = f"""
 
-### Filtering Statistics
+### 过滤统计
 
-- **Total Examples**: {num_examples:,}
-- **Processed**: {processed:,} ({100 - skip_percentage:.1f}%)
-- **Skipped (too long)**: {num_skipped:,} ({skip_percentage:.1f}%)
-- **Max Model Length Used**: {max_model_len_used:,} tokens
+- **总样本数**: {num_examples:,}
+- **已处理**: {processed:,} ({100 - skip_percentage:.1f}%)
+- **已跳过(过长)**: {num_skipped:,} ({skip_percentage:.1f}%)
+- **使用的最大模型长度**: {max_model_len_used:,} tokens
 
-Note: Prompts exceeding the maximum model length were skipped and have empty responses."""
+注意:超过最大模型长度的提示词已被跳过,响应为空。"""
 
     return f"""---
 tags:
@@ -114,42 +114,42 @@ tags:
 - uv-script
 ---
 
-# Generated Responses Dataset
+# 生成的响应数据集
 
-This dataset contains generated responses for prompts from [{source_dataset}](https://huggingface.co/datasets/{source_dataset}).
+此数据集包含来自 [{source_dataset}](https://huggingface.co/datasets/{source_dataset}) 的提示词的生成响应。
 
-## Generation Details
+## 生成详情
 
-- **Source Dataset**: [{source_dataset}](https://huggingface.co/datasets/{source_dataset})
-- **Input Column**: `{prompt_column if prompt_column else messages_column}` ({"plain text prompts" if prompt_column else "chat messages"})
-- **Model**: [{model_id}](https://huggingface.co/{model_id})
-- **Number of Examples**: {num_examples:,}
-- **Generation Date**: {generation_time}{filtering_section}
+- **源数据集**: [{source_dataset}](https://huggingface.co/datasets/{source_dataset})
+- **输入列**: `{prompt_column if prompt_column else messages_column}` ({"纯文本提示词" if prompt_column else "聊天消息"})
+- **模型**: [{model_id}](https://huggingface.co/{model_id})
+- **样本数量**: {num_examples:,}
+- **生成日期**: {generation_time}{filtering_section}
 
-### Sampling Parameters
+### 采样参数
 
-- **Temperature**: {sampling_params.temperature}
+- **温度**: {sampling_params.temperature}
 - **Top P**: {sampling_params.top_p}
 - **Top K**: {sampling_params.top_k}
 - **Min P**: {sampling_params.min_p}
-- **Max Tokens**: {sampling_params.max_tokens}
-- **Repetition Penalty**: {sampling_params.repetition_penalty}
+- **最大 Tokens**: {sampling_params.max_tokens}
+- **重复惩罚**: {sampling_params.repetition_penalty}
 
-### Hardware Configuration
+### 硬件配置
 
-- **Tensor Parallel Size**: {tensor_parallel_size}
-- **GPU Configuration**: {tensor_parallel_size} GPU(s)
+- **张量并行大小**: {tensor_parallel_size}
+- **GPU 配置**: {tensor_parallel_size} 个 GPU
 
-## Dataset Structure
+## 数据集结构
 
-The dataset contains all columns from the source dataset plus:
-- `response`: The generated response from the model
+数据集包含源数据集的所有列,外加:
+- `response`: 模型生成的响应
 
-## Generation Script
+## 生成脚本
 
-Generated using the vLLM inference script from [uv-scripts/vllm](https://huggingface.co/datasets/uv-scripts/vllm).
+使用 [uv-scripts/vllm](https://huggingface.co/datasets/uv-scripts/vllm) 中的 vLLM 推理脚本生成。
 
-To reproduce this generation:
+要重现此生成过程:
 
 ```bash
 uv run https://huggingface.co/datasets/uv-scripts/vllm/raw/main/generate-responses.py \\
@@ -186,59 +186,59 @@ def main(
     hf_token: Optional[str] = None,
 ):
     """
-    Main generation pipeline.
+    主生成流程。
 
-    Args:
-        src_dataset_hub_id: Input dataset on Hugging Face Hub
-        output_dataset_hub_id: Where to save results on Hugging Face Hub
-        model_id: Hugging Face model ID for generation
-        messages_column: Column name containing chat messages
-        prompt_column: Column name containing plain text prompts (alternative to messages_column)
-        output_column: Column name for generated responses
-        temperature: Sampling temperature
-        top_p: Top-p sampling parameter
-        top_k: Top-k sampling parameter
-        min_p: Minimum probability threshold
-        max_tokens: Maximum tokens to generate
-        repetition_penalty: Repetition penalty parameter
-        gpu_memory_utilization: GPU memory utilization factor
-        max_model_len: Maximum model context length (None uses model default)
-        tensor_parallel_size: Number of GPUs to use (auto-detect if None)
-        skip_long_prompts: Skip prompts exceeding max_model_len instead of failing
-        max_samples: Maximum number of samples to process (None for all)
-        hf_token: Hugging Face authentication token
+    参数:
+        src_dataset_hub_id: Hugging Face Hub 上的输入数据集
+        output_dataset_hub_id: 在 Hugging Face Hub 上保存结果的位置
+        model_id: 用于生成的 Hugging Face 模型 ID
+        messages_column: 包含聊天消息的列名
+        prompt_column: 包含纯文本提示词的列名(messages_column 的替代选项)
+        output_column: 生成响应的列名
+        temperature: 采样温度
+        top_p: Top-p 采样参数
+        top_k: Top-k 采样参数
+        min_p: 最小概率阈值
+        max_tokens: 要生成的最大 token 数
+        repetition_penalty: 重复惩罚参数
+        gpu_memory_utilization: GPU 内存利用率因子
+        max_model_len: 最大模型上下文长度(None 使用模型默认值)
+        tensor_parallel_size: 使用的 GPU 数量(None 为自动检测)
+        skip_long_prompts: 跳过超过 max_model_len 的提示词而不是失败
+        max_samples: 要处理的最大样本数(None 表示全部)
+        hf_token: Hugging Face 认证令牌
     """
     generation_start_time = datetime.now().isoformat()
 
-    # GPU check and configuration
+    # GPU 检查和配置
     num_gpus = check_gpu_availability()
     if tensor_parallel_size is None:
         tensor_parallel_size = num_gpus
         logger.info(
-            f"Auto-detected {num_gpus} GPU(s), using tensor_parallel_size={tensor_parallel_size}"
+            f"自动检测到 {num_gpus} 个 GPU,使用 tensor_parallel_size={tensor_parallel_size}"
         )
     else:
-        logger.info(f"Using specified tensor_parallel_size={tensor_parallel_size}")
+        logger.info(f"使用指定的 tensor_parallel_size={tensor_parallel_size}")
         if tensor_parallel_size > num_gpus:
             logger.warning(
-                f"Requested {tensor_parallel_size} GPUs but only {num_gpus} available"
+                f"请求 {tensor_parallel_size} 个 GPU,但只有 {num_gpus} 个可用"
             )
 
-    # Authentication - try multiple methods
+    # 认证 - 尝试多种方法
     HF_TOKEN = hf_token or os.environ.get("HF_TOKEN") or get_token()
 
     if not HF_TOKEN:
-        logger.error("No HuggingFace token found. Please provide token via:")
-        logger.error("  1. --hf-token argument")
-        logger.error("  2. HF_TOKEN environment variable")
-        logger.error("  3. Run 'huggingface-cli login' or use login() in Python")
+        logger.error("未找到 HuggingFace 令牌。请通过以下方式提供令牌:")
+        logger.error("  1. --hf-token 参数")
+        logger.error("  2. HF_TOKEN 环境变量")
+        logger.error("  3. 运行 'huggingface-cli login' 或在 Python 中使用 login()")
         sys.exit(1)
 
-    logger.info("HuggingFace token found, authenticating...")
+    logger.info("找到 HuggingFace 令牌,正在认证...")
     login(token=HF_TOKEN)
 
-    # Initialize vLLM
-    logger.info(f"Loading model: {model_id}")
+    # 初始化 vLLM
+    logger.info(f"正在加载模型: {model_id}")
     vllm_kwargs = {
         "model": model_id,
         "tensor_parallel_size": tensor_parallel_size,
@@ -246,15 +246,15 @@ def main(
     }
     if max_model_len is not None:
         vllm_kwargs["max_model_len"] = max_model_len
-        logger.info(f"Using max_model_len={max_model_len}")
+        logger.info(f"使用 max_model_len={max_model_len}")
 
     llm = LLM(**vllm_kwargs)
 
-    # Load tokenizer for chat template
-    logger.info("Loading tokenizer...")
+    # 加载分词器以应用聊天模板
+    logger.info("正在加载分词器...")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
-    # Create sampling parameters
+    # 创建采样参数
     sampling_params = SamplingParams(
         temperature=temperature,
         top_p=top_p,
@@ -264,73 +264,73 @@ def main(
         repetition_penalty=repetition_penalty,
     )
 
-    # Load dataset
-    logger.info(f"Loading dataset: {src_dataset_hub_id}")
+    # 加载数据集
+    logger.info(f"正在加载数据集: {src_dataset_hub_id}")
     dataset = load_dataset(src_dataset_hub_id, split="train")
 
-    # Apply max_samples if specified
+    # 如果指定了 max_samples,则应用
     if max_samples is not None and max_samples < len(dataset):
-        logger.info(f"Limiting dataset to {max_samples} samples")
+        logger.info(f"将数据集限制为 {max_samples} 个样本")
         dataset = dataset.select(range(max_samples))
 
     total_examples = len(dataset)
-    logger.info(f"Dataset loaded with {total_examples:,} examples")
+    logger.info(f"数据集已加载,包含 {total_examples:,} 个样本")
 
-    # Determine which column to use and validate
+    # 确定使用哪一列并进行验证
     if prompt_column:
-        # Use prompt column mode
+        # 使用提示词列模式
         if prompt_column not in dataset.column_names:
             logger.error(
-                f"Column '{prompt_column}' not found. Available columns: {dataset.column_names}"
+                f"未找到列 '{prompt_column}'。可用列: {dataset.column_names}"
             )
             sys.exit(1)
-        logger.info(f"Using prompt column mode with column: '{prompt_column}'")
+        logger.info(f"使用提示词列模式,列名: '{prompt_column}'")
         use_messages = False
     else:
-        # Use messages column mode
+        # 使用消息列模式
         if messages_column not in dataset.column_names:
             logger.error(
-                f"Column '{messages_column}' not found. Available columns: {dataset.column_names}"
+                f"未找到列 '{messages_column}'。可用列: {dataset.column_names}"
             )
             sys.exit(1)
-        logger.info(f"Using messages column mode with column: '{messages_column}'")
+        logger.info(f"使用消息列模式,列名: '{messages_column}'")
         use_messages = True
 
-    # Get effective max length for filtering
+    # 获取用于过滤的有效最大长度
     if max_model_len is not None:
         effective_max_len = max_model_len
     else:
-        # Get model's default max length
+        # 获取模型的默认最大长度
         effective_max_len = llm.llm_engine.model_config.max_model_len
-    logger.info(f"Using effective max model length: {effective_max_len}")
+    logger.info(f"使用的有效最大模型长度: {effective_max_len}")
 
-    # Process messages and apply chat template
-    logger.info("Preparing prompts...")
+    # 处理消息并应用聊天模板
+    logger.info("正在准备提示词...")
     all_prompts = []
     valid_prompts = []
     valid_indices = []
     skipped_info = []
 
-    for i, example in enumerate(tqdm(dataset, desc="Processing prompts")):
+    for i, example in enumerate(tqdm(dataset, desc="正在处理提示词")):
         if use_messages:
-            # Messages mode: use existing chat messages
+            # 消息模式: 使用现有的聊天消息
             messages = example[messages_column]
-            # Apply chat template
+            # 应用聊天模板
             prompt = tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True
             )
         else:
-            # Prompt mode: convert plain text to messages format
+            # 提示词模式: 将纯文本转换为消息格式
             user_prompt = example[prompt_column]
             messages = [{"role": "user", "content": user_prompt}]
-            # Apply chat template
+            # 应用聊天模板
             prompt = tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=True
             )
 
         all_prompts.append(prompt)
 
-        # Count tokens if filtering is enabled
+        # 如果启用了过滤,则计算 token 数
         if skip_long_prompts:
             tokens = tokenizer.encode(prompt)
             if len(tokens) <= effective_max_len:
@@ -342,48 +342,48 @@ def main(
             valid_prompts.append(prompt)
             valid_indices.append(i)
 
-    # Log filtering results
+    # 记录过滤结果
     if skip_long_prompts and skipped_info:
         logger.warning(
-            f"Skipped {len(skipped_info)} prompts that exceed max_model_len ({effective_max_len} tokens)"
+            f"跳过了 {len(skipped_info)} 个超过 max_model_len ({effective_max_len} tokens) 的提示词"
         )
-        logger.info("Skipped prompt details (first 10):")
+        logger.info("跳过的提示词详情(前 10 个):")
         for idx, (prompt_idx, token_count) in enumerate(skipped_info[:10]):
             logger.info(
-                f"  - Example {prompt_idx}: {token_count} tokens (exceeds by {token_count - effective_max_len})"
+                f"  - 样本 {prompt_idx}: {token_count} tokens (超出 {token_count - effective_max_len})"
             )
         if len(skipped_info) > 10:
-            logger.info(f"  ... and {len(skipped_info) - 10} more")
+            logger.info(f"  ... 还有 {len(skipped_info) - 10} 个")
 
         skip_percentage = (len(skipped_info) / total_examples) * 100
         if skip_percentage > 10:
-            logger.warning(f"WARNING: {skip_percentage:.1f}% of prompts were skipped!")
+            logger.warning(f"警告: {skip_percentage:.1f}% 的提示词被跳过!")
 
     if not valid_prompts:
-        logger.error("No valid prompts to process after filtering!")
+        logger.error("过滤后没有有效的提示词需要处理!")
         sys.exit(1)
 
-    # Generate responses - vLLM handles batching internally
-    logger.info(f"Starting generation for {len(valid_prompts):,} valid prompts...")
-    logger.info("vLLM will handle batching and scheduling automatically")
+    # 生成响应 - vLLM 内部处理批处理
+    logger.info(f"开始为 {len(valid_prompts):,} 个有效提示词生成响应...")
+    logger.info("vLLM 将自动处理批处理和调度")
 
     outputs = llm.generate(valid_prompts, sampling_params)
 
-    # Extract generated text and create full response list
-    logger.info("Extracting generated responses...")
-    responses = [""] * total_examples  # Initialize with empty strings
+    # 提取生成的文本并创建完整的响应列表
+    logger.info("正在提取生成的响应...")
+    responses = [""] * total_examples  # 用空字符串初始化
 
     for idx, output in enumerate(outputs):
         original_idx = valid_indices[idx]
         response = output.outputs[0].text.strip()
         responses[original_idx] = response
 
-    # Add responses to dataset
-    logger.info("Adding responses to dataset...")
+    # 将响应添加到数据集
+    logger.info("正在将响应添加到数据集...")
     dataset = dataset.add_column(output_column, responses)
 
-    # Create dataset card
-    logger.info("Creating dataset card...")
+    # 创建数据集说明卡片
+    logger.info("正在创建数据集说明卡片...")
     card_content = create_dataset_card(
         source_dataset=src_dataset_hub_id,
         model_id=model_id,
@@ -397,149 +397,149 @@ def main(
         max_model_len_used=effective_max_len if skip_long_prompts else None,
     )
 
-    # Push dataset to hub
-    logger.info(f"Pushing dataset to: {output_dataset_hub_id}")
+    # 将数据集推送到 Hub
+    logger.info(f"正在将数据集推送到: {output_dataset_hub_id}")
     dataset.push_to_hub(output_dataset_hub_id, token=HF_TOKEN)
 
-    # Push dataset card
+    # 推送数据集说明卡片
     card = DatasetCard(card_content)
     card.push_to_hub(output_dataset_hub_id, token=HF_TOKEN)
 
-    logger.info("✅ Generation complete!")
+    logger.info("✅ 生成完成!")
     logger.info(
-        f"Dataset available at: https://huggingface.co/datasets/{output_dataset_hub_id}"
+        f"数据集地址: https://huggingface.co/datasets/{output_dataset_hub_id}"
     )
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         parser = argparse.ArgumentParser(
-            description="Generate responses for dataset prompts using vLLM",
+            description="使用 vLLM 为数据集提示词生成响应",
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
-Examples:
-  # Basic usage with default Qwen model
+示例:
+  # 使用默认 Qwen 模型的基本用法
   uv run generate-responses.py input-dataset output-dataset
-  
-  # With custom model and parameters
+
+  # 使用自定义模型和参数
   uv run generate-responses.py input-dataset output-dataset \\
     --model-id meta-llama/Llama-3.1-8B-Instruct \\
     --temperature 0.9 \\
     --max-tokens 2048
-  
-  # Force specific GPU configuration
+
+  # 强制指定 GPU 配置
   uv run generate-responses.py input-dataset output-dataset \\
     --tensor-parallel-size 2 \\
     --gpu-memory-utilization 0.95
-  
-  # Using environment variable for token
+
+  # 使用环境变量提供令牌
   HF_TOKEN=hf_xxx uv run generate-responses.py input-dataset output-dataset
             """,
         )
 
         parser.add_argument(
             "src_dataset_hub_id",
-            help="Input dataset on Hugging Face Hub (e.g., username/dataset-name)",
+            help="Hugging Face Hub 上的输入数据集(例如: username/dataset-name)",
         )
         parser.add_argument(
-            "output_dataset_hub_id", help="Output dataset name on Hugging Face Hub"
+            "output_dataset_hub_id", help="Hugging Face Hub 上的输出数据集名称"
         )
         parser.add_argument(
             "--model-id",
             type=str,
             default="Qwen/Qwen3-30B-A3B-Instruct-2507",
-            help="Model to use for generation (default: Qwen3-30B-A3B-Instruct-2507)",
+            help="用于生成的模型(默认: Qwen3-30B-A3B-Instruct-2507)",
         )
         parser.add_argument(
             "--messages-column",
             type=str,
             default="messages",
-            help="Column containing chat messages (default: messages)",
+            help="包含聊天消息的列(默认: messages)",
         )
         parser.add_argument(
             "--prompt-column",
             type=str,
-            help="Column containing plain text prompts (alternative to --messages-column)",
+            help="包含纯文本提示词的列(--messages-column 的替代选项)",
         )
         parser.add_argument(
             "--output-column",
             type=str,
             default="response",
-            help="Column name for generated responses (default: response)",
+            help="生成响应的列名(默认: response)",
         )
         parser.add_argument(
             "--max-samples",
             type=int,
-            help="Maximum number of samples to process (default: all)",
+            help="要处理的最大样本数(默认: 全部)",
         )
         parser.add_argument(
             "--temperature",
             type=float,
             default=0.7,
-            help="Sampling temperature (default: 0.7)",
+            help="采样温度(默认: 0.7)",
         )
         parser.add_argument(
             "--top-p",
             type=float,
             default=0.8,
-            help="Top-p sampling parameter (default: 0.8)",
+            help="Top-p 采样参数(默认: 0.8)",
         )
         parser.add_argument(
             "--top-k",
             type=int,
             default=20,
-            help="Top-k sampling parameter (default: 20)",
+            help="Top-k 采样参数(默认: 20)",
         )
         parser.add_argument(
             "--min-p",
             type=float,
             default=0.0,
-            help="Minimum probability threshold (default: 0.0)",
+            help="最小概率阈值(默认: 0.0)",
         )
         parser.add_argument(
             "--max-tokens",
             type=int,
             default=16384,
-            help="Maximum tokens to generate (default: 16384)",
+            help="要生成的最大 token 数(默认: 16384)",
         )
         parser.add_argument(
             "--repetition-penalty",
             type=float,
             default=1.0,
-            help="Repetition penalty (default: 1.0)",
+            help="重复惩罚(默认: 1.0)",
         )
         parser.add_argument(
             "--gpu-memory-utilization",
             type=float,
             default=0.90,
-            help="GPU memory utilization factor (default: 0.90)",
+            help="GPU 内存利用率因子(默认: 0.90)",
         )
         parser.add_argument(
             "--max-model-len",
             type=int,
-            help="Maximum model context length (default: model's default)",
+            help="最大模型上下文长度(默认: 模型默认值)",
         )
         parser.add_argument(
             "--tensor-parallel-size",
             type=int,
-            help="Number of GPUs to use (default: auto-detect)",
+            help="使用的 GPU 数量(默认: 自动检测)",
         )
         parser.add_argument(
             "--hf-token",
             type=str,
-            help="Hugging Face token (can also use HF_TOKEN env var)",
+            help="Hugging Face 令牌(也可以使用 HF_TOKEN 环境变量)",
         )
         parser.add_argument(
             "--skip-long-prompts",
             action="store_true",
             default=True,
-            help="Skip prompts that exceed max_model_len instead of failing (default: True)",
+            help="跳过超过 max_model_len 的提示词而不是失败(默认: True)",
         )
         parser.add_argument(
             "--no-skip-long-prompts",
             dest="skip_long_prompts",
             action="store_false",
-            help="Fail on prompts that exceed max_model_len",
+            help="对超过 max_model_len 的提示词失败",
         )
 
         args = parser.parse_args()
@@ -565,16 +565,16 @@ Examples:
             hf_token=args.hf_token,
         )
     else:
-        # Show HF Jobs example when run without arguments
+        # 在不带参数运行时显示 HF Jobs 示例
         print("""
-vLLM Response Generation Script
+vLLM 响应生成脚本
 ==============================
 
-This script requires arguments. For usage information:
+此脚本需要参数。有关使用信息:
     uv run generate-responses.py --help
 
-Example HF Jobs command with multi-GPU:
-    # If you're logged in with huggingface-cli, token will be auto-detected
+多 GPU 的 HF Jobs 命令示例:
+    # 如果您已使用 huggingface-cli 登录,令牌将自动检测
     hf jobs uv run \\
         --flavor l4x4 \\
         https://huggingface.co/datasets/uv-scripts/vllm/raw/main/generate-responses.py \\

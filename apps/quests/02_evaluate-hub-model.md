@@ -1,68 +1,68 @@
-# Week 1: Evaluate a Hub Model
+# 第1周：评估Hub模型
 
-📣 TASK: Add evaluation results to model cards across the Hub. Together, we're building a distributed leaderboard of open source model performance.
+📣 任务：向Hub上的模型卡片添加评估结果。我们将共同构建一个开源模型性能的分布式排行榜。
 
 >[!NOTE]
-> Bonus XP for contributing to the leaderboard application. Open a PR [on the hub](https://huggingface.co/spaces/hf-skills/distributed-leaderboard/discussions) or [on GitHub](https://github.com/huggingface/skills/blob/main/apps/evals-leaderboard/app.py) to get your (bonus) XP.
+> 为排行榜应用做出贡献可获得额外XP。在[hub](https://huggingface.co/spaces/hf-skills/distributed-leaderboard/discussions)或[GitHub](https://github.com/huggingface/skills/blob/main/apps/evals-leaderboard/app.py)上打开PR以获得你的（额外）XP。
 
-## Why This Matters
+## 为什么这很重要
 
-Model cards without evaluation data are hard to compare. By adding structured eval results to metadata, we make models easier to compare and review. Your contributions power leaderboards and help the community find the best models for their needs. Also, by doing this in a distributed way, we can share our evaluation results with the community.
+没有评估数据的模型卡片很难比较。通过向元数据添加结构化评估结果，我们使模型更容易比较和审查。你的贡献为排行榜提供动力，并帮助社区找到最适合其需求的模型。此外，通过分布式方式执行此操作，我们可以与社区分享我们的评估结果。
 
-## Goals
+## 目标
 
-- Add eval scores to the 100 trending models on the Hub
-- Include AIME 2025, BigBenchHard, LiveCodeBench, MMLU, ARC on trending models.
-- It is ok to include a subset of the benchmarks available for the model.
-- Build a leaderboard application that shows the evaluation results for the trending models.
+- 向Hub上的100个热门模型添加评估分数
+- 在热门模型上包含AIME 2025、BigBenchHard、LiveCodeBench、MMLU、ARC等评估。
+- 可以只包含模型可用的部分基准测试。
+- 构建一个排行榜应用，显示热门模型的评估结果。
 
-## XP Tiers
+## XP等级
 
-Taking part is simple. We need to get model authors to show evaluation results in their model cards. This is a clean up job!
+参与很简单。我们需要让模型作者在他们的模型卡片中显示评估结果。这是一项清理工作！
 
-| Tier            | XP    | Description                                                   | What Counts                                  |
-|-----------------|-------|---------------------------------------------------------------|-----------------------------------------------|
-| 🐢 Contributor  | 1 XP  | Extract evaluation results from one benchmark and update its model card. | Any PR on the repo with evaluation data.      |
-| 🐕 Evaluator    | 5 XP  | Import scores from third-party benchmarks like Artificial Analysis. | Undefined benchmark scores and merged PRs.    |
-| 🦁 Advanced     | 20 XP| Run your own evaluation with inspect-ai and publish results.   | Original eval run and merged PR.              |
-| 🐉 Bonus        | 20 XP| Contribute to the leaderboard application.                      | Any Merged PR on the hub or GitHub.                  |
-| 🤢 Slop         | -20 XP  | Opening none useful PRs.                  | Duplicate PRs, Incorrect Eval Scores, Incorrect Benchmark Scores          |
+| 等级 | XP | 描述 | 计算标准 |
+|------|-----|--------|----------|
+| 🐢 贡献者 | 1 XP | 从一个基准测试中提取评估结果并更新其模型卡片。 | 任何包含评估数据的仓库PR。 |
+| 🐕 评估者 | 5 XP | 从第三方基准测试（如Artificial Analysis）导入分数。 | 未定义的基准测试分数和已合并的PR。 |
+| 🦁 高级 | 20 XP | 使用inspect-ai运行自己的评估并发布结果。 | 原始评估运行和已合并的PR。 |
+| 🐉 额外 | 20 XP | 为排行榜应用做出贡献。 | 在hub或GitHub上的任何已合并PR。 |
+| 🤢 垃圾 | -20 XP | 打开无用的PR。 | 重复PR、不正确的评估分数、不正确的基准测试分数 |
 
 > [!WARNING]
-> This hackathon is about advancing the state of open source AI. We want useful PRs that help everyone out, not just metrics. 
+> 这次黑客马拉松是关于推进开源AI的发展。我们需要的是帮助所有人的有用PR，而不仅仅是指标。
 
-## The Skill
+## 技能
 
-Use `hf-evaluation/` for this quest. Key capabilities:
+使用`hf-evaluation/`完成此任务。关键功能：
 
-- Extract evaluation tables from existing README content posted by model authors.
-- Import benchmark scores from [Artificial Analysis](https://artificial.com/).
-- Run your own evals with [inspect-ai](https://github.com/UKGovernmentBEIS/inspect_ai) on [HF Jobs](https://huggingface.co/docs/huggingface_hub/en/guides/jobs).
-- Update model-index metadata in the model card.
+- 从模型作者发布的现有README内容中提取评估表格。
+- 从[Artificial Analysis](https://artificial.com/)导入基准测试分数。
+- 使用[inspect-ai](https://github.com/UKGovernmentBEIS/inspect_ai)在[HF Jobs](https://huggingface.co/docs/huggingface_hub/en/guides/jobs)上运行自己的评估。
+- 更新模型卡片中的model-index元数据。
 
 >[!NOTE]
-> Take a look at the [SKILL.md](https://github.com/huggingface/skills/blob/main/hf-evaluation/SKILL.md) for more details.
+> 有关更多详细信息，请查看[SKILL.md](https://github.com/huggingface/skills/blob/main/hf-evaluation/SKILL.md)。
 
-### Extract Evaluation Tables from README
+### 从README中提取评估表格
 
-1. Pick a Hub model without evaluation data from *trending models* on the hub
-2. Use the skill to extract or add a benchmark score
-3. Create a PR (or push directly if you own the model)
+1. 从hub上的*热门模型*中选择一个没有评估数据的Hub模型
+2. 使用技能提取或添加基准测试分数
+3. 创建PR（如果是你自己的模型，则直接推送）
 
-The agent will use this script to extract evaluation tables from the model's README.
+代理将使用此脚本从模型的README中提取评估表格。
 
 ```bash
 python hf-evaluation/scripts/evaluation_manager.py extract-readme \
   --repo-id "model-author/model-name" --dry-run
 ```
 
-### Import Scores from Artificial Analysis
+### 从Artificial Analysis导入分数
 
-1. Find a model with benchmark data on external sites
-2. Use `import-aa` to fetch scores from Artificial Analysis API
-3. Create a PR with properly attributed evaluation data
+1. 找到在外部网站上有基准测试数据的模型
+2. 使用`import-aa`从Artificial Analysis API获取分数
+3. 创建包含正确归因的评估数据的PR
 
-The agent will use this script to fetch scores from Artificial Analysis API and add them to the model card.
+代理将使用此脚本从Artificial Analysis API获取分数并将其添加到模型卡片中。
 
 ```bash
 python hf-evaluation/scripts/evaluation_manager.py import-aa \
@@ -70,13 +70,13 @@ python hf-evaluation/scripts/evaluation_manager.py import-aa \
   --repo-id "target/model" --create-pr
 ```
 
-### Run your own evaluation with inspect-ai and publish results.
+### 使用inspect-ai运行自己的评估并发布结果
 
-1. Choose an eval task (MMLU, GSM8K, HumanEval, etc.)
-2. Run the evaluation on HF Jobs infrastructure
-3. Update the model card with your results and methodology
+1. 选择一个评估任务（MMLU、GSM8K、HumanEval等）
+2. 在HF Jobs基础设施上运行评估
+3. 使用你的结果和方法更新模型卡片
 
-The agent will use this script to run the evaluation on HF Jobs infrastructure and update the model card with the results.
+代理将使用此脚本在HF Jobs基础设施上运行评估并使用结果更新模型卡片。
 
 ```bash
 HF_TOKEN=$HF_TOKEN hf jobs uv run hf-evaluation/scripts/inspect_eval_uv.py \
@@ -84,16 +84,15 @@ HF_TOKEN=$HF_TOKEN hf jobs uv run hf-evaluation/scripts/inspect_eval_uv.py \
   -- --model "meta-llama/Llama-2-7b-hf" --task "mmlu"
 ```
 
-## Tips
+## 提示
 
-- Always use `--dry-run` first to preview changes before pushing
-- Check for transposed tables where models are rows and benchmarks are columns
-- Be careful with PRs for models you don't own — most maintainers appreciate eval contributions but be respectful.
-- Manually validate the extracted scores and close PRs if needed.
+- 始终先使用`--dry-run`预览更改，然后再推送
+- 检查模型为行、基准测试为列的转置表格
+- 对不属于你的模型提交PR时要小心 — 大多数维护者会欣赏评估贡献，但要尊重他们。
+- 手动验证提取的分数，并在需要时关闭PR。
 
-## Resources
+## 资源
 
-- [SKILL.md](../../hf-evaluation/SKILL.md) — Full skill documentation
-- [Example Usage](../../hf-evaluation/examples/USAGE_EXAMPLES.md) — Worked examples
-- [Metric Mapping](../../hf-evaluation/examples/metric_mapping.json) — Standard metric types
-
+- [SKILL.md](../../hf-evaluation/SKILL.md) — 完整技能文档
+- [Example Usage](../../hf-evaluation/examples/USAGE_EXAMPLES.md) — 工作示例
+- [Metric Mapping](../../hf-evaluation/examples/metric_mapping.json) — 标准指标类型

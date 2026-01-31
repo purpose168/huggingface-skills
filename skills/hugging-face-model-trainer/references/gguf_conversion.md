@@ -1,65 +1,65 @@
-# GGUF Conversion Guide
+# GGUF 转换指南
 
-After training models with TRL on Hugging Face Jobs, convert them to **GGUF format** for use with llama.cpp, Ollama, LM Studio, and other local inference tools.
+在使用 TRL 在 Hugging Face Jobs 上训练模型后,将其转换为 **GGUF 格式** 以便与 llama.cpp、Ollama、LM Studio 和其他本地推理工具一起使用。
 
-**This guide provides production-ready, tested code based on successful conversions.** All critical dependencies and build steps are included.
+**本指南提供了基于成功转换的生产级、经过测试的代码。** 包含所有关键依赖项和构建步骤。
 
-## What is GGUF?
+## 什么是 GGUF?
 
-**GGUF** (GPT-Generated Unified Format):
-- Optimized format for CPU/GPU inference with llama.cpp
-- Supports quantization (4-bit, 5-bit, 8-bit) to reduce model size
-- Compatible with: Ollama, LM Studio, Jan, GPT4All, llama.cpp
-- Typically 2-8GB for 7B models (vs 14GB unquantized)
+**GGUF**(GPT-Generated Unified Format,GPT 生成的统一格式):
+- 针对 llama.cpp 的 CPU/GPU 推理优化的格式
+- 支持量化(4 位、5 位、8 位)以减小模型大小
+- 兼容:Ollama、LM Studio、Jan、GPT4All、llama.cpp
+- 对于 7B 模型通常为 2-8GB(而未量化版本为 14GB)
 
-## When to Convert to GGUF
+## 何时转换为 GGUF
 
-**Convert when:**
-- Running models locally with Ollama or LM Studio
-- Using CPU-optimized inference
-- Reducing model size with quantization
-- Deploying to edge devices
-- Sharing models for local-first use
+**在以下情况下转换:**
+- 使用 Ollama 或 LM Studio 在本地运行模型
+- 使用 CPU 优化的推理
+- 通过量化减小模型大小
+- 部署到边缘设备
+- 分享模型以供本地优先使用
 
-## Critical Success Factors
+## 关键成功因素
 
-Based on production testing, these are **essential** for reliable conversion:
+基于生产测试,这些对于可靠转换是**必不可少的**:
 
-### 1. ✅ Install Build Tools FIRST
-**Before cloning llama.cpp**, install build dependencies:
+### 1. ✅ 首先安装构建工具
+**在克隆 llama.cpp 之前**,安装构建依赖项:
 ```python
-subprocess.run(["apt-get", "update", "-qq"], check=True, capture_output=True)
-subprocess.run(["apt-get", "install", "-y", "-qq", "build-essential", "cmake"], check=True, capture_output=True)
+subprocess.run(["apt-get", "update", "-qq"], check=True, capture_output=True)  # 更新包列表
+subprocess.run(["apt-get", "install", "-y", "-qq", "build-essential", "cmake"], check=True, capture_output=True)  # 安装构建工具
 ```
 
-**Why:** The quantization tool requires gcc and cmake. Installing after cloning doesn't help.
+**原因:** 量化工具需要 gcc 和 cmake。在克隆后安装没有帮助。
 
-### 2. ✅ Use CMake (Not Make)
-**Build the quantize tool with CMake:**
+### 2. ✅ 使用 CMake(而不是 Make)
+**使用 CMake 构建量化工具:**
 ```python
-# Create build directory
+# 创建构建目录
 os.makedirs("/tmp/llama.cpp/build", exist_ok=True)
 
-# Configure
+# 配置
 subprocess.run([
     "cmake", "-B", "/tmp/llama.cpp/build", "-S", "/tmp/llama.cpp",
-    "-DGGML_CUDA=OFF"  # Faster build, CUDA not needed for quantization
+    "-DGGML_CUDA=OFF"  # 更快的构建,量化不需要 CUDA
 ], check=True, capture_output=True, text=True)
 
-# Build
+# 构建
 subprocess.run([
     "cmake", "--build", "/tmp/llama.cpp/build",
     "--target", "llama-quantize", "-j", "4"
 ], check=True, capture_output=True, text=True)
 
-# Binary path
+# 二进制文件路径
 quantize_bin = "/tmp/llama.cpp/build/bin/llama-quantize"
 ```
 
-**Why:** CMake is more reliable than `make` and produces consistent binary paths.
+**原因:** CMake 比 `make` 更可靠,并且产生一致的二进制路径。
 
-### 3. ✅ Include All Dependencies
-**PEP 723 header must include:**
+### 3. ✅ 包含所有依赖项
+**PEP 723 头部必须包含:**
 ```python
 # /// script
 # dependencies = [
@@ -68,48 +68,48 @@ quantize_bin = "/tmp/llama.cpp/build/bin/llama-quantize"
 #     "torch>=2.0.0",
 #     "accelerate>=0.24.0",
 #     "huggingface_hub>=0.20.0",
-#     "sentencepiece>=0.1.99",  # Required for tokenizer
-#     "protobuf>=3.20.0",        # Required for tokenizer
+#     "sentencepiece>=0.1.99",  # 分词器必需
+#     "protobuf>=3.20.0",        # 分词器必需
 #     "numpy",
 #     "gguf",
 # ]
 # ///
 ```
 
-**Why:** `sentencepiece` and `protobuf` are critical for tokenizer conversion. Missing them causes silent failures.
+**原因:** `sentencepiece` 和 `protobuf` 对于分词器转换至关重要。缺少它们会导致静默失败。
 
-### 4. ✅ Verify Names Before Use
-**Always verify repos exist:**
+### 4. ✅ 使用前验证名称
+**始终验证仓库存在:**
 ```python
-# Before submitting job, verify:
-hub_repo_details([ADAPTER_MODEL], repo_type="model")
-hub_repo_details([BASE_MODEL], repo_type="model")
+# 在提交作业之前,验证:
+hub_repo_details([ADAPTER_MODEL], repo_type="model")  # 验证适配器模型
+hub_repo_details([BASE_MODEL], repo_type="model")     # 验证基础模型
 ```
 
-**Why:** Non-existent dataset/model names cause job failures that could be caught in seconds.
+**原因:** 不存在的数据集/模型名称会导致作业失败,而这些错误可以在几秒钟内被捕获。
 
-## Complete Conversion Script
+## 完整转换脚本
 
-See `scripts/convert_to_gguf.py` for the complete, production-ready script.
+请参阅 `scripts/convert_to_gguf.py` 获取完整的、生产就绪的脚本。
 
-**Key features:**
-- ✅ All dependencies in PEP 723 header
-- ✅ Build tools installed automatically
-- ✅ CMake build process (reliable)
-- ✅ Comprehensive error handling
-- ✅ Environment variable configuration
-- ✅ Automatic README generation
+**主要特性:**
+- ✅ PEP 723 头部中的所有依赖项
+- ✅ 自动安装构建工具
+- ✅ CMake 构建过程(可靠)
+- ✅ 全面的错误处理
+- ✅ 环境变量配置
+- ✅ 自动生成 README
 
-## Quick Conversion Job
+## 快速转换作业
 
 ```python
-# Before submitting: VERIFY MODELS EXIST
-hub_repo_details(["username/my-finetuned-model"], repo_type="model")
-hub_repo_details(["Qwen/Qwen2.5-0.5B"], repo_type="model")
+# 提交前:验证模型存在
+hub_repo_details(["username/my-finetuned-model"], repo_type="model")  # 验证微调模型
+hub_repo_details(["Qwen/Qwen2.5-0.5B"], repo_type="model")           # 验证基础模型
 
-# Submit conversion job
+# 提交转换作业
 hf_jobs("uv", {
-    "script": open("trl/scripts/convert_to_gguf.py").read(),  # Or inline the script
+    "script": open("trl/scripts/convert_to_gguf.py").read(),  # 或内联脚本
     "flavor": "a10g-large",
     "timeout": "45m",
     "secrets": {"HF_TOKEN": "$HF_TOKEN"},
@@ -117,180 +117,180 @@ hf_jobs("uv", {
         "ADAPTER_MODEL": "username/my-finetuned-model",
         "BASE_MODEL": "Qwen/Qwen2.5-0.5B",
         "OUTPUT_REPO": "username/my-model-gguf",
-        "HF_USERNAME": "username"  # Optional, for README
+        "HF_USERNAME": "username"  # 可选,用于 README
     }
 })
 ```
 
-## Conversion Process
+## 转换过程
 
-The script performs these steps:
+脚本执行以下步骤:
 
-1. **Load and Merge** - Load base model and LoRA adapter, merge them
-2. **Install Build Tools** - Install gcc, cmake (CRITICAL: before cloning llama.cpp)
-3. **Setup llama.cpp** - Clone repo, install Python dependencies
-4. **Convert to GGUF** - Create FP16 GGUF using llama.cpp converter
-5. **Build Quantize Tool** - Use CMake to build `llama-quantize`
-6. **Quantize** - Create Q4_K_M, Q5_K_M, Q8_0 versions
-7. **Upload** - Upload all versions + README to Hub
+1. **加载和合并** - 加载基础模型和 LoRA 适配器,合并它们
+2. **安装构建工具** - 安装 gcc、cmake(关键:在克隆 llama.cpp 之前)
+3. **设置 llama.cpp** - 克隆仓库,安装 Python 依赖项
+4. **转换为 GGUF** - 使用 llama.cpp 转换器创建 FP16 GGUF
+5. **构建量化工具** - 使用 CMake 构建 `llama-quantize`
+6. **量化** - 创建 Q4_K_M、Q5_K_M、Q8_0 版本
+7. **上传** - 上传所有版本 + README 到 Hub
 
-## Quantization Options
+## 量化选项
 
-Common quantization formats (from smallest to largest):
+常见的量化格式(从小到大):
 
-| Format | Size | Quality | Use Case |
+| 格式 | 大小 | 质量 | 用例 |
 |--------|------|---------|----------|
-| **Q4_K_M** | ~300MB | Good | **Recommended** - best balance of size/quality |
-| **Q5_K_M** | ~350MB | Better | Higher quality, slightly larger |
-| **Q8_0** | ~500MB | Very High | Near-original quality |
-| **F16** | ~1GB | Original | Full precision, largest file |
+| **Q4_K_M** | ~300MB | 良好 | **推荐** - 大小/质量的最佳平衡 |
+| **Q5_K_M** | ~350MB | 更好 | 更高质量,稍大 |
+| **Q8_0** | ~500MB | 很高 | 接近原始质量 |
+| **F16** | ~1GB | 原始 | 全精度,最大文件 |
 
-**Recommendation:** Create Q4_K_M, Q5_K_M, and Q8_0 versions to give users options.
+**建议:** 创建 Q4_K_M、Q5_K_M 和 Q8_0 版本,为用户提供选择。
 
-## Hardware Requirements
+## 硬件要求
 
-**For conversion:**
-- Small models (<1B): CPU-basic works, but slow
-- Medium models (1-7B): a10g-large recommended
-- Large models (7B+): a10g-large or a100-large
+**用于转换:**
+- 小型模型(<1B):CPU-basic 可用,但很慢
+- 中型模型(1-7B):推荐 a10g-large
+- 大型模型(7B+):a10g-large 或 a100-large
 
-**Time estimates:**
-- 0.5B model: ~15-25 minutes on A10G
-- 3B model: ~30-45 minutes on A10G
-- 7B model: ~45-60 minutes on A10G
+**时间估算:**
+- 0.5B 模型:在 A10G 上约 15-25 分钟
+- 3B 模型:在 A10G 上约 30-45 分钟
+- 7B 模型:在 A10G 上约 45-60 分钟
 
-## Using GGUF Models
+## 使用 GGUF 模型
 
-**GGUF models work on both CPU and GPU.** They're optimized for CPU inference but can also leverage GPU acceleration when available.
+**GGUF 模型可在 CPU 和 GPU 上运行。** 它们针对 CPU 推理进行了优化,但在可用时也可以利用 GPU 加速。
 
-### With Ollama (auto-detects GPU)
+### 使用 Ollama(自动检测 GPU)
 ```bash
-# Download GGUF
+# 下载 GGUF
 huggingface-cli download username/my-model-gguf model-q4_k_m.gguf
 
-# Create Modelfile
+# 创建 Modelfile
 echo "FROM ./model-q4_k_m.gguf" > Modelfile
 
-# Create and run (uses GPU automatically if available)
+# 创建并运行(如果可用则自动使用 GPU)
 ollama create my-model -f Modelfile
 ollama run my-model
 ```
 
-### With llama.cpp
+### 使用 llama.cpp
 ```bash
-# CPU only
+# 仅 CPU
 ./llama-cli -m model-q4_k_m.gguf -p "Your prompt"
 
-# With GPU acceleration (offload 32 layers to GPU)
+# 使用 GPU 加速(将 32 层卸载到 GPU)
 ./llama-cli -m model-q4_k_m.gguf -ngl 32 -p "Your prompt"
 ```
 
-### With LM Studio
-1. Download the `.gguf` file
-2. Import into LM Studio
-3. Start chatting
+### 使用 LM Studio
+1. 下载 `.gguf` 文件
+2. 导入到 LM Studio
+3. 开始聊天
 
-## Best Practices
+## 最佳实践
 
-### ✅ DO:
-1. **Verify repos exist** before submitting jobs (use `hub_repo_details`)
-2. **Install build tools FIRST** before cloning llama.cpp
-3. **Use CMake** for building quantize tool (not make)
-4. **Include all dependencies** in PEP 723 header (especially sentencepiece, protobuf)
-5. **Create multiple quantizations** - Give users choice
-6. **Test on known models** before production use
-7. **Use A10G GPU** for faster conversion
+### ✅ 应该做:
+1. **在提交作业之前验证仓库存在**(使用 `hub_repo_details`)
+2. **在克隆 llama.cpp 之前首先安装构建工具**
+3. **使用 CMake** 构建量化工具(而不是 make)
+4. **在 PEP 723 头部中包含所有依赖项**(特别是 sentencepiece、protobuf)
+5. **创建多个量化版本** - 给用户选择
+6. **在生产使用之前在已知模型上测试**
+7. **使用 A10G GPU** 以加快转换速度
 
-### ❌ DON'T:
-1. **Assume repos exist** - Always verify with hub tools
-2. **Use make** instead of CMake - Less reliable
-3. **Remove dependencies** to "simplify" - They're all needed
-4. **Skip build tools** - Quantization will fail silently
-5. **Use default paths** - CMake puts binaries in build/bin/
+### ❌ 不应该做:
+1. **假设仓库存在** - 始终使用 hub 工具验证
+2. **使用 make** 而不是 CMake - 不太可靠
+3. **删除依赖项** 以"简化" - 它们都是必需的
+4. **跳过构建工具** - 量化将静默失败
+5. **使用默认路径** - CMake 将二进制文件放在 build/bin/ 中
 
-## Common Issues
+## 常见问题
 
-### Out of memory during merge
-**Fix:**
-- Use larger GPU (a10g-large or a100-large)
-- Ensure `device_map="auto"` for automatic placement
-- Use `dtype=torch.float16` or `torch.bfloat16`
+### 合并期间内存不足
+**修复:**
+- 使用更大的 GPU(a10g-large 或 a100-large)
+- 确保 `device_map="auto"` 用于自动放置
+- 使用 `dtype=torch.float16` 或 `torch.bfloat16`
 
-### Conversion fails with architecture error
-**Fix:**
-- Ensure llama.cpp supports the model architecture
-- Check for standard architecture (Qwen, Llama, Mistral, etc.)
-- Update llama.cpp to latest: `git clone --depth 1 https://github.com/ggerganov/llama.cpp.git`
-- Check llama.cpp documentation for model support
+### 转换失败并出现架构错误
+**修复:**
+- 确保 llama.cpp 支持模型架构
+- 检查标准架构(Qwen、Llama、Mistral 等)
+- 更新 llama.cpp 到最新版本: `git clone --depth 1 https://github.com/ggerganov/llama.cpp.git`
+- 检查 llama.cpp 文档以了解模型支持
 
-### Quantization fails
-**Fix:**
-- Verify build tools installed: `apt-get install build-essential cmake`
-- Use CMake (not make) to build quantize tool
-- Check binary path: `/tmp/llama.cpp/build/bin/llama-quantize`
-- Verify FP16 GGUF exists before quantizing
+### 量化失败
+**修复:**
+- 验证构建工具已安装: `apt-get install build-essential cmake`
+- 使用 CMake(而不是 make)构建量化工具
+- 检查二进制路径: `/tmp/llama.cpp/build/bin/llama-quantize`
+- 在量化之前验证 FP16 GGUF 存在
 
-### Missing sentencepiece error
-**Fix:**
-- Add to PEP 723 header: `"sentencepiece>=0.1.99", "protobuf>=3.20.0"`
-- Don't remove dependencies to "simplify" - all are required
+### 缺少 sentencepiece 错误
+**修复:**
+- 添加到 PEP 723 头部: `"sentencepiece>=0.1.99", "protobuf>=3.20.0"`
+- 不要删除依赖项以"简化" - 都是必需的
 
-### Upload fails or times out
-**Fix:**
-- Large models (>2GB) need longer timeout: `"timeout": "1h"`
-- Upload quantized versions separately if needed
-- Check network/Hub status
+### 上传失败或超时
+**修复:**
+- 大型模型(>2GB)需要更长的超时时间: `"timeout": "1h"`
+- 如果需要,分别上传量化版本
+- 检查网络/Hub 状态
 
-## Lessons Learned
+## 经验教训
 
-These are from production testing and real failures:
+这些来自生产测试和实际失败:
 
-### 1. Always Verify Before Use
-**Lesson:** Don't assume repos/datasets exist. Check first.
+### 1. 始终在使用前验证
+**教训:** 不要假设仓库/数据集存在。先检查。
 ```python
-# BEFORE submitting job
-hub_repo_details(["trl-lib/argilla-dpo-mix-7k"], repo_type="dataset")  # Would catch error
+# 在提交作业之前
+hub_repo_details(["trl-lib/argilla-dpo-mix-7k"], repo_type="dataset")  # 会捕获错误
 ```
-**Prevented failures:** Non-existent dataset names, typos in model names
+**防止的失败:** 不存在的数据集名称、模型名称中的拼写错误
 
-### 2. Prioritize Reliability Over Performance
-**Lesson:** Default to what's most likely to succeed.
-- Use CMake (not make) - more reliable
-- Disable CUDA in build - faster, not needed
-- Include all dependencies - don't "simplify"
+### 2. 优先考虑可靠性而非性能
+**教训:** 默认使用最可能成功的方法。
+- 使用 CMake(而不是 make) - 更可靠
+- 在构建中禁用 CUDA - 更快,不需要
+- 包含所有依赖项 - 不要"简化"
 
-**Prevented failures:** Build failures, missing binaries
+**防止的失败:** 构建失败、缺少二进制文件
 
-### 3. Create Atomic, Self-Contained Scripts
-**Lesson:** Don't remove dependencies or steps. Scripts should work as a unit.
-- All dependencies in PEP 723 header
-- All build steps included
-- Clear error messages
+### 3. 创建原子化的、自包含的脚本
+**教训:** 不要删除依赖项或步骤。脚本应该作为一个单元工作。
+- PEP 723 头部中的所有依赖项
+- 包含所有构建步骤
+- 清晰的错误消息
 
-**Prevented failures:** Missing tokenizer libraries, build tool failures
+**防止的失败:** 缺少分词器库、构建工具失败
 
-## References
+## 参考
 
-**In this skill:**
-- `scripts/convert_to_gguf.py` - Complete, production-ready script
+**在此技能中:**
+- `scripts/convert_to_gguf.py` - 完整的、生产就绪的脚本
 
-**External:**
-- [llama.cpp Repository](https://github.com/ggerganov/llama.cpp)
-- [GGUF Specification](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md)
-- [Ollama Documentation](https://ollama.ai)
+**外部:**
+- [llama.cpp 仓库](https://github.com/ggerganov/llama.cpp)
+- [GGUF 规范](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md)
+- [Ollama 文档](https://ollama.ai)
 - [LM Studio](https://lmstudio.ai)
 
-## Summary
+## 总结
 
-**Critical checklist for GGUF conversion:**
-- [ ] Verify adapter and base models exist on Hub
-- [ ] Use production script from `scripts/convert_to_gguf.py`
-- [ ] All dependencies in PEP 723 header (including sentencepiece, protobuf)
-- [ ] Build tools installed before cloning llama.cpp
-- [ ] CMake used for building quantize tool (not make)
-- [ ] Correct binary path: `/tmp/llama.cpp/build/bin/llama-quantize`
-- [ ] A10G GPU selected for reasonable conversion time
-- [ ] Timeout set to 45m minimum
-- [ ] HF_TOKEN in secrets for Hub upload
+**GGUF 转换的关键检查清单:**
+- [ ] 验证适配器和基础模型在 Hub 上存在
+- [ ] 使用 `scripts/convert_to_gguf.py` 中的生产脚本
+- [ ] PEP 723 头部中的所有依赖项(包括 sentencepiece、protobuf)
+- [ ] 在克隆 llama.cpp 之前安装构建工具
+- [ ] 使用 CMake 构建量化工具(而不是 make)
+- [ ] 正确的二进制路径: `/tmp/llama.cpp/build/bin/llama-quantize`
+- [ ] 选择 A10G GPU 以获得合理的转换时间
+- [ ] 超时设置为至少 45m
+- [ ] HF_TOKEN 在 secrets 中用于 Hub 上传
 
-**The script in `scripts/convert_to_gguf.py` incorporates all these lessons and has been tested successfully in production.**
+**`scripts/convert_to_gguf.py` 中的脚本融合了所有这些经验教训,并在生产中成功测试。**

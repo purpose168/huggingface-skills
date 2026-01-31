@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hf-jobs - Run Workloads on Hugging Face Jobs</title>
+    <title>hf-jobs - 在 Hugging Face Jobs 上运行工作负载</title>
     <style>
         * {
             margin: 0;
@@ -134,76 +134,76 @@
         <h1>Agent Skill : hf-jobs</h1>
         
         <div class="description">
-            <p><strong>Run any workload on Hugging Face Jobs.</strong></p>
-            <p>Use this skill when you want to run GPU/CPU workloads (batch inference, synthetic data generation, dataset stats, experiments) on Hugging Face Jobs, with correct token handling and result persistence back to the Hub.</p>
+            <p><strong>在 Hugging Face Jobs 上运行任何工作负载。</strong></p>
+            <p>当您想在 Hugging Face Jobs 上运行 GPU/CPU 工作负载（批量推理、合成数据生成、数据集统计、实验）时使用此技能，具有正确的令牌处理和结果持久化回 Hub 的功能。</p>
         </div>
         
         <div class="metadata">
-            <p><strong>Skill Name:</strong> hf-jobs</p>
-            <p><strong>Main Documentation:</strong> <a href="hf-jobs/SKILL.md">hf-jobs/SKILL.md</a></p>
-            <p><strong>Scripts Directory:</strong> <code>hf-jobs/scripts/</code></p>
-            <p><strong>References Directory:</strong> <code>hf-jobs/references/</code></p>
+            <p><strong>技能名称：</strong> hf-jobs</p>
+            <p><strong>主要文档：</strong> <a href="hf-jobs/SKILL.md">hf-jobs/SKILL.md</a></p>
+            <p><strong>脚本目录：</strong> <code>hf-jobs/scripts/</code></p>
+            <p><strong>参考资料目录：</strong> <code>hf-jobs/references/</code></p>
         </div>
         
         <div class="section">
-            <h2>Overview</h2>
-            <p>This skill focuses on running real workloads via Hugging Face Jobs. It includes ready-to-run UV scripts and guides for authentication (HF tokens), secrets vs env vars, timeouts, hardware selection, and pushing results to the Hub.</p>
+            <h2>概述</h2>
+            <p>此技能专注于通过 Hugging Face Jobs 运行实际工作负载。它包括现成的 UV 脚本和指南，用于身份验证（HF 令牌）、secrets 与环境变量、超时、硬件选择以及将结果推送到 Hub。</p>
         </div>
 
         <div class="section">
-            <h2>Core Documentation</h2>
+            <h2>核心文档</h2>
             <ul class="file-list">
                 <li>
                     <a href="hf-jobs/SKILL.md">SKILL.md</a>
                     <div class="file-path">hf-jobs/SKILL.md</div>
-                    <div class="file-description">Complete skill documentation (how to submit jobs, tokens/secrets, timeouts, persistence, and how to use the bundled scripts)</div>
+                    <div class="file-description">完整的技能文档（如何提交作业、令牌/secrets、超时、持久化以及如何使用捆绑脚本）</div>
                 </li>
             </ul>
         </div>
 
         <div class="section">
-            <h2>References</h2>
+            <h2>参考资料</h2>
             <ul class="file-list">
                 <li>
                     <a href="hf-jobs/references/token_usage.md">token_usage.md</a>
                     <div class="file-path">hf-jobs/references/token_usage.md</div>
-                    <div class="file-description">Token best practices: secrets vs env, permissions, common errors (401/403), and secure patterns</div>
+                    <div class="file-description">令牌最佳实践：secrets 与环境变量、权限、常见错误（401/403）以及安全模式</div>
                 </li>
                 <li>
                     <a href="hf-jobs/references/hub_saving.md">hub_saving.md</a>
                     <div class="file-path">hf-jobs/references/hub_saving.md</div>
-                    <div class="file-description">How to persist results: push datasets/models/files to the Hub (ephemeral job filesystem)</div>
+                    <div class="file-description">如何持久化结果：将数据集/模型/文件推送到 Hub（临时作业文件系统）</div>
                 </li>
                 <li>
                     <a href="hf-jobs/references/hardware_guide.md">hardware_guide.md</a>
                     <div class="file-path">hf-jobs/references/hardware_guide.md</div>
-                    <div class="file-description">Flavor selection guidance for CPU/GPU/TPU workloads</div>
+                    <div class="file-description">CPU/GPU/TPU 工作负载的硬件类型选择指南</div>
                 </li>
                 <li>
                     <a href="hf-jobs/references/troubleshooting.md">troubleshooting.md</a>
                     <div class="file-path">hf-jobs/references/troubleshooting.md</div>
-                    <div class="file-description">Common failure modes (timeouts, missing deps, OOM, auth) and fixes</div>
+                    <div class="file-description">常见失败模式（超时、缺少依赖、内存不足、认证）及修复方法</div>
                 </li>
             </ul>
         </div>
 
         <div class="section">
-            <h2>Scripts</h2>
+            <h2>脚本</h2>
             <ul class="file-list">
                 <li>
                     <a href="hf-jobs/scripts/generate-responses.py">generate-responses.py</a>
                     <div class="file-path">hf-jobs/scripts/generate-responses.py</div>
-                    <div class="file-description">vLLM batch generation: load prompts/messages from a dataset, generate responses, push dataset + card to Hub</div>
+                    <div class="file-description">vLLM 批量生成：从数据集加载提示/消息，生成响应，将数据集 + 卡片推送到 Hub</div>
                 </li>
                 <li>
                     <a href="hf-jobs/scripts/cot-self-instruct.py">cot-self-instruct.py</a>
                     <div class="file-path">hf-jobs/scripts/cot-self-instruct.py</div>
-                    <div class="file-description">CoT Self-Instruct synthetic data generation (reasoning/instruction) + optional filtering, pushes dataset + card</div>
+                    <div class="file-description">CoT 自指令合成数据生成（推理/指令）+ 可选过滤，推送数据集 + 卡片</div>
                 </li>
                 <li>
                     <a href="hf-jobs/scripts/finepdfs-stats.py">finepdfs-stats.py</a>
                     <div class="file-path">hf-jobs/scripts/finepdfs-stats.py</div>
-                    <div class="file-description">Polars streaming stats over Hub parquet (finepdfs-edu); optional upload of computed stats to a dataset repo</div>
+                    <div class="file-description">对 Hub parquet（finepdfs-edu）进行 Polars 流式统计；可选将计算的统计数据上传到数据集仓库</div>
                 </li>
             </ul>
         </div>
